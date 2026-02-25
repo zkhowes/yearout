@@ -1,5 +1,5 @@
 {
-  "id": "7bdd3e8c-66f4-4a87-9498-8f240f4827bb",
+  "id": "bd9bd5a1-facd-413e-88ee-f9ed751ea990",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -1363,6 +1363,12 @@
           "primaryKey": false,
           "notNull": false
         },
+        "invite_token": {
+          "name": "invite_token",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp",
@@ -1394,6 +1400,13 @@
           "nullsNotDistinct": false,
           "columns": [
             "slug"
+          ]
+        },
+        "rituals_invite_token_unique": {
+          "name": "rituals_invite_token_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "invite_token"
           ]
         }
       },

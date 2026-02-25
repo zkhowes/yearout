@@ -182,8 +182,10 @@ CREATE TABLE "rituals" (
 	"bylaws" text,
 	"founding_year" text,
 	"typical_month" text,
+	"invite_token" text NOT NULL,
 	"created_at" timestamp DEFAULT now() NOT NULL,
-	CONSTRAINT "rituals_slug_unique" UNIQUE("slug")
+	CONSTRAINT "rituals_slug_unique" UNIQUE("slug"),
+	CONSTRAINT "rituals_invite_token_unique" UNIQUE("invite_token")
 );
 --> statement-breakpoint
 ALTER TABLE "event_attendees" ADD CONSTRAINT "event_attendees_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
