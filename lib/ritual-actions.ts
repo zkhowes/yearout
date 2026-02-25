@@ -6,6 +6,34 @@ import { auth } from '@/auth'
 import { redirect } from 'next/navigation'
 import type { RitualInference } from '@/app/api/ritual/infer/route'
 
+export async function joinRitual(token: string) {
+  const session = await auth()
+  if (!session?.user?.id) redirect('/login')
+
+  const ritual = await db.query.rituals.findFirst({
+    where: (r, { eq }) => eq(r.inviteToken, token),
+  })
+  if (!ritual) throw new Error('Invalid invite link')
+
+  const existing = await db.query.ritualMembers.findFirst({
+    where: (rm, { and, eq }) =>
+      and(eq(rm.ritualId, ritual.id), eq(rm.userId, session.user!.id!)),
+  })
+
+  if (!existing) {
+    await db.insert(ritualMembers).values({
+      id: crypto.randomUUID(),
+      ritualId: ritual.id,
+      userId: session.user.id!,
+      role: 'crew_member',
+      isCoreCrewe: false,
+      joinedAt: new Date(),
+    })
+  }
+
+  redirect(`/${ritual.slug}`)
+}
+
 export async function createRitual(
   inference: RitualInference,
   name: string,
