@@ -1,6 +1,6 @@
 import { pgTable, text, timestamp, pgEnum, integer, boolean } from 'drizzle-orm/pg-core'
 import { users } from './users'
-import { circuits } from './circuits'
+import { rituals } from './rituals'
 
 export const eventStatusEnum = pgEnum('event_status', [
   'planning',
@@ -17,7 +17,7 @@ export const loreEntryTypeEnum = pgEnum('lore_entry_type', [
 
 export const events = pgTable('events', {
   id: text('id').primaryKey(),
-  circuitId: text('circuit_id').notNull().references(() => circuits.id, { onDelete: 'cascade' }),
+  ritualId: text('ritual_id').notNull().references(() => rituals.id, { onDelete: 'cascade' }),
   organizerId: text('organizer_id').references(() => users.id),
   name: text('name').notNull(),       // e.g. "TT Whistler 2025"
   year: integer('year').notNull(),
@@ -34,7 +34,7 @@ export const eventProposals = pgTable('event_proposals', {
   id: text('id').primaryKey(),
   eventId: text('event_id').notNull().references(() => events.id, { onDelete: 'cascade' }),
   proposedBy: text('proposed_by').notNull().references(() => users.id),
-  dates: text('dates'),               // freeform or ISO range
+  dates: text('dates'),
   location: text('location'),
   activity: text('activity'),
   notes: text('notes'),
@@ -62,8 +62,8 @@ export const loreEntries = pgTable('lore_entries', {
   eventId: text('event_id').notNull().references(() => events.id, { onDelete: 'cascade' }),
   authorId: text('author_id').notNull().references(() => users.id),
   type: loreEntryTypeEnum('type').notNull(),
-  content: text('content'),           // text body or caption
-  mediaUrl: text('media_url'),        // Vercel Blob URL for images
+  content: text('content'),
+  mediaUrl: text('media_url'),        // Vercel Blob URL
   location: text('location'),         // for checkin type
   isHallOfFame: boolean('is_hall_of_fame').notNull().default(false),
   day: timestamp('day', { mode: 'date' }),
@@ -76,8 +76,8 @@ export const activityResults = pgTable('activity_results', {
   userId: text('user_id').notNull().references(() => users.id),
   day: timestamp('day', { mode: 'date' }),
   metric: text('metric').notNull(),   // e.g. "fastest_speed", "skier_cross_wins"
-  value: text('value').notNull(),     // stored as text, parsed by activity type
-  unit: text('unit'),                 // e.g. "mph", "wins"
+  value: text('value').notNull(),
+  unit: text('unit'),
   createdAt: timestamp('created_at', { mode: 'date' }).defaultNow().notNull(),
 })
 
@@ -110,7 +110,7 @@ export const awards = pgTable('awards', {
 
 export const callSends = pgTable('call_sends', {
   id: text('id').primaryKey(),
-  circuitId: text('circuit_id').notNull().references(() => circuits.id, { onDelete: 'cascade' }),
+  ritualId: text('ritual_id').notNull().references(() => rituals.id, { onDelete: 'cascade' }),
   eventId: text('event_id').references(() => events.id),
   stage: integer('stage').notNull(), // 1 | 2 | 3 | 4 (3a)
   aiQuote: text('ai_quote'),         // Stage 1 only — stored for the archive

@@ -13,13 +13,13 @@ export const activityTypeEnum = pgEnum('activity_type', [
 ])
 
 export const themeEnum = pgEnum('theme', [
-  'circuit',
+  'circuit', // The Circuit theme (dark, gold, ski/adventure)
   'club',
   'trail',
   'getaway',
 ])
 
-export const circuits = pgTable('circuits', {
+export const rituals = pgTable('rituals', {
   id: text('id').primaryKey(),
   name: text('name').notNull(),
   slug: text('slug').notNull().unique(), // e.g. "torturetour" → yearout.zkhowes.fun/torturetour
@@ -34,9 +34,9 @@ export const circuits = pgTable('circuits', {
   createdAt: timestamp('created_at', { mode: 'date' }).defaultNow().notNull(),
 })
 
-export const circuitAwardDefinitions = pgTable('circuit_award_definitions', {
+export const ritualAwardDefinitions = pgTable('ritual_award_definitions', {
   id: text('id').primaryKey(),
-  circuitId: text('circuit_id').notNull().references(() => circuits.id, { onDelete: 'cascade' }),
+  ritualId: text('ritual_id').notNull().references(() => rituals.id, { onDelete: 'cascade' }),
   name: text('name').notNull(),      // e.g. "MVP"
   label: text('label').notNull(),    // e.g. "Most Valuable Player"
   type: text('type').notNull(),      // "mvp" | "lup" | "runner_up" | "custom"

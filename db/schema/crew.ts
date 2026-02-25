@@ -1,6 +1,6 @@
 import { pgTable, text, boolean, timestamp, pgEnum } from 'drizzle-orm/pg-core'
 import { users } from './users'
-import { circuits } from './circuits'
+import { rituals } from './rituals'
 
 export const crewRoleEnum = pgEnum('crew_role', [
   'sponsor',
@@ -15,13 +15,13 @@ export const bookingStatusEnum = pgEnum('booking_status', [
   'all_booked',
 ])
 
-export const circuitMembers = pgTable('circuit_members', {
+export const ritualMembers = pgTable('ritual_members', {
   id: text('id').primaryKey(),
-  circuitId: text('circuit_id').notNull().references(() => circuits.id, { onDelete: 'cascade' }),
+  ritualId: text('ritual_id').notNull().references(() => rituals.id, { onDelete: 'cascade' }),
   userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   role: crewRoleEnum('role').notNull().default('crew_member'),
   isCoreCrewe: boolean('is_core_crew').notNull().default(false),
-  // Sponsor-overridable fields (per circuit)
+  // Sponsor-overridable fields (per ritual)
   nicknameOverride: text('nickname_override'),   // Sponsor sets what the group calls them
   photoOverride: text('photo_override'),         // Sponsor's funnier/more nostalgic mugshot
   joinedAt: timestamp('joined_at', { mode: 'date' }).defaultNow().notNull(),

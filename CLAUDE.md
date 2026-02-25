@@ -10,6 +10,12 @@ Yearout is a mobile-first web app that manages the full lifecycle of recurring g
 - **URL structure**: `yearout.zkhowes.fun/[series-slug]` e.g. `/torturetour`
 - **Dev port**: 3003 (`npm run dev`)
 
+## Key Terminology
+- **Ritual** = the top-level product concept (a recurring annual tradition). "The Torture Tour is a Ritual."
+- **The Circuit** = a visual theme (dark, gold, ski/adventure) — NOT the same as the product concept
+- **Event** = a single year's instance within a Ritual
+- **Sponsor** = permanent admin of a Ritual
+
 ## Tech Stack
 - **Framework**: Next.js 14, App Router, TypeScript
 - **Styling**: Tailwind CSS v3 + CSS variables (for theme system)

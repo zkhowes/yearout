@@ -1,51 +1,26 @@
-CREATE TYPE "public"."activity_type" AS ENUM('ski', 'golf', 'mountain_biking', 'fishing', 'backpacking', 'family', 'girls_trip', 'other');--> statement-breakpoint
-CREATE TYPE "public"."theme" AS ENUM('circuit', 'club', 'trail', 'getaway');--> statement-breakpoint
 CREATE TYPE "public"."booking_status" AS ENUM('not_yet', 'committed', 'flights_booked', 'all_booked');--> statement-breakpoint
 CREATE TYPE "public"."crew_role" AS ENUM('sponsor', 'organizer', 'crew_member');--> statement-breakpoint
 CREATE TYPE "public"."event_status" AS ENUM('planning', 'scheduled', 'in_progress', 'closed');--> statement-breakpoint
 CREATE TYPE "public"."lore_entry_type" AS ENUM('image', 'memory', 'checkin');--> statement-breakpoint
-CREATE TABLE "circuit_award_definitions" (
-	"id" text PRIMARY KEY NOT NULL,
-	"circuit_id" text NOT NULL,
-	"name" text NOT NULL,
-	"label" text NOT NULL,
-	"type" text NOT NULL,
-	"created_at" timestamp DEFAULT now() NOT NULL
-);
---> statement-breakpoint
-CREATE TABLE "circuits" (
-	"id" text PRIMARY KEY NOT NULL,
-	"name" text NOT NULL,
-	"slug" text NOT NULL,
-	"sponsor_id" text NOT NULL,
-	"activity_type" "activity_type" NOT NULL,
-	"theme" "theme" NOT NULL,
-	"tagline" text,
-	"logo_url" text,
-	"bylaws" text,
-	"founding_year" text,
-	"typical_month" text,
-	"created_at" timestamp DEFAULT now() NOT NULL,
-	CONSTRAINT "circuits_slug_unique" UNIQUE("slug")
-);
---> statement-breakpoint
-CREATE TABLE "circuit_members" (
-	"id" text PRIMARY KEY NOT NULL,
-	"circuit_id" text NOT NULL,
-	"user_id" text NOT NULL,
-	"role" "crew_role" DEFAULT 'crew_member' NOT NULL,
-	"is_core_crew" boolean DEFAULT false NOT NULL,
-	"nickname_override" text,
-	"photo_override" text,
-	"joined_at" timestamp DEFAULT now() NOT NULL
-);
---> statement-breakpoint
+CREATE TYPE "public"."activity_type" AS ENUM('ski', 'golf', 'mountain_biking', 'fishing', 'backpacking', 'family', 'girls_trip', 'other');--> statement-breakpoint
+CREATE TYPE "public"."theme" AS ENUM('circuit', 'club', 'trail', 'getaway');--> statement-breakpoint
 CREATE TABLE "event_attendees" (
 	"id" text PRIMARY KEY NOT NULL,
 	"event_id" text NOT NULL,
 	"user_id" text NOT NULL,
 	"booking_status" "booking_status" DEFAULT 'not_yet' NOT NULL,
 	"confirmed_at" timestamp
+);
+--> statement-breakpoint
+CREATE TABLE "ritual_members" (
+	"id" text PRIMARY KEY NOT NULL,
+	"ritual_id" text NOT NULL,
+	"user_id" text NOT NULL,
+	"role" "crew_role" DEFAULT 'crew_member' NOT NULL,
+	"is_core_crew" boolean DEFAULT false NOT NULL,
+	"nickname_override" text,
+	"photo_override" text,
+	"joined_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "activity_results" (
@@ -78,7 +53,7 @@ CREATE TABLE "awards" (
 --> statement-breakpoint
 CREATE TABLE "call_sends" (
 	"id" text PRIMARY KEY NOT NULL,
-	"circuit_id" text NOT NULL,
+	"ritual_id" text NOT NULL,
 	"event_id" text,
 	"stage" integer NOT NULL,
 	"ai_quote" text,
@@ -106,7 +81,7 @@ CREATE TABLE "event_proposals" (
 --> statement-breakpoint
 CREATE TABLE "events" (
 	"id" text PRIMARY KEY NOT NULL,
-	"circuit_id" text NOT NULL,
+	"ritual_id" text NOT NULL,
 	"organizer_id" text,
 	"name" text NOT NULL,
 	"year" integer NOT NULL,
@@ -186,11 +161,34 @@ CREATE TABLE "verification_tokens" (
 	"expires" timestamp NOT NULL
 );
 --> statement-breakpoint
-ALTER TABLE "circuit_award_definitions" ADD CONSTRAINT "circuit_award_definitions_circuit_id_circuits_id_fk" FOREIGN KEY ("circuit_id") REFERENCES "public"."circuits"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "circuits" ADD CONSTRAINT "circuits_sponsor_id_users_id_fk" FOREIGN KEY ("sponsor_id") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "circuit_members" ADD CONSTRAINT "circuit_members_circuit_id_circuits_id_fk" FOREIGN KEY ("circuit_id") REFERENCES "public"."circuits"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "circuit_members" ADD CONSTRAINT "circuit_members_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+CREATE TABLE "ritual_award_definitions" (
+	"id" text PRIMARY KEY NOT NULL,
+	"ritual_id" text NOT NULL,
+	"name" text NOT NULL,
+	"label" text NOT NULL,
+	"type" text NOT NULL,
+	"created_at" timestamp DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE "rituals" (
+	"id" text PRIMARY KEY NOT NULL,
+	"name" text NOT NULL,
+	"slug" text NOT NULL,
+	"sponsor_id" text NOT NULL,
+	"activity_type" "activity_type" NOT NULL,
+	"theme" "theme" NOT NULL,
+	"tagline" text,
+	"logo_url" text,
+	"bylaws" text,
+	"founding_year" text,
+	"typical_month" text,
+	"created_at" timestamp DEFAULT now() NOT NULL,
+	CONSTRAINT "rituals_slug_unique" UNIQUE("slug")
+);
+--> statement-breakpoint
 ALTER TABLE "event_attendees" ADD CONSTRAINT "event_attendees_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "ritual_members" ADD CONSTRAINT "ritual_members_ritual_id_rituals_id_fk" FOREIGN KEY ("ritual_id") REFERENCES "public"."rituals"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "ritual_members" ADD CONSTRAINT "ritual_members_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "activity_results" ADD CONSTRAINT "activity_results_event_id_events_id_fk" FOREIGN KEY ("event_id") REFERENCES "public"."events"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "activity_results" ADD CONSTRAINT "activity_results_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "award_votes" ADD CONSTRAINT "award_votes_event_id_events_id_fk" FOREIGN KEY ("event_id") REFERENCES "public"."events"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
@@ -198,12 +196,12 @@ ALTER TABLE "award_votes" ADD CONSTRAINT "award_votes_voter_id_users_id_fk" FORE
 ALTER TABLE "award_votes" ADD CONSTRAINT "award_votes_nominee_id_users_id_fk" FOREIGN KEY ("nominee_id") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "awards" ADD CONSTRAINT "awards_event_id_events_id_fk" FOREIGN KEY ("event_id") REFERENCES "public"."events"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "awards" ADD CONSTRAINT "awards_winner_id_users_id_fk" FOREIGN KEY ("winner_id") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "call_sends" ADD CONSTRAINT "call_sends_circuit_id_circuits_id_fk" FOREIGN KEY ("circuit_id") REFERENCES "public"."circuits"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "call_sends" ADD CONSTRAINT "call_sends_ritual_id_rituals_id_fk" FOREIGN KEY ("ritual_id") REFERENCES "public"."rituals"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "call_sends" ADD CONSTRAINT "call_sends_event_id_events_id_fk" FOREIGN KEY ("event_id") REFERENCES "public"."events"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "daily_itinerary" ADD CONSTRAINT "daily_itinerary_event_id_events_id_fk" FOREIGN KEY ("event_id") REFERENCES "public"."events"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "event_proposals" ADD CONSTRAINT "event_proposals_event_id_events_id_fk" FOREIGN KEY ("event_id") REFERENCES "public"."events"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "event_proposals" ADD CONSTRAINT "event_proposals_proposed_by_users_id_fk" FOREIGN KEY ("proposed_by") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "events" ADD CONSTRAINT "events_circuit_id_circuits_id_fk" FOREIGN KEY ("circuit_id") REFERENCES "public"."circuits"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "events" ADD CONSTRAINT "events_ritual_id_rituals_id_fk" FOREIGN KEY ("ritual_id") REFERENCES "public"."rituals"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "events" ADD CONSTRAINT "events_organizer_id_users_id_fk" FOREIGN KEY ("organizer_id") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "expenses" ADD CONSTRAINT "expenses_event_id_events_id_fk" FOREIGN KEY ("event_id") REFERENCES "public"."events"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "expenses" ADD CONSTRAINT "expenses_paid_by_users_id_fk" FOREIGN KEY ("paid_by") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
@@ -212,4 +210,6 @@ ALTER TABLE "lore_entries" ADD CONSTRAINT "lore_entries_author_id_users_id_fk" F
 ALTER TABLE "proposal_votes" ADD CONSTRAINT "proposal_votes_proposal_id_event_proposals_id_fk" FOREIGN KEY ("proposal_id") REFERENCES "public"."event_proposals"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "proposal_votes" ADD CONSTRAINT "proposal_votes_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "accounts" ADD CONSTRAINT "accounts_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "sessions" ADD CONSTRAINT "sessions_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+ALTER TABLE "sessions" ADD CONSTRAINT "sessions_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "ritual_award_definitions" ADD CONSTRAINT "ritual_award_definitions_ritual_id_rituals_id_fk" FOREIGN KEY ("ritual_id") REFERENCES "public"."rituals"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "rituals" ADD CONSTRAINT "rituals_sponsor_id_users_id_fk" FOREIGN KEY ("sponsor_id") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;

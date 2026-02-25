@@ -9,8 +9,8 @@
 
 | Term | Definition |
 |---|---|
-| **Circuit** | The top-level product concept — a recurring group adventure tradition. "The Torture Tour is a Circuit." Used in UI, marketing, and data model. |
-| **The Circuit** | A specific visual theme (dark, grungy, ski/adventure crews). Distinct from the product concept despite sharing the word. |
+| **Ritual** | The top-level product concept — a recurring group adventure tradition. "The Torture Tour is a Ritual." Used in UI, marketing, and data model. |
+| **The Circuit** | A specific visual theme (dark, grungy, ski/adventure crews). Entirely distinct from the product concept. |
 | **Event** | A single year's instance within a Circuit (e.g. "TT Whistler 2025") |
 | **Sponsor** | Permanent admin of a Circuit |
 | **Organizer** | Per-event role, designated by Sponsor |
@@ -18,8 +18,8 @@
 | **Core Crew** | Founding members designation |
 | **Lore** | Hall of Fame moments and memories — per event and cross-circuit |
 
-> **Note**: "Circuit" and "The Circuit" (theme) coexist deliberately. Context makes them distinct — "create a Circuit" vs "choose The Circuit theme."
-> **Rename pending**: The current PRD draft uses "Series" throughout. A full rename to "Circuit" will be applied at the start of the build phase.
+> **Note**: "Ritual" is the canonical product term, rooted directly in Core Philosophy §3: "The Ritual Builds the Legend." "The Circuit" is a visual theme — no naming conflict.
+> **Rename applied**: Series → Ritual throughout. "The Circuit" theme name is unchanged.
 
 ---
 
@@ -77,7 +77,7 @@ Every workflow must be ruthlessly simple. If it takes more than 3 taps to comple
 - Likely 28–50, owns the logistics for the group
 
 ### Secondary: The Crew Member
-- Invited into an existing series
+- Invited into an existing ritual
 - Wants to participate in voting, see the schedule, log moments, settle expenses
 - Less interested in admin, highly interested in the fun parts (awards, HOF, leaderboard)
 
@@ -91,15 +91,15 @@ Every workflow must be ruthlessly simple. If it takes more than 3 taps to comple
 ## 5.5 Roles & Permissions
 
 ### Sponsor
-- The person who creates the series in the app
-- Permanent series-level admin — cannot be transferred
+- The person who creates the ritual in the app
+- Permanent ritual-level admin — cannot be transferred
 - Designates an Organizer for each event (can designate themselves)
-- Can manage crew membership, series settings, theme, and awards definition
+- Can manage crew membership, ritual settings, theme, and awards definition
 - The Sponsor role is sacred: they are the keeper of the mythology
 
 ### Organizer
 - Designated per-event by the Sponsor
-- The Organizer role can rotate year to year (required for some series, optional for others)
+- The Organizer role can rotate year to year (required for some rituals, optional for others)
 - Owns the planning flow for their event: proposes dates, locations, activity
 - Triggers The Call when locking in the event
 - Manages the daily itinerary during the event
@@ -108,12 +108,12 @@ Every workflow must be ruthlessly simple. If it takes more than 3 taps to comple
 ### Crew Member
 - Standard participant role
 - Can vote on proposals, log entries, add expenses, flag HOF moments, give and receive awards
-- Cannot modify series settings or trigger The Call
+- Cannot modify ritual settings or trigger The Call
 
 ### Core Crew (designation)
-- An optional badge applied to founding members of a series
+- An optional badge applied to founding members of a ritual
 - Tracks who has been there from the beginning
-- Displayed on profiles and the series archive
+- Displayed on profiles and the ritual archive
 - Example: The Torture Tour has a Core Crew of original members who've been skiing together since 2009
 
 ---
@@ -122,13 +122,13 @@ Every workflow must be ruthlessly simple. If it takes more than 3 taps to comple
 
 ### 6.1 Authentication
 - **Google OAuth** and **Apple Sign In** are the primary auth methods — no username/password for end users
-- Supabase Auth handles both natively
-- Invite-only joining for event series (no public discovery in Phase 1)
+- Supabase Auth handles both natively (note: now using Auth.js v5)
+- Invite-only joining for event rituals (no public discovery in Phase 1)
 - A separate **Super Admin** role exists outside of Supabase Auth for internal platform management (see Section 6.11)
 
 ### 6.2 Dashboard
-- List of all series the user belongs to (as Sponsor, Organizer, or Crew Member)
-- Quick-action to create a new series
+- List of all rituals the user belongs to (as Sponsor, Organizer, or Crew Member)
+- Quick-action to create a new ritual
 - Notifications for pending votes, upcoming events, unsettled expenses, and Call alerts
 - Unacknowledged Stage 3 Calls trigger a full-screen takeover on next app open
 
@@ -152,12 +152,12 @@ Each template ships with:
 - Suggested themed day names (e.g. "Race Day", "Rest Day", "Jersey Day" for ski)
 - Activity-specific result field definitions
 
-### 6.4 Create a Series
+### 6.4 Create a Ritual
 Minimum steps to establish a crew's recurring event:
 1. Choose a trip template (sets activity type, checklist, pack list defaults)
-2. Name the series (e.g. "The Torture Tour")
+2. Name the ritual (e.g. "The Torture Tour")
 3. Choose a theme (Circuit / Club / Trail / Getaway) — pre-selected based on template, overridable
-4. Define series awards (e.g. MVP, The Totem) — customizable, template provides defaults
+4. Define ritual awards (e.g. MVP, The Totem) — customizable, template provides defaults
 5. Optional: tagline, logo (AI-assisted generation), bylaws/motto, Core Crew designations
 6. Invite crew members by email or share link
 
@@ -179,7 +179,7 @@ The Call is not a single notification — it is a three-stage ritual that drives
 **Purpose**: A prod. The app notices nothing is in motion and blows the horn. "It's time to plan."
 **Tone**: Epic, philosophical, slightly dark. Memento mori meets adventure culture.
 
-**AI-Generated Quote Copy**: Each Stage 1 notification is powered by an AI-generated quote — unique per send, referencing the series name and built around themes of carpe diem, mortality, and the urgency of living. The quote is the notification body. Examples of the target voice:
+**AI-Generated Quote Copy**: Each Stage 1 notification is powered by an AI-generated quote — unique per send, referencing the ritual name and built around themes of carpe diem, mortality, and the urgency of living. The quote is the notification body. Examples of the target voice:
 
 > *"No trip on the books, Carpe Diem Crew — quam minimum credula postero. Trust as little as possible in tomorrow."*
 
@@ -188,7 +188,7 @@ The Call is not a single notification — it is a three-stage ritual that drives
 > *"The mountains are calling and you are making excuses. Another year is not guaranteed. [Torture Tour] — when?"*
 
 The AI (Claude API) generates these dynamically, seeded with:
-- The series name
+- The ritual name
 - How many years the crew has been running (e.g. "17 years strong")
 - The current date / time of year
 - A rotating thematic angle (Latin stoicism, literary, historical, raw/direct)
@@ -213,7 +213,7 @@ Quotes are stored with each notification send so the archive can show the quote 
 **Purpose**: Gentle but firm. Nobody gets left behind — or left out.
 
 #### Delivery — All Stages
-- **Email first**: All Call stages are delivered via transactional email (Resend + React Email). Emails are designed to match the series theme and carry the same dramatic voice as the in-app experience.
+- **Email first**: All Call stages are delivered via transactional email (Resend + React Email). Emails are designed to match the ritual theme and carry the same dramatic voice as the in-app experience.
 - **No web push notifications**: Deliberate decision. Web push is unreliable and interruptive. Email is universal, persistent, and feels more ceremonial for something this important.
 - **In-app notification feed**: A persistent notification indicator in the UI surfaces pending Calls, vote requests, and commit reminders. Users see what's waiting for them when they open the app.
 
@@ -229,15 +229,15 @@ Quotes are stored with each notification send so the archive can show the quote 
 
 Yearout has two primary UI modes depending on whether an active series exists.
 
-**Mode 1 — Empty State (no series)**
+**Mode 1 — Empty State (no ritual)**
 Clean, welcoming. A single prompt: *"You should create one — want help getting started?"* Guides the user directly into series creation via template selection. No dashboard noise.
 
-**Mode 2 — Series Active**
-The app shell recedes entirely. The series takes over. A minimal Yearout header (wordmark + hamburger menu) is the only chrome. Everything below belongs to the series.
+**Mode 2 — Ritual Active**
+The app shell recedes entirely. The series takes over. A minimal Yearout header (wordmark + hamburger menu) is the only chrome. Everything below belongs to the ritual.
 
 *(Super Admin is a separate route — `/admin` — not accessible from the main app UI.)*
 
-### 6.7 Tour View (Series Home)
+### 6.7 Tour View (Ritual Home)
 The emotional core of the app and the home screen for any active series. Design references:
 - **Lord Huron tour page** (lordhuron.com/tour) — minimal header, clean chronological setlist, moody and atmospheric. Lines between rows, no clutter.
 - **X Games results** (xgames.com/results) — year rows that click into full event detail.
@@ -247,7 +247,7 @@ The emotional core of the app and the home screen for any active series. Design 
 ```
 [ Yearout wordmark ]                    [ ≡ ]
 
-        [ Series Logo ]
+        [ Ritual Logo ]
          e.g. Torture Tour Logo
 
   [ NEXT EVENT ]     or     [ LAST EVENT RESULTS ]
@@ -278,7 +278,7 @@ The emotional core of the app and the home screen for any active series. Design 
 - The table is the mythology. 17 rows for The Torture Tour.
 
 **Bottom navigation tabs:**
-- **About** — series info, bylaws/motto, activity type, theme, founding year
+- **About** — ritual info, bylaws/motto, activity type, theme, founding year
 - **Crew** — member roster, Core Crew badges, all-time leaderboard
 - **Lore** — Hall of Fame moments and stories across all events; this is the mythology browser
 - **Merch** — Phase 2 placeholder (designed into nav from day one; shows "coming soon" in Phase 1)
@@ -290,7 +290,7 @@ The single event view. One page, scrollable, that adapts its content based on ev
 ```
 [ Yearout ]                                  [ ≡ ]
 
-              [ Series Logo ]
+              [ Ritual Logo ]
 
      ┌─────────────────────────────────┐
      │   TT Whistler 2025              │  ← Event name hero
@@ -335,7 +335,7 @@ The single event view. One page, scrollable, that adapts its content based on ev
 **Lore block:**
 - Entry types: **Image**, **Text / Memory**, **Check-in** (location pin)
 - Anyone on the crew can post during `in_progress`
-- Any entry can be flagged as a Hall of Fame moment (persists in the cross-series Lore tab forever)
+- Any entry can be flagged as a Hall of Fame moment (persists in the cross-ritual Lore tab forever)
 - Displayed as a horizontal scroll of cards, most recent first
 
 **Day Log block:**
@@ -357,8 +357,8 @@ The single event view. One page, scrollable, that adapts its content based on ev
 | `in_progress` | Dates + location confirmed | Add/edit awards | Post entries | Post results | Add expenses |
 | `closed` | Full results summary | Read-only, final | Read-only | Read-only | Settled summary |
 
-### 6.7c Lore Tab (Cross-Series)
-The Lore tab on the Tour View is the mythology browser — it surfaces Hall of Fame moments, memories, and check-ins across every event in the series, not just one.
+### 6.7c Lore Tab (Cross-Ritual)
+The Lore tab on the Tour View is the mythology browser — it surfaces Hall of Fame moments, memories, and check-ins across every event in the ritual, not just one.
 
 **What it shows:**
 - All HOF-flagged lore entries from every event, reverse-chronological
@@ -422,12 +422,12 @@ Active features during the trip:
 
 - **Daily Itinerary**: The Organizer can set a named theme or agenda for each day (e.g. "Jersey Day", "Race Day", "Throwback Thursday"). Displayed at the top of each day's log view. Optional but encouraged — this is where crew traditions live.
 - **Daily Log**: Anyone can post a log entry for the day — text, photos, type (general / result / hall of fame moment)
-- **Activity Results**: Structured, activity-specific result entry. Fields vary by series type:
+- **Activity Results**: Structured, activity-specific result entry. Fields vary by ritual type:
   - Ski: fastest speed, skier cross wins, vertical feet
   - Golf: lowest score, skins won
-  - Custom: series can define their own result fields
+  - Custom: rituals can define their own result fields
 - **Expenses**: Splitwise-style expense tracking. Each crew member logs what they paid (amount + description). The app tallies the total, calculates the equal share per person, and shows each member what they owe or are owed. No manual split math required.
-- **Hall of Fame**: Flag any log entry as a HOF moment; these persist in the series archive forever
+- **Hall of Fame**: Flag any log entry as a HOF moment; these persist in the ritual archive forever
 
 ### 6.11 Close Out
 End-of-event flow initiated by the Organizer. Consists of three steps before the chapter is sealed.
@@ -459,13 +459,13 @@ End-of-event flow initiated by the Organizer. Consists of three steps before the
 - **Sponsor** retains edit capability for corrections: awards, expense entries, attendance, lore entries
 - No re-opening of voting once closed — corrections are direct edits by Sponsor only
 
-### 6.12 Series Archive (Past Events)
+### 6.12 Ritual Archive (Past Events)
 - Every closed event is permanently accessible
 - Shows: dates, location, crew, awards, HOF moments, log highlights, daily itinerary
 - Core Crew members are distinguished in the archive
 
 ### 6.13 Crew Tab
-The roster and hall of records for the series.
+The roster and hall of records for the ritual.
 
 **Crew Card** — each member has a card displaying:
 - Profile photo / mugshot — user-provided by default; **Sponsor can override** with any image they find funnier or more nostalgic. A deliberate feature.
@@ -474,7 +474,7 @@ The roster and hall of records for the series.
 - Nationality — fun, Olympic-style flag display. Can be real or totally made up. Part of the personality.
 - Core Crew badge (if applicable)
 
-**All-Time Leaderboard** — sortable stats across every event in the series:
+**All-Time Leaderboard** — sortable stats across every event in the ritual:
 | Stat | Description |
 |---|---|
 | Events Attended | Total appearances |
@@ -525,7 +525,7 @@ Each result is expandable to show full detail. From any circuit or event result,
 
 #### Tab 3 — Data Management
 - Seed / manage test data (The Torture Tour CSV import)
-- Manual Call trigger override (fire any stage for any circuit — for testing)
+- Manual Call trigger override (fire any stage for any ritual — for testing)
 - View and manage all email sends (Call history, delivery status)
 - User account management (merge, deactivate)
 
@@ -533,7 +533,7 @@ Each result is expandable to show full detail. From any circuit or event result,
 
 ## 7. Theme System
 
-The Yearout app shell is always clean, minimal, and neutral. Themes are applied at the **series level** — the Tour view, awards, HOF, and archive take on the series theme.
+The Yearout app shell is always clean, minimal, and neutral. Themes are applied at the **ritual level** — the Tour view, awards, HOF, and archive take on the ritual theme.
 
 ### Default (App Shell)
 Clean, minimal, mobile-first. White background, dark text, no personality — this is the neutral container.
@@ -688,17 +688,17 @@ The MVP is the full lifecycle for a single crew:
 - [ ] Close out: expense settlement (Splitwise-style auto-calculation)
 - [ ] Close out: award voting (2 votes per award, no self-vote, Organizer kicks off + closes)
 - [ ] Close out: seal the chapter → event archived
-- [ ] Series archive (past events, all-time leaderboard, award history)
+- [ ] Ritual archive (past events, all-time leaderboard, award history)
 
 ---
 
 ## 12. Phase 2 (Post-MVP)
 
 - Marketplace: guides and planners offer their services to crews
-- AI logo generation for series
-- Merchandise integration (shirts, stickers based on series theme)
+- AI logo generation for rituals
+- Merchandise integration (shirts, stickers based on ritual theme)
 - Video edit automation (integrate with Google Photos / Apple Photos APIs)
-- Public series discovery (opt-in)
+- Public ritual discovery (opt-in)
 - Native mobile apps (iOS / Android)
 - Activity-specific features (ski run tracking, golf scorecards, trail maps)
 
@@ -730,7 +730,7 @@ The MVP is the full lifecycle for a single crew:
 - [ ] Stage 1 quote generation: pre-generate on a schedule and store, or generate on-the-fly at send time?
 - [ ] Do we support real-time expense updates during the trip (Supabase realtime)?
 - [ ] How do we handle crew members who don't have the app yet (SMS invites)?
-- [ ] The Call Stage 1 timing: fires 6 months before the series' typical annual month (derived from event history). Implemented as a scheduled job (Vercel Cron).
+- [ ] The Call Stage 1 timing: fires 6 months before the ritual's typical annual month (derived from event history). Implemented as a scheduled job (Vercel Cron).
 - [ ] Can the Organizer role rotate automatically (e.g. round-robin), or is it always manually assigned by the Sponsor?
 
 ---
@@ -738,7 +738,7 @@ The MVP is the full lifecycle for a single crew:
 ## Appendix A — Domain & URL Structure
 
 - **Production**: `yearout.zkhowes.fun` (subdomain on hover.com, CNAME to Vercel)
-- **Series URLs**: `yearout.zkhowes.fun/[series-slug]` — e.g. `yearout.zkhowes.fun/torturetour`
+- **Ritual URLs**: `yearout.zkhowes.fun/[ritual-slug]` — e.g. `yearout.zkhowes.fun/torturetour`
 - **Event URLs**: `yearout.zkhowes.fun/torturetour/2025`
 - **Share links**: `yearout.zkhowes.fun/join/[token]`
 - **Admin**: `yearout.zkhowes.fun/admin` (middleware-protected)

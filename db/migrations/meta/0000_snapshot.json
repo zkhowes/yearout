@@ -1,11 +1,11 @@
 {
-  "id": "0fef6d08-0acb-47cb-a40e-dbfe02d3ab16",
+  "id": "7bdd3e8c-66f4-4a87-9498-8f240f4827bb",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
-    "public.circuit_award_definitions": {
-      "name": "circuit_award_definitions",
+    "public.event_attendees": {
+      "name": "event_attendees",
       "schema": "",
       "columns": {
         "id": {
@@ -14,46 +14,41 @@
           "primaryKey": true,
           "notNull": true
         },
-        "circuit_id": {
-          "name": "circuit_id",
+        "event_id": {
+          "name": "event_id",
           "type": "text",
           "primaryKey": false,
           "notNull": true
         },
-        "name": {
-          "name": "name",
+        "user_id": {
+          "name": "user_id",
           "type": "text",
           "primaryKey": false,
           "notNull": true
         },
-        "label": {
-          "name": "label",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "type": {
-          "name": "type",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp",
+        "booking_status": {
+          "name": "booking_status",
+          "type": "booking_status",
+          "typeSchema": "public",
           "primaryKey": false,
           "notNull": true,
-          "default": "now()"
+          "default": "'not_yet'"
+        },
+        "confirmed_at": {
+          "name": "confirmed_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
         }
       },
       "indexes": {},
       "foreignKeys": {
-        "circuit_award_definitions_circuit_id_circuits_id_fk": {
-          "name": "circuit_award_definitions_circuit_id_circuits_id_fk",
-          "tableFrom": "circuit_award_definitions",
-          "tableTo": "circuits",
+        "event_attendees_user_id_users_id_fk": {
+          "name": "event_attendees_user_id_users_id_fk",
+          "tableFrom": "event_attendees",
+          "tableTo": "users",
           "columnsFrom": [
-            "circuit_id"
+            "user_id"
           ],
           "columnsTo": [
             "id"
@@ -68,8 +63,8 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.circuits": {
-      "name": "circuits",
+    "public.ritual_members": {
+      "name": "ritual_members",
       "schema": "",
       "columns": {
         "id": {
@@ -78,118 +73,8 @@
           "primaryKey": true,
           "notNull": true
         },
-        "name": {
-          "name": "name",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "slug": {
-          "name": "slug",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "sponsor_id": {
-          "name": "sponsor_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "activity_type": {
-          "name": "activity_type",
-          "type": "activity_type",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "theme": {
-          "name": "theme",
-          "type": "theme",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "tagline": {
-          "name": "tagline",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "logo_url": {
-          "name": "logo_url",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "bylaws": {
-          "name": "bylaws",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "founding_year": {
-          "name": "founding_year",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "typical_month": {
-          "name": "typical_month",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "circuits_sponsor_id_users_id_fk": {
-          "name": "circuits_sponsor_id_users_id_fk",
-          "tableFrom": "circuits",
-          "tableTo": "users",
-          "columnsFrom": [
-            "sponsor_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "circuits_slug_unique": {
-          "name": "circuits_slug_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "slug"
-          ]
-        }
-      },
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.circuit_members": {
-      "name": "circuit_members",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "circuit_id": {
-          "name": "circuit_id",
+        "ritual_id": {
+          "name": "ritual_id",
           "type": "text",
           "primaryKey": false,
           "notNull": true
@@ -237,12 +122,12 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "circuit_members_circuit_id_circuits_id_fk": {
-          "name": "circuit_members_circuit_id_circuits_id_fk",
-          "tableFrom": "circuit_members",
-          "tableTo": "circuits",
+        "ritual_members_ritual_id_rituals_id_fk": {
+          "name": "ritual_members_ritual_id_rituals_id_fk",
+          "tableFrom": "ritual_members",
+          "tableTo": "rituals",
           "columnsFrom": [
-            "circuit_id"
+            "ritual_id"
           ],
           "columnsTo": [
             "id"
@@ -250,68 +135,9 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "circuit_members_user_id_users_id_fk": {
-          "name": "circuit_members_user_id_users_id_fk",
-          "tableFrom": "circuit_members",
-          "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.event_attendees": {
-      "name": "event_attendees",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "event_id": {
-          "name": "event_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "user_id": {
-          "name": "user_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "booking_status": {
-          "name": "booking_status",
-          "type": "booking_status",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'not_yet'"
-        },
-        "confirmed_at": {
-          "name": "confirmed_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": false
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "event_attendees_user_id_users_id_fk": {
-          "name": "event_attendees_user_id_users_id_fk",
-          "tableFrom": "event_attendees",
+        "ritual_members_user_id_users_id_fk": {
+          "name": "ritual_members_user_id_users_id_fk",
+          "tableFrom": "ritual_members",
           "tableTo": "users",
           "columnsFrom": [
             "user_id"
@@ -589,8 +415,8 @@
           "primaryKey": true,
           "notNull": true
         },
-        "circuit_id": {
-          "name": "circuit_id",
+        "ritual_id": {
+          "name": "ritual_id",
           "type": "text",
           "primaryKey": false,
           "notNull": true
@@ -623,12 +449,12 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "call_sends_circuit_id_circuits_id_fk": {
-          "name": "call_sends_circuit_id_circuits_id_fk",
+        "call_sends_ritual_id_rituals_id_fk": {
+          "name": "call_sends_ritual_id_rituals_id_fk",
           "tableFrom": "call_sends",
-          "tableTo": "circuits",
+          "tableTo": "rituals",
           "columnsFrom": [
-            "circuit_id"
+            "ritual_id"
           ],
           "columnsTo": [
             "id"
@@ -812,8 +638,8 @@
           "primaryKey": true,
           "notNull": true
         },
-        "circuit_id": {
-          "name": "circuit_id",
+        "ritual_id": {
+          "name": "ritual_id",
           "type": "text",
           "primaryKey": false,
           "notNull": true
@@ -884,12 +710,12 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "events_circuit_id_circuits_id_fk": {
-          "name": "events_circuit_id_circuits_id_fk",
+        "events_ritual_id_rituals_id_fk": {
+          "name": "events_ritual_id_rituals_id_fk",
           "tableFrom": "events",
-          "tableTo": "circuits",
+          "tableTo": "rituals",
           "columnsFrom": [
-            "circuit_id"
+            "ritual_id"
           ],
           "columnsTo": [
             "id"
@@ -1400,33 +1226,183 @@
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
+    },
+    "public.ritual_award_definitions": {
+      "name": "ritual_award_definitions",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "ritual_id": {
+          "name": "ritual_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "label": {
+          "name": "label",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "type": {
+          "name": "type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "ritual_award_definitions_ritual_id_rituals_id_fk": {
+          "name": "ritual_award_definitions_ritual_id_rituals_id_fk",
+          "tableFrom": "ritual_award_definitions",
+          "tableTo": "rituals",
+          "columnsFrom": [
+            "ritual_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.rituals": {
+      "name": "rituals",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "slug": {
+          "name": "slug",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "sponsor_id": {
+          "name": "sponsor_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "activity_type": {
+          "name": "activity_type",
+          "type": "activity_type",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "theme": {
+          "name": "theme",
+          "type": "theme",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "tagline": {
+          "name": "tagline",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "logo_url": {
+          "name": "logo_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "bylaws": {
+          "name": "bylaws",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "founding_year": {
+          "name": "founding_year",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "typical_month": {
+          "name": "typical_month",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "rituals_sponsor_id_users_id_fk": {
+          "name": "rituals_sponsor_id_users_id_fk",
+          "tableFrom": "rituals",
+          "tableTo": "users",
+          "columnsFrom": [
+            "sponsor_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "rituals_slug_unique": {
+          "name": "rituals_slug_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "slug"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
     }
   },
   "enums": {
-    "public.activity_type": {
-      "name": "activity_type",
-      "schema": "public",
-      "values": [
-        "ski",
-        "golf",
-        "mountain_biking",
-        "fishing",
-        "backpacking",
-        "family",
-        "girls_trip",
-        "other"
-      ]
-    },
-    "public.theme": {
-      "name": "theme",
-      "schema": "public",
-      "values": [
-        "circuit",
-        "club",
-        "trail",
-        "getaway"
-      ]
-    },
     "public.booking_status": {
       "name": "booking_status",
       "schema": "public",
@@ -1463,6 +1439,30 @@
         "image",
         "memory",
         "checkin"
+      ]
+    },
+    "public.activity_type": {
+      "name": "activity_type",
+      "schema": "public",
+      "values": [
+        "ski",
+        "golf",
+        "mountain_biking",
+        "fishing",
+        "backpacking",
+        "family",
+        "girls_trip",
+        "other"
+      ]
+    },
+    "public.theme": {
+      "name": "theme",
+      "schema": "public",
+      "values": [
+        "circuit",
+        "club",
+        "trail",
+        "getaway"
       ]
     }
   },

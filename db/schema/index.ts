@@ -1,4 +1,4 @@
 export * from './users'
-export * from './circuits'
+export * from './rituals'
 export * from './events'
 export * from './crew'
