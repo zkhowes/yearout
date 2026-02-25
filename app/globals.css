@@ -2,26 +2,129 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ==========================================================================
+   APP SHELL — neutral, minimal, no personality
+   ========================================================================== */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --bg: #ffffff;
+  --fg: #111111;
+  --fg-muted: #6b7280;
+  --border: #e5e7eb;
+  --surface: #f9fafb;
+  --accent: #111111;
+  --accent-fg: #ffffff;
+
+  --font-display: var(--font-inter);
+  --font-body: var(--font-inter);
+
+  --header-height: 52px;
+  --bottom-nav-height: 64px;
+  --radius: 8px;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* ==========================================================================
+   THEME: THE CIRCUIT — black, gold, cream. Ski crews. Hard chargers.
+   ========================================================================== */
+[data-theme="circuit"] {
+  --bg: #0a0a0a;
+  --fg: #f5f0e0;
+  --fg-muted: #a89a78;
+  --border: #2a2a2a;
+  --surface: #141414;
+  --accent: #c9a84c;
+  --accent-fg: #0a0a0a;
+
+  --font-display: var(--font-bebas);
+  --font-body: var(--font-ibm-plex-mono);
+}
+
+/* ==========================================================================
+   THEME: THE CLUB — cream, navy, serif elegance. Golf. Whiskey.
+   ========================================================================== */
+[data-theme="club"] {
+  --bg: #faf7f0;
+  --fg: #1a2744;
+  --fg-muted: #6b7a99;
+  --border: #ddd6c0;
+  --surface: #f2eddf;
+  --accent: #1a2744;
+  --accent-fg: #faf7f0;
+
+  --font-display: var(--font-playfair);
+  --font-body: var(--font-lato);
+}
+
+/* ==========================================================================
+   THEME: THE TRAIL — off-white, forest green, warm brown. Backpacking. MTB.
+   ========================================================================== */
+[data-theme="trail"] {
+  --bg: #f7f4ee;
+  --fg: #2d2a1e;
+  --fg-muted: #7a7060;
+  --border: #d4cbb8;
+  --surface: #ede8dc;
+  --accent: #2d5a3d;
+  --accent-fg: #f7f4ee;
+
+  --font-display: var(--font-montserrat);
+  --font-body: var(--font-source-sans);
+}
+
+/* ==========================================================================
+   THEME: THE GETAWAY — warm white, orange. Family. Casual.
+   ========================================================================== */
+[data-theme="getaway"] {
+  --bg: #fffbf5;
+  --fg: #1f1f1f;
+  --fg-muted: #888888;
+  --border: #f0e4d0;
+  --surface: #fef6ea;
+  --accent: #f06c2a;
+  --accent-fg: #ffffff;
+
+  --font-display: var(--font-nunito);
+  --font-body: var(--font-nunito);
+}
+
+/* ==========================================================================
+   BASE
+   ========================================================================== */
+* {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-body), system-ui, sans-serif;
+  min-height: 100dvh;
 }
 
+/* ==========================================================================
+   UTILITIES
+   ========================================================================== */
 @layer utilities {
-  .text-balance {
-    text-wrap: balance;
+  .text-balance { text-wrap: balance; }
+
+  .font-display { font-family: var(--font-display), system-ui, sans-serif; }
+  .font-body    { font-family: var(--font-body), system-ui, sans-serif; }
+
+  .bg-surface   { background-color: var(--surface); }
+  .bg-app       { background-color: var(--bg); }
+  .text-app     { color: var(--fg); }
+  .text-muted   { color: var(--fg-muted); }
+  .border-app   { border-color: var(--border); }
+
+  .btn-accent {
+    background-color: var(--accent);
+    color: var(--accent-fg);
+  }
+  .btn-accent:hover {
+    opacity: 0.9;
   }
 }
