@@ -46,10 +46,14 @@ Awards should fit the ritual's personality. Be creative but appropriate.`,
 
   const raw = message.content[0].type === 'text' ? message.content[0].text : ''
 
+  // Strip markdown code fences if present (e.g. ```json ... ```)
+  const cleaned = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/, '').trim()
+
   try {
-    const inference: RitualInference = JSON.parse(raw)
+    const inference: RitualInference = JSON.parse(cleaned)
     return NextResponse.json(inference)
   } catch {
+    console.error('[infer] raw response:', raw)
     return NextResponse.json({ error: 'Inference failed' }, { status: 500 })
   }
 }

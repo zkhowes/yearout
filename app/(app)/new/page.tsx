@@ -154,7 +154,7 @@ export default function NewRitualPage() {
           type="text"
           value={name}
           onChange={(e) => { setName(e.target.value); setStage('input') }}
-          placeholder="The Torture Tour"
+          placeholder="The Powder Circuit"
           className="w-full text-3xl font-bold bg-transparent border-b-2 border-[var(--border)] focus:border-[var(--fg)] outline-none pb-2 text-[var(--fg)] placeholder-[var(--fg-muted)] transition-colors"
         />
         {error && <p className="text-sm text-red-500">{error}</p>}
