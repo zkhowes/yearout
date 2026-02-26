@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Check, Copy, ArrowRight, Loader2, Pencil } from 'lucide-react'
+import { Check, Copy, ArrowRight, Loader2, Pencil, Plus, X, Upload, Sparkles } from 'lucide-react'
 import { createRitual } from '@/lib/ritual-actions'
 import type { RitualInference } from '@/app/api/ritual/infer/route'
 
@@ -20,12 +20,17 @@ const ACTIVITY_LABELS: Record<string, string> = {
   other: '🧭  Other',
 }
 
-const THEME_CONFIG = {
-  circuit: { label: 'The Circuit', color: '#0a0a0a', text: '#c9a84c', desc: 'Dark. Grungy. Earned.' },
-  club:    { label: 'The Club',    color: '#1a2744', text: '#faf7f0', desc: 'Refined. Classic.' },
-  trail:   { label: 'The Trail',   color: '#2d5a3d', text: '#f7f4ee', desc: 'Earthy. Rugged.' },
-  getaway: { label: 'The Getaway', color: '#f06c2a', text: '#ffffff', desc: 'Warm. Joyful.' },
+// Each theme card renders in its own colors so selection is a live preview
+const THEME_CONFIG: Record<string, { label: string; bg: string; text: string; desc: string }> = {
+  circuit: { label: 'The Circuit', bg: '#0a0a0a', text: '#c9a84c', desc: 'Dark. Grungy. Earned.' },
+  club:    { label: 'The Club',    bg: '#1a2744', text: '#faf7f0', desc: 'Refined. Classic.' },
+  trail:   { label: 'The Trail',   bg: '#2d5a3d', text: '#f7f4ee', desc: 'Earthy. Rugged.' },
+  getaway: { label: 'The Getaway', bg: '#f06c2a', text: '#ffffff', desc: 'Warm. Joyful.' },
 }
+
+const AWARD_EMOJI = (i: number) => i === 0 ? '🏆' : i === 1 ? '🪣' : '🎖️'
+const AWARD_PLACEHOLDER = (i: number) =>
+  i === 0 ? 'Top award (e.g. MVP)' : i === 1 ? 'Anti-award (e.g. The Totem)' : 'Award name'
 
 type Stage = 'input' | 'inferring' | 'confirm' | 'creating' | 'done'
 
@@ -36,23 +41,21 @@ export default function NewRitualPage() {
   const [name, setName] = useState('')
   const [inference, setInference] = useState<RitualInference | null>(null)
   const [editingTagline, setEditingTagline] = useState(false)
+  const [logoPreview, setLogoPreview] = useState<string | null>(null)
   const [inviteLink, setInviteLink] = useState('')
   const [copied, setCopied] = useState(false)
   const [error, setError] = useState('')
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+  const logoInputRef = useRef<HTMLInputElement>(null)
   const router = useRouter()
 
-  // Auto-focus
   useEffect(() => { inputRef.current?.focus() }, [])
 
   // Infer on name change (debounced)
   useEffect(() => {
     if (stage !== 'input' && stage !== 'inferring') return
-    if (name.trim().length < 3) {
-      setInference(null)
-      return
-    }
+    if (name.trim().length < 3) { setInference(null); return }
     if (debounceRef.current) clearTimeout(debounceRef.current)
     debounceRef.current = setTimeout(async () => {
       setStage('inferring')
@@ -89,13 +92,38 @@ export default function NewRitualPage() {
     }
   }
 
+  function handleLogoSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = (ev) => setLogoPreview(ev.target?.result as string)
+    reader.readAsDataURL(file)
+  }
+
+  function addAward() {
+    if (!inference) return
+    setInference({ ...inference, awards: [...inference.awards, ''] })
+  }
+
+  function removeAward(i: number) {
+    if (!inference) return
+    setInference({ ...inference, awards: inference.awards.filter((_, idx) => idx !== i) })
+  }
+
+  function updateAward(i: number, val: string) {
+    if (!inference) return
+    const next = [...inference.awards]
+    next[i] = val
+    setInference({ ...inference, awards: next })
+  }
+
   function copyLink() {
     navigator.clipboard.writeText(inviteLink)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
   }
 
-  // ── Done / invite screen ──────────────────────────────────────────────────
+  // ── Done screen ───────────────────────────────────────────────────────────
   if (stage === 'done') {
     return (
       <motion.div
@@ -115,13 +143,12 @@ export default function NewRitualPage() {
             className="w-full flex items-center justify-between gap-3 px-4 py-3 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-sm font-mono text-[var(--fg)] hover:bg-[var(--border)] transition-colors"
           >
             <span className="truncate text-left">{inviteLink}</span>
-            {copied ? <Check size={16} className="shrink-0 text-green-500" /> : <Copy size={16} className="shrink-0 text-[var(--fg-muted)]" />}
+            {copied
+              ? <Check size={16} className="shrink-0 text-green-500" />
+              : <Copy size={16} className="shrink-0 text-[var(--fg-muted)]" />}
           </button>
 
-          <button
-            onClick={copyLink}
-            className="w-full py-3 rounded-lg btn-accent text-sm font-semibold"
-          >
+          <button onClick={copyLink} className="w-full py-3 rounded-lg btn-accent text-sm font-semibold">
             {copied ? 'Copied!' : 'Copy invite link'}
           </button>
 
@@ -160,7 +187,7 @@ export default function NewRitualPage() {
         {error && <p className="text-sm text-red-500">{error}</p>}
       </div>
 
-      {/* Inferring state */}
+      {/* Inferring */}
       <AnimatePresence>
         {stage === 'inferring' && (
           <motion.div
@@ -182,8 +209,9 @@ export default function NewRitualPage() {
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
-            className="flex flex-col gap-6"
+            className="flex flex-col gap-8"
           >
+
             {/* Tagline */}
             <div className="flex flex-col gap-1">
               <span className="text-xs uppercase tracking-widest text-[var(--fg-muted)]">Tagline</span>
@@ -226,51 +254,113 @@ export default function NewRitualPage() {
               </div>
             </div>
 
-            {/* Theme */}
+            {/* Theme — each card renders in its own colors as a live preview */}
             <div className="flex flex-col gap-2">
               <span className="text-xs uppercase tracking-widest text-[var(--fg-muted)]">Theme</span>
               <div className="grid grid-cols-2 gap-2">
-                {Object.entries(THEME_CONFIG).map(([key, cfg]) => (
-                  <button
-                    key={key}
-                    onClick={() => setInference({ ...inference, theme: key as RitualInference['theme'] })}
-                    className={`flex items-center gap-3 px-3 py-2.5 rounded-lg border text-left transition-all ${
-                      inference.theme === key
-                        ? 'border-[var(--fg)] ring-1 ring-[var(--fg)]'
-                        : 'border-[var(--border)] hover:border-[var(--fg-muted)]'
-                    }`}
-                  >
-                    <span
-                      className="w-5 h-5 rounded-full shrink-0"
-                      style={{ backgroundColor: cfg.color }}
-                    />
-                    <span className="flex flex-col min-w-0">
-                      <span className="text-sm font-medium text-[var(--fg)] truncate">{cfg.label}</span>
-                      <span className="text-xs text-[var(--fg-muted)]">{cfg.desc}</span>
-                    </span>
-                  </button>
-                ))}
+                {Object.entries(THEME_CONFIG).map(([key, cfg]) => {
+                  const isSelected = inference.theme === key
+                  return (
+                    <button
+                      key={key}
+                      onClick={() => setInference({ ...inference, theme: key as RitualInference['theme'] })}
+                      style={{ backgroundColor: cfg.bg, borderColor: cfg.bg }}
+                      className={`flex flex-col gap-1 px-4 py-3 rounded-xl border-2 text-left transition-all ${
+                        isSelected
+                          ? 'ring-2 ring-offset-2 ring-[var(--fg)] scale-[1.03]'
+                          : 'opacity-60 hover:opacity-80'
+                      }`}
+                    >
+                      <span className="text-sm font-semibold" style={{ color: cfg.text }}>
+                        {cfg.label}
+                      </span>
+                      <span className="text-xs leading-tight" style={{ color: cfg.text, opacity: 0.65 }}>
+                        {cfg.desc}
+                      </span>
+                    </button>
+                  )
+                })}
               </div>
             </div>
 
-            {/* Awards */}
+            {/* Logo */}
             <div className="flex flex-col gap-2">
-              <span className="text-xs uppercase tracking-widest text-[var(--fg-muted)]">Awards</span>
-              <div className="flex flex-wrap gap-2">
+              <span className="text-xs uppercase tracking-widest text-[var(--fg-muted)]">Logo</span>
+              <div className="flex items-center gap-4">
+                {/* Preview */}
+                <div className="w-16 h-16 rounded-xl border-2 border-dashed border-[var(--border)] bg-[var(--surface)] flex items-center justify-center shrink-0 overflow-hidden">
+                  {logoPreview
+                    ? <img src={logoPreview} alt="Logo" className="w-full h-full object-cover" />
+                    : <span className="text-2xl select-none opacity-40">⬡</span>}
+                </div>
+                <div className="flex flex-col gap-2">
+                  <input
+                    ref={logoInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleLogoSelect}
+                    className="hidden"
+                  />
+                  <button
+                    onClick={() => logoInputRef.current?.click()}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[var(--border)] text-sm text-[var(--fg)] hover:border-[var(--fg-muted)] transition-colors"
+                  >
+                    <Upload size={13} /> Upload your own
+                  </button>
+                  <button
+                    disabled
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[var(--border)] text-sm text-[var(--fg-muted)] opacity-40 cursor-not-allowed"
+                    title="Coming soon — needs image generation API"
+                  >
+                    <Sparkles size={13} /> Generate with AI
+                  </button>
+                </div>
+              </div>
+              <p className="text-xs text-[var(--fg-muted)]">You can always update this from your ritual settings.</p>
+            </div>
+
+            {/* Awards */}
+            <div className="flex flex-col gap-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs uppercase tracking-widest text-[var(--fg-muted)]">Awards</span>
+                <span className="text-xs text-[var(--fg-muted)]">Optional</span>
+              </div>
+
+              <div className="flex flex-col gap-2">
                 {inference.awards.map((award, i) => (
-                  <div key={i} className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-[var(--border)] text-sm text-[var(--fg)]">
-                    <span className="text-xs text-[var(--fg-muted)]">{i === 0 ? '🏆' : '🪣'}</span>
+                  <div
+                    key={i}
+                    className="flex items-center gap-2 px-3 py-2.5 rounded-lg border border-[var(--border)] bg-[var(--surface)]"
+                  >
+                    <span className="text-base shrink-0">{AWARD_EMOJI(i)}</span>
                     <input
                       value={award}
-                      onChange={(e) => {
-                        const next = [...inference.awards]
-                        next[i] = e.target.value
-                        setInference({ ...inference, awards: next })
-                      }}
-                      className="bg-transparent outline-none w-24 text-sm"
+                      placeholder={AWARD_PLACEHOLDER(i)}
+                      onChange={(e) => updateAward(i, e.target.value)}
+                      className="flex-1 bg-transparent outline-none text-sm text-[var(--fg)] placeholder-[var(--fg-muted)]"
                     />
+                    <button
+                      onClick={() => removeAward(i)}
+                      className="text-[var(--fg-muted)] hover:text-red-400 transition-colors shrink-0 p-0.5"
+                      aria-label="Remove award"
+                    >
+                      <X size={14} />
+                    </button>
                   </div>
                 ))}
+
+                {inference.awards.length === 0 && (
+                  <p className="text-xs text-[var(--fg-muted)] italic px-1">
+                    No awards — sometimes that&apos;s the right call.
+                  </p>
+                )}
+
+                <button
+                  onClick={addAward}
+                  className="flex items-center gap-1.5 self-start px-3 py-1.5 rounded-lg border border-dashed border-[var(--border)] text-sm text-[var(--fg-muted)] hover:text-[var(--fg)] hover:border-[var(--fg-muted)] transition-colors"
+                >
+                  <Plus size={13} /> Add award
+                </button>
               </div>
             </div>
 
@@ -283,7 +373,7 @@ export default function NewRitualPage() {
             <button
               onClick={handleCreate}
               disabled={(stage as Stage) === 'creating'}
-              className="flex items-center justify-center gap-2 w-full py-4 rounded-xl btn-accent text-base font-semibold mt-2 disabled:opacity-50"
+              className="flex items-center justify-center gap-2 w-full py-4 rounded-xl btn-accent text-base font-semibold disabled:opacity-50"
             >
               {(stage as Stage) === 'creating' ? (
                 <><Loader2 size={16} className="animate-spin" /> Creating…</>

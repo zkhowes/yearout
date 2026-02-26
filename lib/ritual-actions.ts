@@ -72,26 +72,22 @@ export async function createRitual(
     createdAt: new Date(),
   })
 
-  // Default awards
-  const [mvpName, lupName] = data.awards
-  await db.insert(ritualAwardDefinitions).values([
-    {
+  // Awards — 0 is valid (e.g. family trips), first = mvp, second = lup, rest = custom
+  const awardTypes = ['mvp', 'lup'] as const
+  const awardsToInsert = data.awards
+    .filter((a) => a.trim().length > 0)
+    .map((name, i) => ({
       id: crypto.randomUUID(),
       ritualId,
-      name: mvpName ?? 'MVP',
-      label: mvpName ?? 'Most Valuable Player',
-      type: 'mvp',
+      name: name.trim(),
+      label: name.trim(),
+      type: (i < awardTypes.length ? awardTypes[i] : 'custom') as string,
       createdAt: new Date(),
-    },
-    {
-      id: crypto.randomUUID(),
-      ritualId,
-      name: lupName ?? 'LUP',
-      label: lupName ?? 'Least Useful Player',
-      type: 'lup',
-      createdAt: new Date(),
-    },
-  ])
+    }))
+
+  if (awardsToInsert.length > 0) {
+    await db.insert(ritualAwardDefinitions).values(awardsToInsert)
+  }
 
   // Add creator as sponsor
   await db.insert(ritualMembers).values({
