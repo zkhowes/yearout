@@ -129,7 +129,8 @@ export default function NewRitualPage() {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="min-h-[70vh] flex flex-col items-center justify-center text-center gap-8 px-2"
+        className="max-w-2xl mx-auto px-4 min-h-[70vh] flex flex-col items-center justify-center text-center gap-8"
+        style={{ paddingTop: 'calc(var(--header-height) + 24px)' }}
       >
         <div>
           <div className="text-4xl mb-3">🎉</div>
@@ -169,7 +170,7 @@ export default function NewRitualPage() {
 
   // ── Main create screen ────────────────────────────────────────────────────
   return (
-    <div className="min-h-[70vh] flex flex-col justify-center gap-10 px-2 py-8">
+    <div className="max-w-2xl mx-auto px-4 min-h-[70vh] flex flex-col justify-center gap-10 py-8" style={{ paddingTop: 'calc(var(--header-height) + 24px)' }}>
 
       {/* Name input */}
       <div className="flex flex-col gap-2">

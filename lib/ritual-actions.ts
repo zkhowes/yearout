@@ -4,7 +4,41 @@ import { db } from '@/db'
 import { rituals, ritualAwardDefinitions, ritualMembers } from '@/db/schema'
 import { auth } from '@/auth'
 import { redirect } from 'next/navigation'
+import { eq } from 'drizzle-orm'
 import type { RitualInference } from '@/app/api/ritual/infer/route'
+
+export async function updateRitual(
+  ritualId: string,
+  data: {
+    name?: string
+    tagline?: string
+    theme?: 'circuit' | 'club' | 'trail' | 'getaway'
+    activityType?: string
+    foundingYear?: string
+    bylaws?: string
+  }
+) {
+  const session = await auth()
+  if (!session?.user?.id) redirect('/login')
+
+  const member = await db.query.ritualMembers.findFirst({
+    where: (rm, { and, eq }) =>
+      and(eq(rm.ritualId, ritualId), eq(rm.userId, session.user!.id!), eq(rm.role, 'sponsor')),
+  })
+  if (!member) throw new Error('Only sponsors can update ritual settings')
+
+  await db
+    .update(rituals)
+    .set({
+      ...(data.name && { name: data.name.trim() }),
+      ...(data.tagline !== undefined && { tagline: data.tagline.trim() }),
+      ...(data.theme && { theme: data.theme }),
+      ...(data.activityType && { activityType: data.activityType as typeof rituals.$inferInsert['activityType'] }),
+      ...(data.foundingYear !== undefined && { foundingYear: data.foundingYear }),
+      ...(data.bylaws !== undefined && { bylaws: data.bylaws }),
+    })
+    .where(eq(rituals.id, ritualId))
+}
 
 export async function joinRitual(token: string) {
   const session = await auth()

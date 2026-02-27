@@ -13,10 +13,7 @@ export default async function AppLayout({
   return (
     <div className="min-h-dvh bg-[var(--bg)]">
       <Header />
-      <main
-        className="mx-auto max-w-2xl px-4"
-        style={{ paddingTop: 'calc(var(--header-height) + 24px)' }}
-      >
+      <main className="w-full">
         {children}
       </main>
     </div>

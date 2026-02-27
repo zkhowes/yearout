@@ -8,6 +8,12 @@ const TABS = ['Tour', 'About', 'Crew', 'Lore', 'Merch'] as const
 export function TabBar({ ritualSlug }: { ritualSlug: string }) {
   const pathname = usePathname()
 
+  // Hide on event pages (/slug/2025) and settings
+  const segments = pathname.split('/').filter(Boolean)
+  const isEventPage = segments.length === 2 && /^\d{4}$/.test(segments[1])
+  const isSettingsPage = segments[1] === 'settings'
+  if (isEventPage || isSettingsPage) return null
+
   function tabHref(tab: string) {
     return tab === 'Tour' ? `/${ritualSlug}` : `/${ritualSlug}/${tab.toLowerCase()}`
   }

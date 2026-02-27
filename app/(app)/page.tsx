@@ -34,7 +34,7 @@ export default async function DashboardPage() {
 
   if (userRituals.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] text-center gap-6">
+      <div className="max-w-2xl mx-auto px-4 flex flex-col items-center justify-center min-h-[60vh] text-center gap-6" style={{ paddingTop: 'calc(var(--header-height) + 24px)' }}>
         <div>
           <h2 className="text-2xl font-bold text-[var(--fg)]">
             You&apos;re not part of any Rituals yet.
@@ -54,7 +54,7 @@ export default async function DashboardPage() {
   }
 
   return (
-    <div className="flex flex-col gap-6 py-4">
+    <div className="max-w-2xl mx-auto px-4 flex flex-col gap-6 py-4" style={{ paddingTop: 'calc(var(--header-height) + 24px)' }}>
       <h1 className="text-xl font-bold text-[var(--fg)]">Your Rituals</h1>
       <div className="flex flex-col gap-3">
         {userRituals.map((ritual) => (
