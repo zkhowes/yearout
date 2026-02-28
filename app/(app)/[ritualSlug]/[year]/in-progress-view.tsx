@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { Plus, Loader2, Star, Trash2, Trophy } from 'lucide-react'
+import { Plus, Loader2, Star, Trash2, Trophy, Pencil, Calendar } from 'lucide-react'
 import {
   addExpense,
   deleteExpense,
@@ -9,6 +9,9 @@ import {
   toggleLoreHOF,
   addActivityResult,
   setAwardWinner,
+  addItineraryDay,
+  updateItineraryDay,
+  deleteItineraryDay,
 } from '@/lib/event-actions'
 import { CloseoutView } from './closeout-view'
 
@@ -73,11 +76,20 @@ type AwardVote = {
   nomineeId: string
 }
 
+type ItineraryDay = {
+  id: string
+  day: Date
+  themeName: string | null
+  notes: string | null
+}
+
 type Event = {
   id: string
   location: string | null
   mountains: string | null
   year: number
+  startDate: Date | null
+  endDate: Date | null
 }
 
 // ─── Expense Settlement Math ──────────────────────────────────────────────────
@@ -227,6 +239,247 @@ function AwardsPodium({
             Cancel
           </button>
         </div>
+      )}
+    </div>
+  )
+}
+
+// ─── Itinerary Section ───────────────────────────────────────────────────────
+
+function ItinerarySection({
+  event,
+  itineraryList,
+  isSponsor,
+  ritualSlug,
+}: {
+  event: Event
+  itineraryList: ItineraryDay[]
+  isSponsor: boolean
+  ritualSlug: string
+}) {
+  const [showAddForm, setShowAddForm] = useState(false)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [themeName, setThemeName] = useState('')
+  const [notes, setNotes] = useState('')
+  const [dayInput, setDayInput] = useState('')
+  const [pending, startTransition] = useTransition()
+
+  // Generate day slots from event date range
+  const dateSlots: Date[] = []
+  if (event.startDate && event.endDate) {
+    const start = new Date(event.startDate)
+    const end = new Date(event.endDate)
+    for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+      dateSlots.push(new Date(d))
+    }
+  }
+
+  // Merge: show existing itinerary days + unfilled date slots
+  const existingDays = new Set(
+    itineraryList.map((i) => new Date(i.day).toDateString())
+  )
+  const mergedDays = [
+    ...itineraryList.map((i) => ({ ...i, day: new Date(i.day), isPlaceholder: false })),
+    ...dateSlots
+      .filter((d) => !existingDays.has(d.toDateString()))
+      .map((d) => ({ id: '', day: d, themeName: null, notes: null, isPlaceholder: true })),
+  ].sort((a, b) => a.day.getTime() - b.day.getTime())
+
+  if (mergedDays.length === 0 && !isSponsor) return null
+
+  function handleAdd(e: React.FormEvent) {
+    e.preventDefault()
+    if (!dayInput) return
+    startTransition(async () => {
+      await addItineraryDay(
+        event.id, ritualSlug, event.year,
+        new Date(dayInput),
+        themeName || undefined,
+        notes || undefined
+      )
+      setThemeName('')
+      setNotes('')
+      setDayInput('')
+      setShowAddForm(false)
+    })
+  }
+
+  function handleUpdate(id: string) {
+    startTransition(async () => {
+      await updateItineraryDay(id, ritualSlug, event.year, themeName || undefined, notes || undefined)
+      setEditingId(null)
+      setThemeName('')
+      setNotes('')
+    })
+  }
+
+  function handleDelete(id: string) {
+    startTransition(async () => {
+      await deleteItineraryDay(id, ritualSlug, event.year)
+    })
+  }
+
+  function startEdit(item: ItineraryDay) {
+    setEditingId(item.id)
+    setThemeName(item.themeName ?? '')
+    setNotes(item.notes ?? '')
+  }
+
+  function handlePlaceholderClick(day: Date) {
+    setDayInput(day.toISOString().split('T')[0])
+    setThemeName('')
+    setNotes('')
+    setShowAddForm(true)
+  }
+
+  const fmtDay = (d: Date) =>
+    d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
+
+  return (
+    <div className="flex flex-col gap-3">
+      <p className="text-xs uppercase tracking-widest text-[var(--fg-muted)]">Itinerary</p>
+
+      <div className="flex flex-col gap-2">
+        {mergedDays.map((item) => {
+          if (item.isPlaceholder) {
+            return (
+              <button
+                key={item.day.toISOString()}
+                onClick={() => isSponsor && handlePlaceholderClick(item.day)}
+                disabled={!isSponsor}
+                className={`flex items-center gap-3 p-3 rounded-xl border border-dashed border-[var(--border)] ${
+                  isSponsor ? 'hover:border-[var(--fg-muted)] cursor-pointer' : 'cursor-default'
+                } transition-colors`}
+              >
+                <Calendar size={14} className="text-[var(--fg-muted)] shrink-0" />
+                <span className="text-sm text-[var(--fg-muted)]">{fmtDay(item.day)}</span>
+                {isSponsor && (
+                  <Plus size={12} className="text-[var(--fg-muted)] ml-auto" />
+                )}
+              </button>
+            )
+          }
+
+          if (editingId === item.id) {
+            return (
+              <div key={item.id} className="flex flex-col gap-2 p-3 rounded-xl border border-[var(--accent)] bg-[var(--surface)]">
+                <p className="text-xs text-[var(--fg-muted)]">{fmtDay(item.day)}</p>
+                <input
+                  value={themeName}
+                  onChange={(e) => setThemeName(e.target.value)}
+                  placeholder="Theme name (e.g. Jersey Day)"
+                  className="w-full bg-transparent border-b border-[var(--border)] focus:border-[var(--fg)] outline-none py-1 text-sm text-[var(--fg)] placeholder-[var(--fg-muted)]"
+                />
+                <input
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  placeholder="Notes"
+                  className="w-full bg-transparent border-b border-[var(--border)] focus:border-[var(--fg)] outline-none py-1 text-sm text-[var(--fg)] placeholder-[var(--fg-muted)]"
+                />
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => handleUpdate(item.id)}
+                    disabled={pending}
+                    className="px-3 py-1.5 rounded-lg btn-accent text-xs font-semibold disabled:opacity-50"
+                  >
+                    {pending ? <Loader2 size={12} className="animate-spin" /> : 'Save'}
+                  </button>
+                  <button
+                    onClick={() => { setEditingId(null); setThemeName(''); setNotes('') }}
+                    className="px-3 py-1.5 rounded-lg border border-[var(--border)] text-xs text-[var(--fg-muted)]"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )
+          }
+
+          return (
+            <div
+              key={item.id}
+              className="flex items-center gap-3 p-3 rounded-xl border border-[var(--border)] bg-[var(--surface)]"
+            >
+              <Calendar size={14} className="text-[var(--accent)] shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm text-[var(--fg)]">
+                  <span className="text-[var(--fg-muted)]">{fmtDay(item.day)}</span>
+                  {item.themeName && <span className="font-semibold"> — {item.themeName}</span>}
+                </p>
+                {item.notes && (
+                  <p className="text-xs text-[var(--fg-muted)] mt-0.5">{item.notes}</p>
+                )}
+              </div>
+              {isSponsor && (
+                <div className="flex items-center gap-1 shrink-0">
+                  <button
+                    onClick={() => startEdit(item)}
+                    className="p-1 text-[var(--fg-muted)] hover:text-[var(--fg)] transition-colors"
+                  >
+                    <Pencil size={12} />
+                  </button>
+                  <button
+                    onClick={() => handleDelete(item.id)}
+                    disabled={pending}
+                    className="p-1 text-[var(--fg-muted)] hover:text-red-400 transition-colors disabled:opacity-50"
+                  >
+                    <Trash2 size={12} />
+                  </button>
+                </div>
+              )}
+            </div>
+          )
+        })}
+      </div>
+
+      {/* Add form (manual, for when no date range) */}
+      {isSponsor && (
+        showAddForm ? (
+          <form onSubmit={handleAdd} className="flex flex-col gap-2 p-3 rounded-xl border border-dashed border-[var(--border)] bg-[var(--surface)]">
+            <input
+              type="date"
+              value={dayInput}
+              onChange={(e) => setDayInput(e.target.value)}
+              className="w-full bg-transparent border-b border-[var(--border)] focus:border-[var(--fg)] outline-none py-1 text-sm text-[var(--fg)]"
+            />
+            <input
+              value={themeName}
+              onChange={(e) => setThemeName(e.target.value)}
+              placeholder="Theme name (e.g. Jersey Day)"
+              className="w-full bg-transparent border-b border-[var(--border)] focus:border-[var(--fg)] outline-none py-1 text-sm text-[var(--fg)] placeholder-[var(--fg-muted)]"
+            />
+            <input
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Notes"
+              className="w-full bg-transparent border-b border-[var(--border)] focus:border-[var(--fg)] outline-none py-1 text-sm text-[var(--fg)] placeholder-[var(--fg-muted)]"
+            />
+            <div className="flex gap-2">
+              <button
+                type="submit"
+                disabled={pending || !dayInput}
+                className="px-3 py-1.5 rounded-lg btn-accent text-xs font-semibold disabled:opacity-50 flex items-center gap-1"
+              >
+                {pending ? <Loader2 size={12} className="animate-spin" /> : <Plus size={12} />}
+                Add Day
+              </button>
+              <button
+                type="button"
+                onClick={() => { setShowAddForm(false); setDayInput(''); setThemeName(''); setNotes('') }}
+                className="px-3 py-1.5 rounded-lg border border-[var(--border)] text-xs text-[var(--fg-muted)]"
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+        ) : (
+          <button
+            onClick={() => setShowAddForm(true)}
+            className="flex items-center justify-center gap-1.5 w-full py-2 rounded-xl border border-dashed border-[var(--border)] text-xs text-[var(--fg-muted)] hover:text-[var(--fg)] hover:border-[var(--fg-muted)] transition-colors"
+          >
+            <Plus size={12} /> Add day
+          </button>
+        )
       )}
     </div>
   )
@@ -610,7 +863,7 @@ function ExpensesTab({
   const [deleting, startDelete] = useTransition()
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const userMap = new Map(attendeeUsers.map((u) => [u.id, u]))
-  const attendeeIds = attendees.map((a) => a.userId)
+  const attendeeIds = attendees.filter((a) => a.bookingStatus !== 'out').map((a) => a.userId)
 
   const totalCents = expenseList.reduce((s, e) => s + e.amount, 0)
   const perPersonCents = attendeeIds.length > 0 ? Math.round(totalCents / attendeeIds.length) : 0
@@ -769,6 +1022,7 @@ export function InProgressView({
   awardDefs,
   currentAwards,
   awardVoteList,
+  itineraryList,
   currentUserId,
   isSponsor,
   ritualSlug,
@@ -783,6 +1037,7 @@ export function InProgressView({
   awardDefs: AwardDef[]
   currentAwards: Award[]
   awardVoteList: AwardVote[]
+  itineraryList: ItineraryDay[]
   currentUserId: string
   isSponsor: boolean
   ritualSlug: string
@@ -805,6 +1060,14 @@ export function InProgressView({
         attendeeUsers={attendeeUsers}
         awardDefs={awardDefs}
         currentAwards={currentAwards}
+        isSponsor={isSponsor}
+        ritualSlug={ritualSlug}
+      />
+
+      {/* Itinerary */}
+      <ItinerarySection
+        event={event}
+        itineraryList={itineraryList}
         isSponsor={isSponsor}
         ritualSlug={ritualSlug}
       />

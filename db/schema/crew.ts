@@ -13,6 +13,7 @@ export const bookingStatusEnum = pgEnum('booking_status', [
   'committed',
   'flights_booked',
   'all_booked',
+  'out',
 ])
 
 export const ritualMembers = pgTable('ritual_members', {
@@ -33,4 +34,11 @@ export const eventAttendees = pgTable('event_attendees', {
   userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   bookingStatus: bookingStatusEnum('booking_status').notNull().default('not_yet'),
   confirmedAt: timestamp('confirmed_at', { mode: 'date' }),
+  // Flight details
+  arrivalAirline: text('arrival_airline'),
+  arrivalFlightNumber: text('arrival_flight_number'),
+  arrivalDatetime: timestamp('arrival_datetime', { mode: 'date' }),
+  departureAirline: text('departure_airline'),
+  departureFlightNumber: text('departure_flight_number'),
+  departureDatetime: timestamp('departure_datetime', { mode: 'date' }),
 })

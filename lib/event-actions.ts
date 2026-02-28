@@ -13,6 +13,7 @@ import {
   awardVotes,
   awards,
   ritualAwardDefinitions,
+  dailyItinerary,
 } from '@/db/schema'
 import { auth } from '@/auth'
 import { redirect } from 'next/navigation'
@@ -312,7 +313,7 @@ export async function updateBookingStatus(
   eventId: string,
   ritualSlug: string,
   year: number,
-  status: 'not_yet' | 'committed' | 'flights_booked' | 'all_booked'
+  status: 'not_yet' | 'committed' | 'flights_booked' | 'all_booked' | 'out'
 ) {
   const session = await auth()
   if (!session?.user?.id) redirect('/login')
@@ -736,6 +737,144 @@ export async function finalizeAwardVotes(
 
   revalidatePath(`/${ritualSlug}/${year}`)
 }
+
+// ─── Daily Itinerary ─────────────────────────────────────────────────────────
+
+async function requireSponsorOrOrganizer(eventId: string, userId: string) {
+  const event = await db.query.events.findFirst({
+    where: (e, { eq }) => eq(e.id, eventId),
+  })
+  if (!event) throw new Error('Event not found')
+
+  const member = await db.query.ritualMembers.findFirst({
+    where: (rm, { and, eq }) =>
+      and(
+        eq(rm.ritualId, event.ritualId),
+        eq(rm.userId, userId),
+      ),
+  })
+  if (!member) throw new Error('Not a member')
+
+  const isSponsor = member.role === 'sponsor'
+  const isOrganizer = event.organizerId === userId
+  if (!isSponsor && !isOrganizer) throw new Error('Only sponsors or organizers can manage itinerary')
+
+  return event
+}
+
+export async function addItineraryDay(
+  eventId: string,
+  ritualSlug: string,
+  year: number,
+  day: Date,
+  themeName?: string,
+  notes?: string
+) {
+  const session = await auth()
+  if (!session?.user?.id) redirect('/login')
+
+  await requireSponsorOrOrganizer(eventId, session.user.id!)
+
+  await db.insert(dailyItinerary).values({
+    id: crypto.randomUUID(),
+    eventId,
+    day,
+    themeName: themeName?.trim() || null,
+    notes: notes?.trim() || null,
+  })
+
+  revalidatePath(`/${ritualSlug}/${year}`)
+}
+
+export async function updateItineraryDay(
+  itineraryId: string,
+  ritualSlug: string,
+  year: number,
+  themeName?: string,
+  notes?: string
+) {
+  const session = await auth()
+  if (!session?.user?.id) redirect('/login')
+
+  const entry = await db.query.dailyItinerary.findFirst({
+    where: (di, { eq }) => eq(di.id, itineraryId),
+  })
+  if (!entry) throw new Error('Itinerary day not found')
+
+  await requireSponsorOrOrganizer(entry.eventId, session.user.id!)
+
+  await db
+    .update(dailyItinerary)
+    .set({
+      themeName: themeName?.trim() || null,
+      notes: notes?.trim() || null,
+    })
+    .where(eq(dailyItinerary.id, itineraryId))
+
+  revalidatePath(`/${ritualSlug}/${year}`)
+}
+
+export async function deleteItineraryDay(
+  itineraryId: string,
+  ritualSlug: string,
+  year: number
+) {
+  const session = await auth()
+  if (!session?.user?.id) redirect('/login')
+
+  const entry = await db.query.dailyItinerary.findFirst({
+    where: (di, { eq }) => eq(di.id, itineraryId),
+  })
+  if (!entry) throw new Error('Itinerary day not found')
+
+  await requireSponsorOrOrganizer(entry.eventId, session.user.id!)
+
+  await db.delete(dailyItinerary).where(eq(dailyItinerary.id, itineraryId))
+
+  revalidatePath(`/${ritualSlug}/${year}`)
+}
+
+// ─── Flight Details ──────────────────────────────────────────────────────────
+
+export async function updateFlightDetails(
+  eventId: string,
+  ritualSlug: string,
+  year: number,
+  flightData: {
+    arrivalAirline?: string
+    arrivalFlightNumber?: string
+    arrivalDatetime?: Date | null
+    departureAirline?: string
+    departureFlightNumber?: string
+    departureDatetime?: Date | null
+  }
+) {
+  const session = await auth()
+  if (!session?.user?.id) redirect('/login')
+
+  const existing = await db.query.eventAttendees.findFirst({
+    where: (ea, { and, eq }) =>
+      and(eq(ea.eventId, eventId), eq(ea.userId, session.user!.id!)),
+  })
+
+  if (!existing) throw new Error('Not an attendee of this event')
+
+  await db
+    .update(eventAttendees)
+    .set({
+      arrivalAirline: flightData.arrivalAirline?.trim() || null,
+      arrivalFlightNumber: flightData.arrivalFlightNumber?.trim() || null,
+      arrivalDatetime: flightData.arrivalDatetime || null,
+      departureAirline: flightData.departureAirline?.trim() || null,
+      departureFlightNumber: flightData.departureFlightNumber?.trim() || null,
+      departureDatetime: flightData.departureDatetime || null,
+    })
+    .where(eq(eventAttendees.id, existing.id))
+
+  revalidatePath(`/${ritualSlug}/${year}`)
+}
+
+// ─── Seal Event ──────────────────────────────────────────────────────────────
 
 export async function sealEvent(
   eventId: string,

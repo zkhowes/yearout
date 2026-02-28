@@ -13,6 +13,7 @@ import {
   awardVotes,
   awards,
   ritualAwardDefinitions,
+  dailyItinerary,
   users,
 } from '@/db/schema'
 import { eq, and, inArray } from 'drizzle-orm'
@@ -84,7 +85,7 @@ export default async function EventPage({
   }))
 
   // ── Scheduled / In-Progress / Closed: load attendees ─────────────────────
-  let attendeeList: { id: string; userId: string; bookingStatus: 'not_yet' | 'committed' | 'flights_booked' | 'all_booked' }[] = []
+  let attendeeList: { id: string; userId: string; bookingStatus: 'not_yet' | 'committed' | 'flights_booked' | 'all_booked' | 'out'; arrivalAirline: string | null; arrivalFlightNumber: string | null; arrivalDatetime: Date | null; departureAirline: string | null; departureFlightNumber: string | null; departureDatetime: Date | null }[] = []
   let attendeeUsers: { id: string; name: string | null; image: string | null }[] = []
   let myAttendee: (typeof attendeeList)[0] | null = null
 
@@ -95,6 +96,7 @@ export default async function EventPage({
   let awardDefs: { id: string; name: string; label: string; type: string }[] = []
   let currentAwards: { id: string; awardDefinitionId: string; winnerId: string }[] = []
   let awardVoteList: { id: string; awardDefinitionId: string; voterId: string; nomineeId: string }[] = []
+  let itineraryList: { id: string; day: Date; themeName: string | null; notes: string | null }[] = []
 
   if (event.status !== 'planning') {
     const rawAttendees = await db
@@ -115,7 +117,7 @@ export default async function EventPage({
     }
 
     if (event.status === 'in_progress' || event.status === 'closed') {
-      const [rawExpenses, rawLore, rawActivity, rawAwardDefs, rawAwards, rawVotes] =
+      const [rawExpenses, rawLore, rawActivity, rawAwardDefs, rawAwards, rawVotes, rawItinerary] =
         await Promise.all([
           db.select().from(expenses).where(eq(expenses.eventId, event.id)),
           db.select().from(loreEntries).where(eq(loreEntries.eventId, event.id)),
@@ -123,6 +125,7 @@ export default async function EventPage({
           db.select().from(ritualAwardDefinitions).where(eq(ritualAwardDefinitions.ritualId, ritual.id)),
           db.select().from(awards).where(eq(awards.eventId, event.id)),
           db.select().from(awardVotes).where(eq(awardVotes.eventId, event.id)),
+          db.select().from(dailyItinerary).where(eq(dailyItinerary.eventId, event.id)),
         ])
 
       expenseList = rawExpenses as typeof expenseList
@@ -131,6 +134,7 @@ export default async function EventPage({
       awardDefs = rawAwardDefs
       currentAwards = rawAwards
       awardVoteList = rawVotes
+      itineraryList = rawItinerary
 
       // Collect any additional user IDs from expenses/lore/activity
       const extraUserIds = [
@@ -237,6 +241,8 @@ export default async function EventPage({
             location: event.location,
             mountains: event.mountains,
             year: event.year,
+            startDate: event.startDate,
+            endDate: event.endDate,
           }}
           attendees={attendeeList}
           attendeeUsers={attendeeUsers}
@@ -247,6 +253,7 @@ export default async function EventPage({
           awardDefs={awardDefs}
           currentAwards={currentAwards}
           awardVoteList={awardVoteList}
+          itineraryList={itineraryList}
           currentUserId={session.user!.id!}
           isSponsor={isSponsor}
           ritualSlug={ritual.slug}
