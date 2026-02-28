@@ -17,7 +17,7 @@ import {
 import { auth } from '@/auth'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
-import { eq, and, inArray } from 'drizzle-orm'
+import { eq, and } from 'drizzle-orm'
 
 export async function createEvent(
   ritualId: string,

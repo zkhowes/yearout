@@ -761,6 +761,7 @@ export function InProgressView({
   event,
   attendees,
   attendeeUsers,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   myAttendee,
   expenseList,
   loreList,
