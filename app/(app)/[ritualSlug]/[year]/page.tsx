@@ -173,12 +173,18 @@ export default async function EventPage({
   return (
     <div className="flex flex-col gap-6 pb-10">
 
-      {/* Back nav */}
+      {/* Back to ritual */}
       <Link
         href={`/${ritual.slug}`}
-        className="flex items-center gap-1.5 text-sm text-[var(--fg-muted)] hover:text-[var(--fg)] transition-colors -mt-2"
+        className="flex items-center gap-2 text-sm text-[var(--fg-muted)] hover:text-[var(--fg)] transition-colors -mt-2"
       >
-        <ArrowLeft size={14} /> Back
+        <ArrowLeft size={14} />
+        {ritual.logoUrl ? (
+          <img src={ritual.logoUrl} alt={ritual.name} className="w-5 h-5 rounded-full object-cover" />
+        ) : (
+          <div className="w-5 h-5 rounded-full bg-[var(--accent)] opacity-40" />
+        )}
+        <span>{ritual.name}</span>
       </Link>
 
       {/* Event hero */}
@@ -198,10 +204,6 @@ export default async function EventPage({
         )}
         <div className="mt-1">{statusBadge}</div>
 
-        {/* Ritual branding */}
-        <p className="absolute bottom-0 right-0 text-[10px] text-[var(--fg-muted)] italic">
-          Part of {ritual.name}
-        </p>
       </div>
 
       {/* ── Planning state ── */}

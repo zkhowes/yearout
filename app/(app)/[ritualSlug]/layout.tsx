@@ -1,10 +1,9 @@
-import Link from 'next/link'
-import { Settings } from 'lucide-react'
 import { db } from '@/db'
 import { auth } from '@/auth'
 import { redirect } from 'next/navigation'
 import { ritualMembers } from '@/db/schema'
 import { and, eq } from 'drizzle-orm'
+import { RitualIdentity } from './ritual-identity'
 import { TabBar } from './tab-bar'
 
 export default async function RitualLayout({
@@ -38,27 +37,14 @@ export default async function RitualLayout({
   return (
     <div data-theme={ritual.theme} className="min-h-dvh bg-[var(--bg)] text-[var(--fg)]" style={{ paddingTop: 'var(--header-height)' }}>
       <div className="max-w-2xl mx-auto px-4 flex flex-col gap-6 pb-10">
-      {/* Ritual identity */}
-      <div className="relative flex flex-col items-center text-center pt-6 gap-2">
-        {ritual.logoUrl ? (
-          <img src={ritual.logoUrl} alt={ritual.name} className="w-24 h-24 rounded-full object-cover mb-1" />
-        ) : (
-          <div className="w-24 h-24 rounded-full bg-[var(--accent)] opacity-20 mb-1" />
-        )}
-        <h1 className="text-3xl font-bold text-[var(--fg)]">{ritual.name}</h1>
-        {ritual.tagline && (
-          <p className="text-sm text-[var(--fg-muted)] italic">{ritual.tagline}</p>
-        )}
-        {member.role === 'sponsor' && (
-          <Link
-            href={`/${ritual.slug}/settings`}
-            className="absolute top-4 right-0 p-2 text-[var(--fg-muted)] hover:text-[var(--fg)] transition-colors"
-            aria-label="Ritual settings"
-          >
-            <Settings size={18} />
-          </Link>
-        )}
-      </div>
+      {/* Ritual identity (hidden on event pages) */}
+      <RitualIdentity
+        slug={ritual.slug}
+        name={ritual.name}
+        tagline={ritual.tagline}
+        logoUrl={ritual.logoUrl}
+        isSponsor={member.role === 'sponsor'}
+      />
 
       {/* Tab bar */}
       <TabBar ritualSlug={ritual.slug} />
