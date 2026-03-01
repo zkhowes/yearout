@@ -49,7 +49,7 @@ export function EventLogoUpload({
 
   return (
     <div className="relative">
-      <div className="w-20 h-20 rounded-full overflow-hidden flex items-center justify-center bg-[var(--accent)] opacity-80">
+      <div className="w-28 h-28 rounded-full overflow-hidden flex items-center justify-center bg-[var(--accent)] opacity-80">
         {displayUrl ? (
           <img src={displayUrl} alt="Event logo" className="w-full h-full object-cover" />
         ) : (
@@ -61,7 +61,7 @@ export function EventLogoUpload({
           <button
             type="button"
             onClick={() => inputRef.current?.click()}
-            className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-[var(--fg)] text-[var(--bg)] flex items-center justify-center hover:opacity-80 transition-opacity"
+            className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-[var(--fg)] text-[var(--bg)] flex items-center justify-center hover:opacity-80 transition-opacity"
           >
             {uploading ? (
               <Loader2 size={14} className="animate-spin" />

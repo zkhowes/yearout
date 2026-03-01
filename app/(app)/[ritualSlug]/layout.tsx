@@ -41,9 +41,9 @@ export default async function RitualLayout({
       {/* Ritual identity */}
       <div className="relative flex flex-col items-center text-center pt-6 gap-2">
         {ritual.logoUrl ? (
-          <img src={ritual.logoUrl} alt={ritual.name} className="w-16 h-16 rounded-full object-cover mb-1" />
+          <img src={ritual.logoUrl} alt={ritual.name} className="w-24 h-24 rounded-full object-cover mb-1" />
         ) : (
-          <div className="w-16 h-16 rounded-full bg-[var(--accent)] opacity-20 mb-1" />
+          <div className="w-24 h-24 rounded-full bg-[var(--accent)] opacity-20 mb-1" />
         )}
         <h1 className="text-3xl font-bold text-[var(--fg)]">{ritual.name}</h1>
         {ritual.tagline && (

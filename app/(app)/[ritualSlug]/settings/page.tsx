@@ -1,3 +1,5 @@
+import Link from 'next/link'
+import { ArrowLeft } from 'lucide-react'
 import { db } from '@/db'
 import { auth } from '@/auth'
 import { redirect } from 'next/navigation'
@@ -35,6 +37,13 @@ export default async function SettingsPage({
 
   return (
     <div className="flex flex-col gap-6">
+      <Link
+        href={`/${params.ritualSlug}`}
+        className="inline-flex items-center gap-1 text-sm text-[var(--fg-muted)] hover:text-[var(--fg)] transition-colors w-fit"
+      >
+        <ArrowLeft size={16} />
+        Back
+      </Link>
       <div>
         <p className="text-xs uppercase tracking-widest text-[var(--fg-muted)]">Settings</p>
         <h2 className="text-2xl font-bold text-[var(--fg)] mt-0.5">Edit Ritual</h2>

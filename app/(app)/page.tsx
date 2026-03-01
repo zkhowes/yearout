@@ -63,7 +63,12 @@ export default async function DashboardPage() {
             href={`/${ritual.slug}`}
             className="flex items-center gap-4 px-4 py-4 rounded-xl border border-[var(--border)] hover:border-[var(--fg-muted)] transition-colors bg-[var(--surface)]"
           >
-            <span className="text-2xl">{ACTIVITY_EMOJI[ritual.activityType] ?? '🧭'}</span>
+            <div className="flex items-center gap-2">
+              <span className="text-2xl">{ACTIVITY_EMOJI[ritual.activityType] ?? '🧭'}</span>
+              {ritual.logoUrl && (
+                <img src={ritual.logoUrl} alt="" className="w-10 h-10 rounded-full object-cover" />
+              )}
+            </div>
             <div className="flex flex-col min-w-0">
               <span className="font-bold text-[var(--fg)] truncate">{ritual.name}</span>
               {ritual.tagline && (
