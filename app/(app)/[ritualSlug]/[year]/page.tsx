@@ -21,6 +21,7 @@ import { ArrowLeft } from 'lucide-react'
 import { Proposals } from './proposals'
 import { ScheduledView } from './scheduled-view'
 import { InProgressView } from './in-progress-view'
+import { EventLogoUpload } from './event-logo-upload'
 
 export default async function EventPage({
   params,
@@ -168,13 +169,6 @@ export default async function EventPage({
     closed: <span className="text-xs px-2 py-1 rounded-full bg-[var(--border)] text-[var(--fg-muted)] font-medium">Closed</span>,
   }[event.status]
 
-  const statusLabel = {
-    planning: 'Planning',
-    scheduled: 'Scheduled',
-    in_progress: 'In Progress',
-    closed: 'Archive',
-  }[event.status]
-
   // ── Render ────────────────────────────────────────────────────────────────
   return (
     <div className="flex flex-col gap-6 pb-10">
@@ -184,22 +178,30 @@ export default async function EventPage({
         href={`/${ritual.slug}`}
         className="flex items-center gap-1.5 text-sm text-[var(--fg-muted)] hover:text-[var(--fg)] transition-colors -mt-2"
       >
-        <ArrowLeft size={14} /> {ritual.name}
+        <ArrowLeft size={14} /> Back
       </Link>
 
       {/* Event hero */}
-      <div className="flex flex-col gap-1">
+      <div className="relative flex flex-col items-center text-center gap-2">
+        <EventLogoUpload
+          eventId={event.id}
+          ritualSlug={ritual.slug}
+          year={event.year}
+          eventLogoUrl={event.logoUrl}
+          ritualLogoUrl={ritual.logoUrl}
+          canEdit={canEdit}
+        />
         <p className="text-xs uppercase tracking-widest text-[var(--fg-muted)]">{year}</p>
         <h1 className="text-3xl font-bold text-[var(--fg)]">{event.name}</h1>
         {event.location && (
           <p className="text-[var(--fg-muted)]">{event.location}</p>
         )}
-      </div>
+        <div className="mt-1">{statusBadge}</div>
 
-      {/* Status row */}
-      <div className="flex items-center justify-between">
-        <p className="text-xs uppercase tracking-widest text-[var(--fg-muted)]">{statusLabel}</p>
-        {statusBadge}
+        {/* Ritual branding */}
+        <p className="absolute bottom-0 right-0 text-[10px] text-[var(--fg-muted)] italic">
+          Part of {ritual.name}
+        </p>
       </div>
 
       {/* ── Planning state ── */}

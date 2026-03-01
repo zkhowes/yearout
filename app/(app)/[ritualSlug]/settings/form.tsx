@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useTransition } from 'react'
-import { Check, Loader2 } from 'lucide-react'
+import { useState, useTransition, useRef } from 'react'
+import { Check, Loader2, Upload } from 'lucide-react'
 import { updateRitual } from '@/lib/ritual-actions'
 
 const ACTIVITY_LABELS: Record<string, string> = {
@@ -30,6 +30,7 @@ type Ritual = {
   activityType: string
   foundingYear: string | null
   bylaws: string | null
+  logoUrl: string | null
   inviteToken: string
   slug: string
 }
@@ -41,6 +42,9 @@ export function SettingsForm({ ritual, appUrl }: { ritual: Ritual; appUrl: strin
   const [activityType, setActivityType] = useState(ritual.activityType)
   const [foundingYear, setFoundingYear] = useState(ritual.foundingYear ?? '')
   const [bylaws, setBylaws] = useState(ritual.bylaws ?? '')
+  const [logoUrl, setLogoUrl] = useState(ritual.logoUrl ?? '')
+  const [logoUploading, setLogoUploading] = useState(false)
+  const logoInputRef = useRef<HTMLInputElement>(null)
   const [saved, setSaved] = useState(false)
   const [pending, startTransition] = useTransition()
 
@@ -53,9 +57,24 @@ export function SettingsForm({ ritual, appUrl }: { ritual: Ritual; appUrl: strin
     setTimeout(() => setCopied(false), 2000)
   }
 
+  async function handleLogoUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setLogoUploading(true)
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+      const res = await fetch('/api/upload', { method: 'POST', body: formData })
+      const { url } = await res.json()
+      setLogoUrl(url)
+    } finally {
+      setLogoUploading(false)
+    }
+  }
+
   function save() {
     startTransition(async () => {
-      await updateRitual(ritual.id, { name, tagline, theme: theme as 'circuit' | 'club' | 'trail' | 'getaway', activityType, foundingYear, bylaws })
+      await updateRitual(ritual.id, { name, tagline, theme: theme as 'circuit' | 'club' | 'trail' | 'getaway', activityType, foundingYear, bylaws, logoUrl: logoUrl || undefined })
       setSaved(true)
       setTimeout(() => setSaved(false), 2000)
     })
@@ -67,6 +86,33 @@ export function SettingsForm({ ritual, appUrl }: { ritual: Ritual; appUrl: strin
       {/* ── Identity ── */}
       <section className="flex flex-col gap-5">
         <h2 className="text-xs uppercase tracking-widest text-[var(--fg-muted)]">Identity</h2>
+
+        <div className="flex flex-col items-center gap-3">
+          <label className="text-xs text-[var(--fg-muted)]">Logo</label>
+          <button
+            type="button"
+            onClick={() => logoInputRef.current?.click()}
+            className="relative w-20 h-20 rounded-full border-2 border-dashed border-[var(--border)] hover:border-[var(--fg)] transition-colors overflow-hidden flex items-center justify-center"
+          >
+            {logoUrl ? (
+              <img src={logoUrl} alt="Ritual logo" className="w-full h-full object-cover" />
+            ) : (
+              <Upload size={20} className="text-[var(--fg-muted)]" />
+            )}
+            {logoUploading && (
+              <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full">
+                <Loader2 size={20} className="animate-spin text-white" />
+              </div>
+            )}
+          </button>
+          <input
+            ref={logoInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handleLogoUpload}
+            className="hidden"
+          />
+        </div>
 
         <div className="flex flex-col gap-2">
           <label className="text-xs text-[var(--fg-muted)]">Name</label>

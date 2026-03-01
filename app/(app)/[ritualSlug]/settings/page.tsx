@@ -48,6 +48,7 @@ export default async function SettingsPage({
           activityType: ritual.activityType,
           foundingYear: ritual.foundingYear,
           bylaws: ritual.bylaws,
+          logoUrl: ritual.logoUrl,
           inviteToken: ritual.inviteToken,
           slug: ritual.slug,
         }}

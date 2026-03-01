@@ -822,6 +822,27 @@ export async function deleteItineraryDay(
   revalidatePath(`/${ritualSlug}/${year}`)
 }
 
+// ─── Event Logo ──────────────────────────────────────────────────────────────
+
+export async function updateEventLogo(
+  eventId: string,
+  ritualSlug: string,
+  year: number,
+  logoUrl: string
+) {
+  const session = await auth()
+  if (!session?.user?.id) redirect('/login')
+
+  await requireSponsorOrOrganizer(eventId, session.user.id!)
+
+  await db
+    .update(events)
+    .set({ logoUrl })
+    .where(eq(events.id, eventId))
+
+  revalidatePath(`/${ritualSlug}/${year}`)
+}
+
 // ─── Flight Details ──────────────────────────────────────────────────────────
 
 export async function updateFlightDetails(

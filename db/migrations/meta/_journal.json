@@ -15,6 +15,13 @@
       "when": 1772321058783,
       "tag": "0001_talented_namora",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1772329306223,
+      "tag": "0002_far_roughhouse",
+      "breakpoints": true
     }
   ]
 }

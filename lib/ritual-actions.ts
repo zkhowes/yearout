@@ -16,6 +16,7 @@ export async function updateRitual(
     activityType?: string
     foundingYear?: string
     bylaws?: string
+    logoUrl?: string
   }
 ) {
   const session = await auth()
@@ -36,6 +37,7 @@ export async function updateRitual(
       ...(data.activityType && { activityType: data.activityType as typeof rituals.$inferInsert['activityType'] }),
       ...(data.foundingYear !== undefined && { foundingYear: data.foundingYear }),
       ...(data.bylaws !== undefined && { bylaws: data.bylaws }),
+      ...(data.logoUrl !== undefined && { logoUrl: data.logoUrl }),
     })
     .where(eq(rituals.id, ritualId))
 }

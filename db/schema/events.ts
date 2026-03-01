@@ -25,6 +25,7 @@ export const events = pgTable('events', {
   mountains: text('mountains'),       // comma-separated venues
   startDate: timestamp('start_date', { mode: 'date' }),
   endDate: timestamp('end_date', { mode: 'date' }),
+  logoUrl: text('logo_url'),
   status: eventStatusEnum('status').notNull().default('planning'),
   sealedAt: timestamp('sealed_at', { mode: 'date' }),
   createdAt: timestamp('created_at', { mode: 'date' }).defaultNow().notNull(),
