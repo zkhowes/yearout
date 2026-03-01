@@ -33,9 +33,15 @@ export function EventLogoUpload({
       const formData = new FormData()
       formData.append('file', file)
       const res = await fetch('/api/upload', { method: 'POST', body: formData })
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}))
+        throw new Error(body.error || `Upload failed (${res.status})`)
+      }
       const { url } = await res.json()
       setLogoUrl(url)
       await updateEventLogo(eventId, ritualSlug, year, url)
+    } catch (err) {
+      console.error('Logo upload error:', err)
     } finally {
       setUploading(false)
     }
