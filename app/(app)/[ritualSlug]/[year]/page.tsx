@@ -54,6 +54,9 @@ export default async function EventPage({
   })
   if (!event) redirect(`/${params.ritualSlug}`)
 
+  const isOrganizer = event.organizerId === session.user.id
+  const canEdit = isSponsor || isOrganizer
+
   // ── Planning state: load proposals + votes ────────────────────────────────
   const proposalList =
     event.status === 'planning'
@@ -116,7 +119,7 @@ export default async function EventPage({
       attendeeUsers = userRows
     }
 
-    if (event.status === 'in_progress' || event.status === 'closed') {
+    if (event.status === 'scheduled' || event.status === 'in_progress' || event.status === 'closed') {
       const [rawExpenses, rawLore, rawActivity, rawAwardDefs, rawAwards, rawVotes, rawItinerary] =
         await Promise.all([
           db.select().from(expenses).where(eq(expenses.eventId, event.id)),
@@ -228,7 +231,11 @@ export default async function EventPage({
           attendees={attendeeList}
           attendeeUsers={attendeeUsers}
           myAttendee={myAttendee}
-          isSponsor={isSponsor}
+          canEdit={canEdit}
+          itineraryList={itineraryList}
+          expenseList={expenseList}
+          loreList={loreList}
+          currentUserId={session.user!.id!}
           ritualSlug={ritual.slug}
         />
       )}
@@ -255,7 +262,7 @@ export default async function EventPage({
           awardVoteList={awardVoteList}
           itineraryList={itineraryList}
           currentUserId={session.user!.id!}
-          isSponsor={isSponsor}
+          canEdit={canEdit}
           ritualSlug={ritual.slug}
         />
       )}

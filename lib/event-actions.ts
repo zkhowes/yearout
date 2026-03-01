@@ -351,20 +351,7 @@ export async function advanceEventStatus(
   const session = await auth()
   if (!session?.user?.id) redirect('/login')
 
-  const event = await db.query.events.findFirst({
-    where: (e, { eq }) => eq(e.id, eventId),
-  })
-  if (!event) throw new Error('Event not found')
-
-  const member = await db.query.ritualMembers.findFirst({
-    where: (rm, { and, eq }) =>
-      and(
-        eq(rm.ritualId, event.ritualId),
-        eq(rm.userId, session.user!.id!),
-        eq(rm.role, 'sponsor')
-      ),
-  })
-  if (!member) throw new Error('Only sponsors can advance event status')
+  await requireSponsorOrOrganizer(eventId, session.user.id!)
 
   await db
     .update(events)
@@ -457,7 +444,7 @@ export async function toggleLoreHOF(
   })
   if (!entry) throw new Error('Lore entry not found')
 
-  // Only author or sponsor can toggle HOF
+  // Only author, sponsor, or organizer can toggle HOF
   const event = await db.query.events.findFirst({
     where: (e, { eq }) => eq(e.id, entry.eventId),
   })
@@ -472,8 +459,9 @@ export async function toggleLoreHOF(
         eq(rm.role, 'sponsor')
       ),
   }))
+  const isOrganizer = event.organizerId === session.user.id
 
-  if (!isAuthor && !isSponsor) throw new Error('Not authorized')
+  if (!isAuthor && !isSponsor && !isOrganizer) throw new Error('Not authorized')
 
   await db
     .update(loreEntries)

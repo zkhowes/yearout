@@ -246,15 +246,15 @@ function AwardsPodium({
 
 // ─── Itinerary Section ───────────────────────────────────────────────────────
 
-function ItinerarySection({
+export function ItinerarySection({
   event,
   itineraryList,
-  isSponsor,
+  canEdit,
   ritualSlug,
 }: {
   event: Event
   itineraryList: ItineraryDay[]
-  isSponsor: boolean
+  canEdit: boolean
   ritualSlug: string
 }) {
   const [showAddForm, setShowAddForm] = useState(false)
@@ -285,7 +285,7 @@ function ItinerarySection({
       .map((d) => ({ id: '', day: d, themeName: null, notes: null, isPlaceholder: true })),
   ].sort((a, b) => a.day.getTime() - b.day.getTime())
 
-  if (mergedDays.length === 0 && !isSponsor) return null
+  if (mergedDays.length === 0 && !canEdit) return null
 
   function handleAdd(e: React.FormEvent) {
     e.preventDefault()
@@ -345,15 +345,15 @@ function ItinerarySection({
             return (
               <button
                 key={item.day.toISOString()}
-                onClick={() => isSponsor && handlePlaceholderClick(item.day)}
-                disabled={!isSponsor}
+                onClick={() => canEdit && handlePlaceholderClick(item.day)}
+                disabled={!canEdit}
                 className={`flex items-center gap-3 p-3 rounded-xl border border-dashed border-[var(--border)] ${
-                  isSponsor ? 'hover:border-[var(--fg-muted)] cursor-pointer' : 'cursor-default'
+                  canEdit ? 'hover:border-[var(--fg-muted)] cursor-pointer' : 'cursor-default'
                 } transition-colors`}
               >
                 <Calendar size={14} className="text-[var(--fg-muted)] shrink-0" />
                 <span className="text-sm text-[var(--fg-muted)]">{fmtDay(item.day)}</span>
-                {isSponsor && (
+                {canEdit && (
                   <Plus size={12} className="text-[var(--fg-muted)] ml-auto" />
                 )}
               </button>
@@ -410,7 +410,7 @@ function ItinerarySection({
                   <p className="text-xs text-[var(--fg-muted)] mt-0.5">{item.notes}</p>
                 )}
               </div>
-              {isSponsor && (
+              {canEdit && (
                 <div className="flex items-center gap-1 shrink-0">
                   <button
                     onClick={() => startEdit(item)}
@@ -433,7 +433,7 @@ function ItinerarySection({
       </div>
 
       {/* Add form (manual, for when no date range) */}
-      {isSponsor && (
+      {canEdit && (
         showAddForm ? (
           <form onSubmit={handleAdd} className="flex flex-col gap-2 p-3 rounded-xl border border-dashed border-[var(--border)] bg-[var(--surface)]">
             <input
@@ -487,19 +487,19 @@ function ItinerarySection({
 
 // ─── Lore Tab ─────────────────────────────────────────────────────────────────
 
-function LoreTab({
+export function LoreTab({
   event,
   loreList,
   attendeeUsers,
   currentUserId,
-  isSponsor,
+  canEdit,
   ritualSlug,
 }: {
   event: Event
   loreList: LoreEntry[]
   attendeeUsers: AttendeeUser[]
   currentUserId: string
-  isSponsor: boolean
+  canEdit: boolean
   ritualSlug: string
 }) {
   const [showForm, setShowForm] = useState(false)
@@ -619,7 +619,7 @@ function LoreTab({
       ) : (
         sorted.map((entry) => {
           const author = userMap.get(entry.authorId)
-          const canToggleHOF = entry.authorId === currentUserId || isSponsor
+          const canToggleHOF = entry.authorId === currentUserId || canEdit
 
           return (
             <div key={entry.id} className="flex flex-col gap-2 p-4 rounded-xl border border-[var(--border)] bg-[var(--surface)]">
@@ -841,7 +841,7 @@ function StatsTab({
 
 // ─── Expenses Tab ─────────────────────────────────────────────────────────────
 
-function ExpensesTab({
+export function ExpensesTab({
   event,
   expenseList,
   attendees,
@@ -1024,7 +1024,7 @@ export function InProgressView({
   awardVoteList,
   itineraryList,
   currentUserId,
-  isSponsor,
+  canEdit,
   ritualSlug,
 }: {
   event: Event
@@ -1039,7 +1039,7 @@ export function InProgressView({
   awardVoteList: AwardVote[]
   itineraryList: ItineraryDay[]
   currentUserId: string
-  isSponsor: boolean
+  canEdit: boolean
   ritualSlug: string
 }) {
   const [activeTab, setActiveTab] = useState<'lore' | 'stats' | 'expenses'>('lore')
@@ -1060,7 +1060,7 @@ export function InProgressView({
         attendeeUsers={attendeeUsers}
         awardDefs={awardDefs}
         currentAwards={currentAwards}
-        isSponsor={isSponsor}
+        isSponsor={canEdit}
         ritualSlug={ritualSlug}
       />
 
@@ -1068,7 +1068,7 @@ export function InProgressView({
       <ItinerarySection
         event={event}
         itineraryList={itineraryList}
-        isSponsor={isSponsor}
+        canEdit={canEdit}
         ritualSlug={ritualSlug}
       />
 
@@ -1096,7 +1096,7 @@ export function InProgressView({
           loreList={loreList}
           attendeeUsers={attendeeUsers}
           currentUserId={currentUserId}
-          isSponsor={isSponsor}
+          canEdit={canEdit}
           ritualSlug={ritualSlug}
         />
       )}
@@ -1107,7 +1107,7 @@ export function InProgressView({
           attendees={attendees}
           attendeeUsers={attendeeUsers}
           currentUserId={currentUserId}
-          isSponsor={isSponsor}
+          isSponsor={canEdit}
           ritualSlug={ritualSlug}
         />
       )}
@@ -1122,8 +1122,8 @@ export function InProgressView({
         />
       )}
 
-      {/* Close Out button (sponsor only) */}
-      {isSponsor && (
+      {/* Close Out button (sponsor/organizer) */}
+      {canEdit && (
         <button
           onClick={() => setShowCloseout(true)}
           className="flex items-center justify-center gap-2 w-full py-4 rounded-xl border border-[var(--border)] text-base font-semibold text-[var(--fg)] hover:bg-[var(--surface)] transition-colors"
@@ -1143,7 +1143,7 @@ export function InProgressView({
           currentAwards={currentAwards}
           awardVoteList={awardVoteList}
           currentUserId={currentUserId}
-          isSponsor={isSponsor}
+          isSponsor={canEdit}
           ritualSlug={ritualSlug}
           onBack={() => setShowCloseout(false)}
         />

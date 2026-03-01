@@ -1,8 +1,9 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { ExternalLink, Loader2, Plane, ChevronDown, ChevronUp } from 'lucide-react'
+import { ExternalLink, Loader2, Plane, ChevronDown, ChevronUp, Settings } from 'lucide-react'
 import { updateBookingStatus, advanceEventStatus, updateFlightDetails } from '@/lib/event-actions'
+import { ItinerarySection, LoreTab, ExpensesTab } from './in-progress-view'
 
 type BookingStatus = 'not_yet' | 'committed' | 'flights_booked' | 'all_booked' | 'out'
 
@@ -332,22 +333,58 @@ function ArrivalDepartureBoard({
   )
 }
 
+type LoreEntry = {
+  id: string
+  authorId: string
+  type: 'memory' | 'checkin' | 'image'
+  content: string | null
+  location: string | null
+  isHallOfFame: boolean
+  day: Date | null
+  createdAt: Date
+}
+
+type Expense = {
+  id: string
+  paidBy: string
+  description: string
+  amount: number
+  createdAt: Date
+}
+
+type ItineraryDay = {
+  id: string
+  day: Date
+  themeName: string | null
+  notes: string | null
+}
+
 export function ScheduledView({
   event,
   attendees,
   attendeeUsers,
   myAttendee,
-  isSponsor,
+  canEdit,
+  itineraryList,
+  expenseList,
+  loreList,
+  currentUserId,
   ritualSlug,
 }: {
   event: Event
   attendees: Attendee[]
   attendeeUsers: AttendeeUser[]
   myAttendee: Attendee | null
-  isSponsor: boolean
+  canEdit: boolean
+  itineraryList: ItineraryDay[]
+  expenseList: Expense[]
+  loreList: LoreEntry[]
+  currentUserId: string
   ritualSlug: string
 }) {
   const [advancing, startAdvance] = useTransition()
+  const [activeTab, setActiveTab] = useState<'lore' | 'expenses'>('lore')
+  const [showControls, setShowControls] = useState(false)
 
   const userMap = new Map(attendeeUsers.map((u) => [u.id, u]))
   const dateRange = formatDateRange(event.startDate, event.endDate)
@@ -358,6 +395,11 @@ export function ScheduledView({
       await advanceEventStatus(event.id, 'in_progress', ritualSlug, event.year)
     })
   }
+
+  const tabs = [
+    { id: 'lore', label: 'Lore' },
+    { id: 'expenses', label: 'Expenses' },
+  ] as const
 
   return (
     <div className="flex flex-col gap-6">
@@ -433,19 +475,79 @@ export function ScheduledView({
         attendeeUsers={attendeeUsers}
       />
 
-      {/* Start event (sponsor only) */}
-      {isSponsor && (
-        <button
-          onClick={handleAdvance}
-          disabled={advancing}
-          className="flex items-center justify-center gap-2 w-full py-4 rounded-xl btn-accent text-base font-semibold disabled:opacity-50"
-        >
-          {advancing ? (
-            <><Loader2 size={16} className="animate-spin" /> Starting…</>
-          ) : (
-            'Start the event'
+      {/* Itinerary */}
+      <ItinerarySection
+        event={event}
+        itineraryList={itineraryList}
+        canEdit={canEdit}
+        ritualSlug={ritualSlug}
+      />
+
+      {/* Tab switcher */}
+      <div className="flex border-b border-[var(--border)]">
+        {tabs.map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            className={`flex-1 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px ${
+              activeTab === tab.id
+                ? 'border-[var(--accent)] text-[var(--fg)]'
+                : 'border-transparent text-[var(--fg-muted)] hover:text-[var(--fg)]'
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Tab content */}
+      {activeTab === 'lore' && (
+        <LoreTab
+          event={event}
+          loreList={loreList}
+          attendeeUsers={attendeeUsers}
+          currentUserId={currentUserId}
+          canEdit={canEdit}
+          ritualSlug={ritualSlug}
+        />
+      )}
+      {activeTab === 'expenses' && (
+        <ExpensesTab
+          event={event}
+          expenseList={expenseList}
+          attendees={attendees}
+          attendeeUsers={attendeeUsers}
+          currentUserId={currentUserId}
+          ritualSlug={ritualSlug}
+        />
+      )}
+
+      {/* Sponsor Controls */}
+      {canEdit && (
+        <div className="flex flex-col gap-3">
+          <button
+            onClick={() => setShowControls(!showControls)}
+            className="flex items-center gap-2 text-xs text-[var(--fg-muted)] hover:text-[var(--fg)] transition-colors"
+          >
+            <Settings size={14} />
+            Sponsor Controls
+            {showControls ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+          </button>
+
+          {showControls && (
+            <button
+              onClick={handleAdvance}
+              disabled={advancing}
+              className="flex items-center justify-center gap-2 w-full py-4 rounded-xl btn-accent text-base font-semibold disabled:opacity-50"
+            >
+              {advancing ? (
+                <><Loader2 size={16} className="animate-spin" /> Starting…</>
+              ) : (
+                'Start the event'
+              )}
+            </button>
           )}
-        </button>
+        </div>
       )}
     </div>
   )
