@@ -777,6 +777,47 @@ export async function finalizeAwardVotes(
         createdAt: new Date(),
       })
     }
+
+    // Auto-assign runner_up from 2nd-place MVP votes
+    if (def.type === 'mvp' && winnerId) {
+      const runnerUpDef = awardDefs.find((d) => d.type === 'runner_up')
+      if (runnerUpDef) {
+        let runnerUpId: string | null = null
+        let runnerUpCount = 0
+        let runnerUpFirstVote: Date | null = null
+
+        for (const [userId, { count, firstVoteAt }] of Array.from(tally.entries())) {
+          if (userId === winnerId) continue
+          if (
+            !runnerUpId ||
+            count > runnerUpCount ||
+            (count === runnerUpCount && runnerUpFirstVote && firstVoteAt < runnerUpFirstVote)
+          ) {
+            runnerUpId = userId
+            runnerUpCount = count
+            runnerUpFirstVote = firstVoteAt
+          }
+        }
+
+        if (runnerUpId) {
+          const existingRU = await db.query.awards.findFirst({
+            where: (a, { and, eq }) =>
+              and(eq(a.eventId, eventId), eq(a.awardDefinitionId, runnerUpDef.id)),
+          })
+          if (existingRU) {
+            await db.update(awards).set({ winnerId: runnerUpId }).where(eq(awards.id, existingRU.id))
+          } else {
+            await db.insert(awards).values({
+              id: crypto.randomUUID(),
+              eventId,
+              awardDefinitionId: runnerUpDef.id,
+              winnerId: runnerUpId,
+              createdAt: new Date(),
+            })
+          }
+        }
+      }
+    }
   }
 
   revalidatePath(`/${ritualSlug}/${year}`)
@@ -874,6 +915,56 @@ export async function deleteItineraryDay(
   await requireSponsorOrOrganizer(entry.eventId, session.user.id!)
 
   await db.delete(dailyItinerary).where(eq(dailyItinerary.id, itineraryId))
+
+  revalidatePath(`/${ritualSlug}/${year}`)
+}
+
+// ─── Cover Photo ─────────────────────────────────────────────────────────────
+
+export async function updateEventCoverPhoto(
+  eventId: string,
+  ritualSlug: string,
+  year: number,
+  coverPhotoUrl: string
+) {
+  const session = await auth()
+  if (!session?.user?.id) redirect('/login')
+
+  await requireSponsorOrOrganizer(eventId, session.user.id!)
+
+  await db
+    .update(events)
+    .set({ coverPhotoUrl })
+    .where(eq(events.id, eventId))
+
+  revalidatePath(`/${ritualSlug}/${year}`)
+}
+
+// ─── Attendee Management ────────────────────────────────────────────────────
+
+export async function addEventAttendee(
+  eventId: string,
+  ritualSlug: string,
+  year: number,
+  userId: string
+) {
+  const session = await auth()
+  if (!session?.user?.id) redirect('/login')
+
+  await requireSponsorOrOrganizer(eventId, session.user.id!)
+
+  const existing = await db.query.eventAttendees.findFirst({
+    where: (ea, { and, eq }) =>
+      and(eq(ea.eventId, eventId), eq(ea.userId, userId)),
+  })
+  if (existing) return
+
+  await db.insert(eventAttendees).values({
+    id: crypto.randomUUID(),
+    eventId,
+    userId,
+    bookingStatus: 'all_booked',
+  })
 
   revalidatePath(`/${ritualSlug}/${year}`)
 }

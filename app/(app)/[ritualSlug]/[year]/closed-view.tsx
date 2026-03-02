@@ -8,6 +8,7 @@ import {
   toggleLoreHOF,
   deleteLoreEntry,
   updateEventEdit,
+  addEventAttendee,
 } from '@/lib/event-actions'
 
 type Attendee = {
@@ -60,6 +61,12 @@ type MemberOverride = {
   nicknameOverride: string | null
 }
 
+type RitualMember = {
+  userId: string
+  userName: string | null
+  userImage: string | null
+}
+
 type Event = {
   id: string
   name: string
@@ -110,6 +117,7 @@ export function ClosedView({
   loreList,
   itineraryList,
   memberOverrides,
+  allRitualMembers,
   currentUserId,
   canEdit,
   ritualSlug,
@@ -122,6 +130,7 @@ export function ClosedView({
   loreList: LoreEntry[]
   itineraryList: ItineraryDay[]
   memberOverrides: MemberOverride[]
+  allRitualMembers: RitualMember[]
   currentUserId: string
   canEdit: boolean
   ritualSlug: string
@@ -130,15 +139,15 @@ export function ClosedView({
 
   return (
     <div className="flex flex-col gap-8">
-      {/* 4a. Event Details Card */}
+      {/* Event Details Card */}
       <EventDetailsCard event={event} />
 
-      {/* 4b. Daily Itinerary Recap */}
+      {/* Daily Itinerary Recap */}
       {itineraryList.length > 0 && (
         <ItineraryRecap itineraryList={itineraryList} />
       )}
 
-      {/* 4c. Awards Podium */}
+      {/* Awards Podium */}
       {awardDefs.length > 0 && (
         <AwardsPodium
           event={event}
@@ -151,14 +160,16 @@ export function ClosedView({
         />
       )}
 
-      {/* 4d. Crew Roster */}
-      {attendees.length > 0 && (
-        <CrewRoster
-          attendees={attendees}
-          attendeeUsers={attendeeUsers}
-          overrideMap={overrideMap}
-        />
-      )}
+      {/* Crew */}
+      <CrewTiles
+        event={event}
+        attendees={attendees}
+        attendeeUsers={attendeeUsers}
+        overrideMap={overrideMap}
+        allRitualMembers={allRitualMembers}
+        canEdit={canEdit}
+        ritualSlug={ritualSlug}
+      />
 
       {/* 4e. Video Edit Section */}
       <VideoEditSection
@@ -184,12 +195,12 @@ export function ClosedView({
 
 function EventDetailsCard({ event }: { event: Event }) {
   const venues = event.mountains?.split(',').map((m) => m.trim()).filter(Boolean) ?? []
+  const hasContent = venues.length > 0 || event.startDate || event.endDate
+
+  if (!hasContent) return null
 
   return (
     <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5 flex flex-col gap-3">
-      {event.location && (
-        <p className="text-xl font-bold text-[var(--fg)]">{event.location}</p>
-      )}
       {venues.length > 0 && (
         <div className="flex flex-wrap gap-2">
           {venues.map((venue) => (
@@ -261,23 +272,42 @@ function ItineraryRecap({ itineraryList }: { itineraryList: ItineraryDay[] }) {
   )
 }
 
-// ─── 4d. Crew Roster ─────────────────────────────────────────────────────────
+// ─── Crew Tiles ──────────────────────────────────────────────────────────────
 
-function CrewRoster({
+function CrewTiles({
+  event,
   attendees,
   attendeeUsers,
   overrideMap,
+  allRitualMembers,
+  canEdit,
+  ritualSlug,
 }: {
+  event: Event
   attendees: Attendee[]
   attendeeUsers: AttendeeUser[]
   overrideMap: Map<string, MemberOverride>
+  allRitualMembers: RitualMember[]
+  canEdit: boolean
+  ritualSlug: string
 }) {
+  const [showPicker, setShowPicker] = useState(false)
+  const [adding, startAdd] = useTransition()
   const userMap = new Map(attendeeUsers.map((u) => [u.id, u]))
+  const attendeeSet = new Set(attendees.map((a) => a.userId))
+  const availableMembers = allRitualMembers.filter((m) => !attendeeSet.has(m.userId))
+
+  function handleAdd(userId: string) {
+    startAdd(async () => {
+      await addEventAttendee(event.id, ritualSlug, event.year, userId)
+      setShowPicker(false)
+    })
+  }
 
   return (
     <div className="flex flex-col gap-3">
       <p className="text-xs uppercase tracking-widest text-[var(--fg-muted)]">Crew</p>
-      <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
+      <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
         {attendees.map((a) => {
           const user = userMap.get(a.userId)
           if (!user) return null
@@ -286,24 +316,63 @@ function CrewRoster({
           const displayName = override?.nicknameOverride ?? user.name?.split(' ')[0] ?? 'Unknown'
 
           return (
-            <div key={a.userId} className="flex flex-col items-center gap-2">
+            <div
+              key={a.userId}
+              className="flex flex-col items-center gap-1.5 p-3 rounded-xl border border-[var(--border)] bg-[var(--surface)]"
+            >
               {photoUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={photoUrl}
                   alt={displayName}
-                  className="w-16 h-16 rounded-full object-cover"
+                  className="w-10 h-10 rounded-full object-cover"
                 />
               ) : (
-                <div className="w-16 h-16 rounded-full bg-[var(--border)] flex items-center justify-center">
-                  <User size={24} className="text-[var(--fg-muted)]" />
+                <div className="w-10 h-10 rounded-full bg-[var(--border)] flex items-center justify-center">
+                  <User size={16} className="text-[var(--fg-muted)]" />
                 </div>
               )}
-              <p className="text-xs font-medium text-[var(--fg)] text-center">{displayName}</p>
+              <span className="text-xs font-medium text-[var(--fg)] text-center leading-tight max-w-[72px] truncate">
+                {displayName}
+              </span>
             </div>
           )
         })}
       </div>
+
+      {/* Add crew member (sponsor/organizer) */}
+      {canEdit && availableMembers.length > 0 && (
+        showPicker ? (
+          <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3 flex flex-col gap-2">
+            <p className="text-xs text-[var(--fg-muted)]">Add crew member</p>
+            <div className="flex flex-wrap gap-2">
+              {availableMembers.map((m) => (
+                <button
+                  key={m.userId}
+                  onClick={() => handleAdd(m.userId)}
+                  disabled={adding}
+                  className="px-3 py-1.5 rounded-lg border border-[var(--border)] text-sm text-[var(--fg)] hover:bg-[var(--border)] transition-colors disabled:opacity-50"
+                >
+                  {m.userName?.split(' ')[0] ?? 'Unknown'}
+                </button>
+              ))}
+            </div>
+            <button
+              onClick={() => setShowPicker(false)}
+              className="self-start text-xs text-[var(--fg-muted)] hover:text-[var(--fg)] transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={() => setShowPicker(true)}
+            className="flex items-center justify-center gap-1.5 w-full py-2 rounded-xl border border-dashed border-[var(--border)] text-xs text-[var(--fg-muted)] hover:text-[var(--fg)] hover:border-[var(--fg-muted)] transition-colors"
+          >
+            <Plus size={12} /> Add crew member
+          </button>
+        )
+      )}
     </div>
   )
 }

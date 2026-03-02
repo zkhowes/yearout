@@ -22,6 +22,7 @@ import { Proposals } from './proposals'
 import { ScheduledView } from './scheduled-view'
 import { InProgressView } from './in-progress-view'
 import { ClosedView } from './closed-view'
+import { CoverPhoto } from './cover-photo'
 import { EventLogoUpload } from './event-logo-upload'
 
 export default async function EventPage({
@@ -162,8 +163,9 @@ export default async function EventPage({
     }
   }
 
-  // ── Member overrides (for crew roster photos/nicknames) ──────────────────
+  // ── Closed-event extras: member overrides, default awards, all members ───
   let memberOverrides: { userId: string; photoOverride: string | null; nicknameOverride: string | null }[] = []
+  let allRitualMembers: { userId: string; userName: string | null; userImage: string | null }[] = []
   if (event.status === 'closed') {
     const rawOverrides = await db
       .select({
@@ -174,6 +176,41 @@ export default async function EventPage({
       .from(ritualMembers)
       .where(eq(ritualMembers.ritualId, ritual.id))
     memberOverrides = rawOverrides
+
+    // All ritual members (for add-crew UI)
+    allRitualMembers = await db
+      .select({
+        userId: ritualMembers.userId,
+        userName: users.name,
+        userImage: users.image,
+      })
+      .from(ritualMembers)
+      .innerJoin(users, eq(ritualMembers.userId, users.id))
+      .where(eq(ritualMembers.ritualId, ritual.id))
+
+    // Ensure default award definitions exist (runner_up, totem)
+    const defaultTypes = [
+      { type: 'runner_up', name: 'Runner Up', label: '2nd Place MVP' },
+      { type: 'totem', name: 'Totem', label: 'Totem Holder' },
+    ]
+    const existingTypes = new Set(awardDefs.map((d) => d.type))
+    const missing = defaultTypes.filter((d) => !existingTypes.has(d.type))
+    if (missing.length > 0) {
+      await db.insert(ritualAwardDefinitions).values(
+        missing.map((d) => ({
+          id: crypto.randomUUID(),
+          ritualId: ritual.id,
+          name: d.name,
+          label: d.label,
+          type: d.type,
+          createdAt: new Date(),
+        }))
+      )
+      awardDefs = await db
+        .select()
+        .from(ritualAwardDefinitions)
+        .where(eq(ritualAwardDefinitions.ritualId, ritual.id))
+    }
   }
 
   // ── Status badge ──────────────────────────────────────────────────────────
@@ -214,12 +251,23 @@ export default async function EventPage({
         />
         <p className="text-xs uppercase tracking-widest text-[var(--fg-muted)]">{year}</p>
         <h1 className="text-3xl font-bold text-[var(--fg)]">{event.name}</h1>
-        {event.location && (
+        {event.location && event.status !== 'closed' && (
           <p className="text-[var(--fg-muted)]">{event.location}</p>
         )}
         <div className="mt-1">{statusBadge}</div>
 
       </div>
+
+      {/* Cover photo (closed events) */}
+      {event.status === 'closed' && (
+        <CoverPhoto
+          eventId={event.id}
+          ritualSlug={ritual.slug}
+          year={event.year}
+          coverPhotoUrl={event.coverPhotoUrl}
+          canEdit={canEdit}
+        />
+      )}
 
       {/* ── Planning state ── */}
       {event.status === 'planning' && (
@@ -307,6 +355,7 @@ export default async function EventPage({
           loreList={loreList}
           itineraryList={itineraryList}
           memberOverrides={memberOverrides}
+          allRitualMembers={allRitualMembers}
           currentUserId={session.user!.id!}
           canEdit={canEdit}
           ritualSlug={ritual.slug}
