@@ -75,11 +75,11 @@ export default async function AboutPage({
         </div>
       )}
 
-      {/* Bylaws / Motto */}
-      {ritual.bylaws && (
-        <blockquote className="text-center text-sm italic text-[var(--fg-muted)] border-l-2 border-[var(--accent)] pl-4 mx-auto max-w-md">
-          {ritual.bylaws}
-        </blockquote>
+      {/* Tagline */}
+      {ritual.tagline && (
+        <p className="text-center text-sm italic text-[var(--fg-muted)]">
+          {ritual.tagline}
+        </p>
       )}
 
       {/* Founding Year */}
@@ -142,6 +142,15 @@ export default async function AboutPage({
           })}
         </div>
       </div>
+      {/* Bylaws */}
+      {ritual.bylaws && (
+        <div className="flex flex-col gap-3">
+          <p className="text-xs uppercase tracking-widest text-[var(--fg-muted)]">Bylaws</p>
+          <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5">
+            <p className="text-sm text-[var(--fg)] leading-relaxed whitespace-pre-line">{ritual.bylaws}</p>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

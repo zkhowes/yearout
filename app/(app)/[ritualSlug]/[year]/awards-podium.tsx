@@ -177,7 +177,6 @@ export function AwardsPodium({
                     )}
                     <div className="flex-1">
                       <p className="text-sm font-semibold text-[var(--fg)]">{winnerUser.name?.split(' ')[0] ?? 'Unknown'}</p>
-                      <p className="text-[10px] uppercase tracking-widest text-[var(--fg-muted)]">{totemDef.name}</p>
                     </div>
                     {isSponsor && (
                       <button
@@ -192,20 +191,16 @@ export function AwardsPodium({
                   </>
                 ) : (
                   <>
-                    <div className="flex-1">
-                      <p className="text-[10px] uppercase tracking-widest text-[var(--fg-muted)]">{totemDef.name}</p>
-                    </div>
-                    {isSponsor ? (
+                    <div className="flex-1" />
+                    {isSponsor && (
                       <button
                         onClick={() => setPickerDefId(totemDef.id)}
                         disabled={assigning}
                         className="flex items-center gap-1 text-[var(--fg-muted)] hover:text-[var(--fg)] transition-colors disabled:opacity-50"
                       >
-                        <Trophy size={18} />
-                        <span className="text-[10px]">Assign</span>
+                        <Trophy size={14} />
+                        <span className="text-xs">Assign</span>
                       </button>
-                    ) : (
-                      <Trophy size={18} className="text-[var(--border)]" />
                     )}
                   </>
                 )}

@@ -87,19 +87,6 @@ function getYouTubeId(url: string): string | null {
   return match?.[1] ?? null
 }
 
-function getVimeoId(url: string): string | null {
-  const match = url.match(/vimeo\.com\/(\d+)/)
-  return match?.[1] ?? null
-}
-
-function getEmbedUrl(url: string): string | null {
-  const ytId = getYouTubeId(url)
-  if (ytId) return `https://www.youtube.com/embed/${ytId}`
-  const vimeoId = getVimeoId(url)
-  if (vimeoId) return `https://player.vimeo.com/video/${vimeoId}`
-  return null
-}
-
 function getThumbnailUrl(url: string, customThumbnail: string | null): string | null {
   if (customThumbnail) return customThumbnail
   const ytId = getYouTubeId(url)
@@ -503,14 +490,12 @@ function VideoEditSection({
   canEdit: boolean
   ritualSlug: string
 }) {
-  const [playing, setPlaying] = useState(false)
   const [showEditForm, setShowEditForm] = useState(false)
   const [editUrlInput, setEditUrlInput] = useState(event.editUrl ?? '')
   const [thumbnailFile, setThumbnailFile] = useState<File | null>(null)
   const [pending, startTransition] = useTransition()
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const embedUrl = event.editUrl ? getEmbedUrl(event.editUrl) : null
   const thumbUrl = event.editUrl
     ? getThumbnailUrl(event.editUrl, event.editThumbnailUrl)
     : null
@@ -560,10 +545,12 @@ function VideoEditSection({
     <div className="flex flex-col gap-3">
       <p className="text-xs uppercase tracking-widest text-[var(--fg-muted)]">Video Edit</p>
 
-      {event.editUrl && embedUrl && !playing && (
-        <button
-          onClick={() => setPlaying(true)}
-          className="relative rounded-xl overflow-hidden border border-[var(--border)] aspect-video w-full bg-black"
+      {event.editUrl && (
+        <a
+          href={event.editUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="relative rounded-xl overflow-hidden border border-[var(--border)] aspect-video w-full bg-black block"
         >
           {thumbUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
@@ -580,18 +567,7 @@ function VideoEditSection({
               <Play size={28} className="text-black ml-1" />
             </div>
           </div>
-        </button>
-      )}
-
-      {playing && embedUrl && (
-        <div className="rounded-xl overflow-hidden border border-[var(--border)] aspect-video w-full">
-          <iframe
-            src={`${embedUrl}?autoplay=1`}
-            className="w-full h-full"
-            allow="autoplay; fullscreen"
-            allowFullScreen
-          />
-        </div>
+        </a>
       )}
 
       {canEdit && (
