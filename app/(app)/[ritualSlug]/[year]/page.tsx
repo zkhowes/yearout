@@ -8,6 +8,7 @@ import {
   ritualMembers,
   eventAttendees,
   loreEntries,
+  loreMentions,
   activityResults,
   expenses,
   awardVotes,
@@ -24,6 +25,7 @@ import { InProgressView } from './in-progress-view'
 import { ClosedView } from './closed-view'
 import { CoverPhoto } from './cover-photo'
 import { EventLogoUpload } from './event-logo-upload'
+import { EditableEventName } from './editable-event-name'
 
 export default async function EventPage({
   params,
@@ -97,7 +99,7 @@ export default async function EventPage({
 
   // In-progress / closed: also load lore, expenses, activity, awards
   let expenseList: { id: string; paidBy: string; description: string; amount: number; createdAt: Date }[] = []
-  let loreList: { id: string; authorId: string; type: 'memory' | 'checkin' | 'image'; content: string | null; mediaUrl: string | null; location: string | null; isHallOfFame: boolean; day: Date | null; createdAt: Date }[] = []
+  let loreList: { id: string; authorId: string; type: 'memory' | 'checkin' | 'image'; content: string | null; mediaUrl: string | null; location: string | null; isHallOfFame: boolean; day: Date | null; createdAt: Date; mentions: { userId: string }[] }[] = []
   let activityList: { id: string; userId: string; metric: string; value: string; unit: string | null; day: Date | null; createdAt: Date }[] = []
   let awardDefs: { id: string; name: string; label: string; type: string }[] = []
   let currentAwards: { id: string; awardDefinitionId: string; winnerId: string }[] = []
@@ -135,8 +137,18 @@ export default async function EventPage({
         ])
 
       expenseList = rawExpenses as typeof expenseList
-      loreList = rawLore as typeof loreList
       activityList = rawActivity as typeof activityList
+
+      // Fetch mentions for lore entries
+      const loreIds = rawLore.map((l) => l.id)
+      const rawMentions = loreIds.length > 0
+        ? await db.select().from(loreMentions).where(inArray(loreMentions.loreEntryId, loreIds))
+        : []
+      loreList = rawLore.map((l) => ({
+        ...l,
+        type: l.type as 'memory' | 'checkin' | 'image',
+        mentions: rawMentions.filter((m) => m.loreEntryId === l.id).map((m) => ({ userId: m.userId })),
+      }))
       awardDefs = rawAwardDefs
       currentAwards = rawAwards
       awardVoteList = rawVotes
@@ -189,9 +201,22 @@ export default async function EventPage({
     }
   }
 
-  // ── Closed-event extras: member overrides, all members ───
-  let memberOverrides: { userId: string; photoOverride: string | null; nicknameOverride: string | null }[] = []
+  // ── All ritual members (for @mention dropdown + closed-event crew UI) ───
   let allRitualMembers: { userId: string; userName: string | null; userImage: string | null }[] = []
+  let memberOverrides: { userId: string; photoOverride: string | null; nicknameOverride: string | null }[] = []
+
+  if (event.status !== 'planning') {
+    allRitualMembers = await db
+      .select({
+        userId: ritualMembers.userId,
+        userName: users.name,
+        userImage: users.image,
+      })
+      .from(ritualMembers)
+      .innerJoin(users, eq(ritualMembers.userId, users.id))
+      .where(eq(ritualMembers.ritualId, ritual.id))
+  }
+
   if (event.status === 'closed') {
     const rawOverrides = await db
       .select({
@@ -202,17 +227,6 @@ export default async function EventPage({
       .from(ritualMembers)
       .where(eq(ritualMembers.ritualId, ritual.id))
     memberOverrides = rawOverrides
-
-    // All ritual members (for add-crew UI)
-    allRitualMembers = await db
-      .select({
-        userId: ritualMembers.userId,
-        userName: users.name,
-        userImage: users.image,
-      })
-      .from(ritualMembers)
-      .innerJoin(users, eq(ritualMembers.userId, users.id))
-      .where(eq(ritualMembers.ritualId, ritual.id))
   }
 
   // ── Status badge ──────────────────────────────────────────────────────────
@@ -252,7 +266,13 @@ export default async function EventPage({
           canEdit={canEdit}
         />
         <p className="text-xs uppercase tracking-widest text-[var(--fg-muted)]">{year}</p>
-        <h1 className="text-3xl font-bold text-[var(--fg)]">{event.name}</h1>
+        <EditableEventName
+          eventId={event.id}
+          ritualSlug={ritual.slug}
+          year={event.year}
+          name={event.name}
+          canEdit={canEdit}
+        />
         {event.location && event.status !== 'closed' && (
           <p className="text-[var(--fg-muted)]">{event.location}</p>
         )}
@@ -304,6 +324,7 @@ export default async function EventPage({
           itineraryList={itineraryList}
           expenseList={expenseList}
           loreList={loreList}
+          crewMembers={allRitualMembers.map((m) => ({ id: m.userId, name: m.userName, image: m.userImage }))}
           currentUserId={session.user!.id!}
           ritualSlug={ritual.slug}
         />
@@ -330,6 +351,7 @@ export default async function EventPage({
           currentAwards={currentAwards}
           awardVoteList={awardVoteList}
           itineraryList={itineraryList}
+          crewMembers={allRitualMembers.map((m) => ({ id: m.userId, name: m.userName, image: m.userImage }))}
           currentUserId={session.user!.id!}
           canEdit={canEdit}
           ritualSlug={ritual.slug}
@@ -358,6 +380,7 @@ export default async function EventPage({
           itineraryList={itineraryList}
           memberOverrides={memberOverrides}
           allRitualMembers={allRitualMembers}
+          crewMembers={allRitualMembers.map((m) => ({ id: m.userId, name: m.userName, image: m.userImage }))}
           currentUserId={session.user!.id!}
           canEdit={canEdit}
           ritualSlug={ritual.slug}

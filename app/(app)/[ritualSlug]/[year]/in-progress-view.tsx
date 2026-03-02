@@ -1,12 +1,10 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { Plus, Loader2, Star, Trash2, Pencil, Calendar } from 'lucide-react'
+import { Plus, Loader2, Trash2, Pencil, Calendar } from 'lucide-react'
 import {
   addExpense,
   deleteExpense,
-  addLoreEntry,
-  toggleLoreHOF,
   addActivityResult,
   addItineraryDay,
   updateItineraryDay,
@@ -15,6 +13,8 @@ import {
 import { CloseoutView } from './closeout-view'
 import { AwardsPodium } from './awards-podium'
 import { EventDetailsCard } from './closed-view'
+import { LoreFeed } from '@/components/lore/lore-feed'
+import type { LoreEntryData } from '@/components/lore/lore-post'
 
 type Attendee = {
   id: string
@@ -36,15 +36,10 @@ type Expense = {
   createdAt: Date
 }
 
-type LoreEntry = {
+type CrewMember = {
   id: string
-  authorId: string
-  type: 'memory' | 'checkin' | 'image'
-  content: string | null
-  location: string | null
-  isHallOfFame: boolean
-  day: Date | null
-  createdAt: Date
+  name: string | null
+  image: string | null
 }
 
 type ActivityResult = {
@@ -365,185 +360,6 @@ export function ItinerarySection({
             <Plus size={12} /> Add day
           </button>
         )
-      )}
-    </div>
-  )
-}
-
-// ─── Lore Tab ─────────────────────────────────────────────────────────────────
-
-export function LoreTab({
-  event,
-  loreList,
-  attendeeUsers,
-  currentUserId,
-  canEdit,
-  ritualSlug,
-}: {
-  event: Event
-  loreList: LoreEntry[]
-  attendeeUsers: AttendeeUser[]
-  currentUserId: string
-  canEdit: boolean
-  ritualSlug: string
-}) {
-  const [showForm, setShowForm] = useState(false)
-  const [type, setType] = useState<'memory' | 'checkin'>('memory')
-  const [content, setContent] = useState('')
-  const [location, setLocation] = useState('')
-  const [day, setDay] = useState('')
-  const [pending, startSubmit] = useTransition()
-  const [toggling, startToggle] = useTransition()
-  const userMap = new Map(attendeeUsers.map((u) => [u.id, u]))
-
-  function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    if (!content.trim()) return
-    startSubmit(async () => {
-      await addLoreEntry(
-        event.id,
-        ritualSlug,
-        event.year,
-        type,
-        content,
-        location.trim() || undefined,
-        day ? new Date(day) : undefined
-      )
-      setContent('')
-      setLocation('')
-      setDay('')
-      setShowForm(false)
-    })
-  }
-
-  function handleToggleHOF(entryId: string) {
-    startToggle(async () => {
-      await toggleLoreHOF(entryId, ritualSlug, event.year)
-    })
-  }
-
-  const sorted = [...loreList].sort(
-    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-  )
-
-  return (
-    <div className="flex flex-col gap-4">
-      {showForm ? (
-        <form onSubmit={handleSubmit} className="flex flex-col gap-3 p-4 rounded-xl border border-dashed border-[var(--border)] bg-[var(--surface)]">
-          <p className="text-xs uppercase tracking-widest text-[var(--fg-muted)]">New Entry</p>
-
-          {/* Type toggle */}
-          <div className="flex gap-2">
-            {(['memory', 'checkin'] as const).map((t) => (
-              <button
-                key={t}
-                type="button"
-                onClick={() => setType(t)}
-                className={`px-3 py-1 rounded-lg text-xs border transition-all capitalize ${
-                  type === t
-                    ? 'bg-[var(--accent)] border-[var(--accent)] text-[var(--accent-fg)]'
-                    : 'border-[var(--border)] text-[var(--fg-muted)]'
-                }`}
-              >
-                {t}
-              </button>
-            ))}
-          </div>
-
-          <textarea
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            placeholder={type === 'memory' ? 'What happened?' : 'Where are you?'}
-            rows={3}
-            className="w-full bg-transparent border-b border-[var(--border)] focus:border-[var(--fg)] outline-none py-1 text-sm text-[var(--fg)] placeholder-[var(--fg-muted)] resize-none"
-          />
-          {type === 'checkin' && (
-            <input
-              value={location}
-              onChange={(e) => setLocation(e.target.value)}
-              placeholder="Location"
-              className="w-full bg-transparent border-b border-[var(--border)] focus:border-[var(--fg)] outline-none py-1 text-sm text-[var(--fg)] placeholder-[var(--fg-muted)]"
-            />
-          )}
-          <input
-            type="date"
-            value={day}
-            onChange={(e) => setDay(e.target.value)}
-            className="w-full bg-transparent border-b border-[var(--border)] focus:border-[var(--fg)] outline-none py-1 text-sm text-[var(--fg)] placeholder-[var(--fg-muted)]"
-          />
-
-          <div className="flex gap-2 pt-1">
-            <button
-              type="submit"
-              disabled={pending || !content.trim()}
-              className="px-4 py-2 rounded-lg btn-accent text-sm font-semibold disabled:opacity-50 flex items-center gap-1"
-            >
-              {pending ? <Loader2 size={13} className="animate-spin" /> : <Plus size={13} />}
-              Add
-            </button>
-            <button
-              type="button"
-              onClick={() => setShowForm(false)}
-              className="px-4 py-2 rounded-lg border border-[var(--border)] text-sm text-[var(--fg-muted)] hover:text-[var(--fg)] transition-colors"
-            >
-              Cancel
-            </button>
-          </div>
-        </form>
-      ) : (
-        <button
-          onClick={() => setShowForm(true)}
-          className="flex items-center justify-center gap-1.5 w-full py-2.5 rounded-xl border border-dashed border-[var(--border)] text-sm text-[var(--fg-muted)] hover:text-[var(--fg)] hover:border-[var(--fg-muted)] transition-colors"
-        >
-          <Plus size={13} /> Add lore
-        </button>
-      )}
-
-      {sorted.length === 0 ? (
-        <p className="text-sm text-[var(--fg-muted)] text-center py-4">No lore yet. Be the first to add a memory.</p>
-      ) : (
-        sorted.map((entry) => {
-          const author = userMap.get(entry.authorId)
-          const canToggleHOF = entry.authorId === currentUserId || canEdit
-
-          return (
-            <div key={entry.id} className="flex flex-col gap-2 p-4 rounded-xl border border-[var(--border)] bg-[var(--surface)]">
-              <div className="flex items-start justify-between gap-2">
-                <div className="flex flex-col gap-0.5 flex-1">
-                  <p className="text-sm text-[var(--fg)]">{entry.content}</p>
-                  {entry.location && (
-                    <p className="text-xs text-[var(--fg-muted)]">@ {entry.location}</p>
-                  )}
-                </div>
-                {canToggleHOF && (
-                  <button
-                    onClick={() => handleToggleHOF(entry.id)}
-                    disabled={toggling}
-                    className={`p-1 rounded transition-colors disabled:opacity-50 ${
-                      entry.isHallOfFame
-                        ? 'text-[var(--accent)]'
-                        : 'text-[var(--border)] hover:text-[var(--fg-muted)]'
-                    }`}
-                    aria-label="Toggle Hall of Fame"
-                  >
-                    <Star size={14} className={entry.isHallOfFame ? 'fill-current' : ''} />
-                  </button>
-                )}
-              </div>
-              <div className="flex items-center gap-2 text-xs text-[var(--fg-muted)]">
-                <span className="capitalize">{entry.type}</span>
-                <span>·</span>
-                <span>{author?.name?.split(' ')[0] ?? 'Unknown'}</span>
-                {entry.day && (
-                  <>
-                    <span>·</span>
-                    <span>{new Date(entry.day).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
-                  </>
-                )}
-              </div>
-            </div>
-          )
-        })
       )}
     </div>
   )
@@ -908,6 +724,7 @@ export function InProgressView({
   currentAwards,
   awardVoteList,
   itineraryList,
+  crewMembers,
   currentUserId,
   canEdit,
   ritualSlug,
@@ -917,12 +734,13 @@ export function InProgressView({
   attendeeUsers: AttendeeUser[]
   myAttendee: Attendee | null
   expenseList: Expense[]
-  loreList: LoreEntry[]
+  loreList: LoreEntryData[]
   activityList: ActivityResult[]
   awardDefs: AwardDef[]
   currentAwards: Award[]
   awardVoteList: AwardVote[]
   itineraryList: ItineraryDay[]
+  crewMembers: CrewMember[]
   currentUserId: string
   canEdit: boolean
   ritualSlug: string
@@ -979,13 +797,16 @@ export function InProgressView({
 
       {/* Tab content */}
       {activeTab === 'lore' && (
-        <LoreTab
-          event={event}
-          loreList={loreList}
-          attendeeUsers={attendeeUsers}
+        <LoreFeed
+          entries={loreList}
+          userMap={new Map(attendeeUsers.map((u) => [u.id, u]))}
+          crewMembers={crewMembers}
           currentUserId={currentUserId}
           canEdit={canEdit}
           ritualSlug={ritualSlug}
+          eventId={event.id}
+          year={event.year}
+          allowedTypes={['memory', 'checkin', 'image']}
         />
       )}
       {activeTab === 'stats' && (

@@ -3,8 +3,10 @@
 import { useState, useTransition } from 'react'
 import { ExternalLink, Loader2, Plane, ChevronDown, ChevronUp, Settings } from 'lucide-react'
 import { updateBookingStatus, advanceEventStatus, updateFlightDetails } from '@/lib/event-actions'
-import { ItinerarySection, LoreTab, ExpensesTab } from './in-progress-view'
+import { ItinerarySection, ExpensesTab } from './in-progress-view'
 import { EventDetailsCard } from './closed-view'
+import { LoreFeed } from '@/components/lore/lore-feed'
+import type { LoreEntryData } from '@/components/lore/lore-post'
 
 type BookingStatus = 'not_yet' | 'committed' | 'flights_booked' | 'all_booked' | 'out'
 
@@ -322,15 +324,10 @@ function ArrivalDepartureBoard({
   )
 }
 
-type LoreEntry = {
+type CrewMember = {
   id: string
-  authorId: string
-  type: 'memory' | 'checkin' | 'image'
-  content: string | null
-  location: string | null
-  isHallOfFame: boolean
-  day: Date | null
-  createdAt: Date
+  name: string | null
+  image: string | null
 }
 
 type Expense = {
@@ -357,6 +354,7 @@ export function ScheduledView({
   itineraryList,
   expenseList,
   loreList,
+  crewMembers,
   currentUserId,
   ritualSlug,
 }: {
@@ -367,7 +365,8 @@ export function ScheduledView({
   canEdit: boolean
   itineraryList: ItineraryDay[]
   expenseList: Expense[]
-  loreList: LoreEntry[]
+  loreList: LoreEntryData[]
+  crewMembers: CrewMember[]
   currentUserId: string
   ritualSlug: string
 }) {
@@ -480,13 +479,16 @@ export function ScheduledView({
 
       {/* Tab content */}
       {activeTab === 'lore' && (
-        <LoreTab
-          event={event}
-          loreList={loreList}
-          attendeeUsers={attendeeUsers}
+        <LoreFeed
+          entries={loreList}
+          userMap={new Map(attendeeUsers.map((u) => [u.id, u]))}
+          crewMembers={crewMembers}
           currentUserId={currentUserId}
           canEdit={canEdit}
           ritualSlug={ritualSlug}
+          eventId={event.id}
+          year={event.year}
+          allowedTypes={['memory', 'checkin', 'image']}
         />
       )}
       {activeTab === 'expenses' && (

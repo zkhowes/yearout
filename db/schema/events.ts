@@ -74,6 +74,12 @@ export const loreEntries = pgTable('lore_entries', {
   createdAt: timestamp('created_at', { mode: 'date' }).defaultNow().notNull(),
 })
 
+export const loreMentions = pgTable('lore_mentions', {
+  id: text('id').primaryKey(),
+  loreEntryId: text('lore_entry_id').notNull().references(() => loreEntries.id, { onDelete: 'cascade' }),
+  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+})
+
 export const activityResults = pgTable('activity_results', {
   id: text('id').primaryKey(),
   eventId: text('event_id').notNull().references(() => events.id, { onDelete: 'cascade' }),

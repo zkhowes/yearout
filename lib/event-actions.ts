@@ -14,6 +14,7 @@ import {
   awards,
   ritualAwardDefinitions,
   dailyItinerary,
+  loreMentions,
 } from '@/db/schema'
 import { auth } from '@/auth'
 import { redirect } from 'next/navigation'
@@ -412,16 +413,17 @@ export async function addLoreEntry(
   content: string,
   location?: string,
   day?: Date,
-  mediaUrl?: string
+  mediaUrl?: string,
+  mentionedUserIds?: string[]
 ) {
   const session = await auth()
   if (!session?.user?.id) redirect('/login')
 
   const trimmed = content.trim()
-  if (trimmed.length > 200) throw new Error('Content must be 200 characters or less')
 
+  const entryId = crypto.randomUUID()
   await db.insert(loreEntries).values({
-    id: crypto.randomUUID(),
+    id: entryId,
     eventId,
     authorId: session.user.id!,
     type,
@@ -433,7 +435,18 @@ export async function addLoreEntry(
     createdAt: new Date(),
   })
 
+  if (mentionedUserIds && mentionedUserIds.length > 0) {
+    await db.insert(loreMentions).values(
+      mentionedUserIds.map((uid) => ({
+        id: crypto.randomUUID(),
+        loreEntryId: entryId,
+        userId: uid,
+      }))
+    )
+  }
+
   revalidatePath(`/${ritualSlug}/${year}`)
+  revalidatePath(`/${ritualSlug}/lore`)
 }
 
 export async function toggleLoreHOF(
@@ -474,6 +487,7 @@ export async function toggleLoreHOF(
     .where(eq(loreEntries.id, entryId))
 
   revalidatePath(`/${ritualSlug}/${year}`)
+  revalidatePath(`/${ritualSlug}/lore`)
 }
 
 export async function deleteLoreEntry(
@@ -502,6 +516,7 @@ export async function deleteLoreEntry(
   await db.delete(loreEntries).where(eq(loreEntries.id, entryId))
 
   revalidatePath(`/${ritualSlug}/${year}`)
+  revalidatePath(`/${ritualSlug}/lore`)
 }
 
 export async function updateEventEdit(
@@ -975,7 +990,7 @@ export async function updateEventDetails(
   eventId: string,
   ritualSlug: string,
   year: number,
-  data: { location?: string; mountains?: string; startDate?: Date | null; endDate?: Date | null }
+  data: { name?: string; location?: string; mountains?: string; startDate?: Date | null; endDate?: Date | null }
 ) {
   const session = await auth()
   if (!session?.user?.id) redirect('/login')
@@ -986,6 +1001,7 @@ export async function updateEventDetails(
     location: data.location?.trim() || null,
     mountains: data.mountains?.trim() || null,
   }
+  if (data.name !== undefined) updateData.name = data.name.trim()
   if (data.startDate !== undefined) updateData.startDate = data.startDate
   if (data.endDate !== undefined) updateData.endDate = data.endDate
 
