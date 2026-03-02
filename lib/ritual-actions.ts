@@ -17,6 +17,7 @@ export async function updateRitual(
     activityType?: string
     foundingYear?: string
     bylaws?: string
+    description?: string
     logoUrl?: string
   }
 ) {
@@ -38,6 +39,7 @@ export async function updateRitual(
       ...(data.activityType && { activityType: data.activityType as typeof rituals.$inferInsert['activityType'] }),
       ...(data.foundingYear !== undefined && { foundingYear: data.foundingYear }),
       ...(data.bylaws !== undefined && { bylaws: data.bylaws }),
+      ...(data.description !== undefined && { description: data.description }),
       ...(data.logoUrl !== undefined && { logoUrl: data.logoUrl }),
     })
     .where(eq(rituals.id, ritualId))

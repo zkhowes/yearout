@@ -25,9 +25,9 @@ export function RitualIdentity({
   return (
     <div className="relative flex flex-col items-center text-center pt-6 gap-2">
       {logoUrl ? (
-        <img src={logoUrl} alt={name} className="w-24 h-24 rounded-full object-cover mb-1" />
+        <img src={logoUrl} alt={name} className="w-36 h-36 rounded-full object-cover mb-1" />
       ) : (
-        <div className="w-24 h-24 rounded-full bg-[var(--accent)] opacity-20 mb-1" />
+        <div className="w-36 h-36 rounded-full bg-[var(--accent)] opacity-20 mb-1" />
       )}
       <h1 className="text-3xl font-bold text-[var(--fg)]">{name}</h1>
       {tagline && (

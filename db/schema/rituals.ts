@@ -29,6 +29,7 @@ export const rituals = pgTable('rituals', {
   tagline: text('tagline'),
   logoUrl: text('logo_url'),
   bylaws: text('bylaws'),
+  description: text('description'),
   foundingYear: text('founding_year'),
   typicalMonth: text('typical_month'), // e.g. "january" — used for Stage 1 Call timing
   heroPhotos: text('hero_photos'),                      // JSON array of photo URLs

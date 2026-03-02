@@ -14,6 +14,7 @@ import {
 } from '@/lib/event-actions'
 import { CloseoutView } from './closeout-view'
 import { AwardsPodium } from './awards-podium'
+import { EventDetailsCard } from './closed-view'
 
 type Attendee = {
   id: string
@@ -140,14 +141,30 @@ export function ItinerarySection({
   const existingDays = new Set(
     itineraryList.map((i) => new Date(i.day).toDateString())
   )
+  const unfilledDates = dateSlots.filter((d) => !existingDays.has(d.toDateString()))
   const mergedDays = [
     ...itineraryList.map((i) => ({ ...i, day: new Date(i.day), isPlaceholder: false })),
-    ...dateSlots
-      .filter((d) => !existingDays.has(d.toDateString()))
+    ...unfilledDates
       .map((d) => ({ id: '', day: d, themeName: null, notes: null, isPlaceholder: true })),
   ].sort((a, b) => a.day.getTime() - b.day.getTime())
 
   if (mergedDays.length === 0 && !canEdit) return null
+
+  function getFirstUnfilledDate(): string {
+    // Recalculate unfilled from current itineraryList + the dayInput we just added
+    const filled = new Set(itineraryList.map((i) => new Date(i.day).toDateString()))
+    if (dayInput) filled.add(new Date(dayInput).toDateString())
+    const first = dateSlots.find((d) => !filled.has(d.toDateString()))
+    return first ? first.toISOString().split('T')[0] : ''
+  }
+
+  function openAddForm() {
+    const firstUnfilled = unfilledDates[0]
+    setDayInput(firstUnfilled ? firstUnfilled.toISOString().split('T')[0] : '')
+    setThemeName('')
+    setNotes('')
+    setShowAddForm(true)
+  }
 
   function handleAdd(e: React.FormEvent) {
     e.preventDefault()
@@ -161,8 +178,14 @@ export function ItinerarySection({
       )
       setThemeName('')
       setNotes('')
-      setDayInput('')
-      setShowAddForm(false)
+      // Auto-advance to next unfilled date
+      const nextDate = getFirstUnfilledDate()
+      if (nextDate) {
+        setDayInput(nextDate)
+      } else {
+        setDayInput('')
+        setShowAddForm(false)
+      }
     })
   }
 
@@ -336,7 +359,7 @@ export function ItinerarySection({
           </form>
         ) : (
           <button
-            onClick={() => setShowAddForm(true)}
+            onClick={openAddForm}
             className="flex items-center justify-center gap-1.5 w-full py-2 rounded-xl border border-dashed border-[var(--border)] text-xs text-[var(--fg-muted)] hover:text-[var(--fg)] hover:border-[var(--fg-muted)] transition-colors"
           >
             <Plus size={12} /> Add day
@@ -915,6 +938,9 @@ export function InProgressView({
 
   return (
     <div className="flex flex-col gap-6">
+      {/* Event Details */}
+      <EventDetailsCard event={event} canEdit={canEdit} ritualSlug={ritualSlug} />
+
       {/* Awards Podium */}
       <AwardsPodium
         event={event}

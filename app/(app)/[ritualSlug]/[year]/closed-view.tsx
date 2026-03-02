@@ -194,10 +194,12 @@ export function ClosedView({
 
 // ─── 4a. Event Details Card ──────────────────────────────────────────────────
 
-function EventDetailsCard({ event, canEdit, ritualSlug }: { event: Event; canEdit: boolean; ritualSlug: string }) {
+export function EventDetailsCard({ event, canEdit, ritualSlug }: { event: { id: string; location: string | null; mountains: string | null; year: number; startDate: Date | null; endDate: Date | null }; canEdit: boolean; ritualSlug: string }) {
   const [editing, setEditing] = useState(false)
   const [locationInput, setLocationInput] = useState(event.location ?? '')
   const [mountainsInput, setMountainsInput] = useState(event.mountains ?? '')
+  const [startDateInput, setStartDateInput] = useState(event.startDate ? new Date(event.startDate).toISOString().split('T')[0] : '')
+  const [endDateInput, setEndDateInput] = useState(event.endDate ? new Date(event.endDate).toISOString().split('T')[0] : '')
   const [saving, startSave] = useTransition()
 
   const venues = event.mountains?.split(',').map((m) => m.trim()).filter(Boolean) ?? []
@@ -208,6 +210,8 @@ function EventDetailsCard({ event, canEdit, ritualSlug }: { event: Event; canEdi
       await updateEventDetails(event.id, ritualSlug, event.year, {
         location: locationInput,
         mountains: mountainsInput,
+        startDate: startDateInput ? new Date(startDateInput) : null,
+        endDate: endDateInput ? new Date(endDateInput) : null,
       })
       setEditing(false)
     })
@@ -226,9 +230,29 @@ function EventDetailsCard({ event, canEdit, ritualSlug }: { event: Event; canEdi
         <input
           value={mountainsInput}
           onChange={(e) => setMountainsInput(e.target.value)}
-          placeholder="Resorts / venues (comma-separated)"
+          placeholder="Venues (comma-separated)"
           className="w-full bg-transparent border-b border-[var(--border)] focus:border-[var(--fg)] outline-none py-1 text-sm text-[var(--fg)] placeholder-[var(--fg-muted)]"
         />
+        <div className="flex gap-2">
+          <div className="flex-1 flex flex-col gap-1">
+            <label className="text-[10px] uppercase tracking-widest text-[var(--fg-muted)]">Start Date</label>
+            <input
+              type="date"
+              value={startDateInput}
+              onChange={(e) => setStartDateInput(e.target.value)}
+              className="w-full bg-transparent border-b border-[var(--border)] focus:border-[var(--fg)] outline-none py-1 text-sm text-[var(--fg)]"
+            />
+          </div>
+          <div className="flex-1 flex flex-col gap-1">
+            <label className="text-[10px] uppercase tracking-widest text-[var(--fg-muted)]">End Date</label>
+            <input
+              type="date"
+              value={endDateInput}
+              onChange={(e) => setEndDateInput(e.target.value)}
+              className="w-full bg-transparent border-b border-[var(--border)] focus:border-[var(--fg)] outline-none py-1 text-sm text-[var(--fg)]"
+            />
+          </div>
+        </div>
         <div className="flex gap-2">
           <button
             onClick={handleSave}
@@ -238,7 +262,7 @@ function EventDetailsCard({ event, canEdit, ritualSlug }: { event: Event; canEdi
             {saving ? <Loader2 size={13} className="animate-spin" /> : 'Save'}
           </button>
           <button
-            onClick={() => { setEditing(false); setLocationInput(event.location ?? ''); setMountainsInput(event.mountains ?? '') }}
+            onClick={() => { setEditing(false); setLocationInput(event.location ?? ''); setMountainsInput(event.mountains ?? ''); setStartDateInput(event.startDate ? new Date(event.startDate).toISOString().split('T')[0] : ''); setEndDateInput(event.endDate ? new Date(event.endDate).toISOString().split('T')[0] : '') }}
             className="px-4 py-2 rounded-lg border border-[var(--border)] text-sm text-[var(--fg-muted)]"
           >
             Cancel
@@ -286,7 +310,7 @@ function EventDetailsCard({ event, canEdit, ritualSlug }: { event: Event; canEdi
           onClick={() => setEditing(true)}
           className="self-start text-xs text-[var(--fg-muted)] hover:text-[var(--fg)] transition-colors"
         >
-          {hasContent ? 'Edit details' : '+ Add location / resorts'}
+          {hasContent ? 'Edit details' : '+ Add location / venues'}
         </button>
       )}
     </div>

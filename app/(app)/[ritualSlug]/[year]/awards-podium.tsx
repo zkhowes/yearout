@@ -218,7 +218,7 @@ export function AwardsPodium({
       {/* Inline attendee picker */}
       {pickerDefId && (
         <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3 flex flex-col gap-2">
-          <p className="text-xs text-[var(--fg-muted)]">Select winner</p>
+          <p className="text-xs text-[var(--fg-muted)]">Select {awardDefs.find((d) => d.id === pickerDefId)?.name} winner</p>
           <div className="flex flex-wrap gap-2">
             {attendees.map((a) => {
               const user = userMap.get(a.userId)

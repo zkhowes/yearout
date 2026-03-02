@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useTransition, useRef } from 'react'
-import { Check, Loader2, Upload } from 'lucide-react'
+import { Check, Loader2, Upload, Sparkles } from 'lucide-react'
 import { updateRitual } from '@/lib/ritual-actions'
 
 const ACTIVITY_LABELS: Record<string, string> = {
@@ -30,6 +30,7 @@ type Ritual = {
   activityType: string
   foundingYear: string | null
   bylaws: string | null
+  description: string | null
   logoUrl: string | null
   inviteToken: string
   slug: string
@@ -42,6 +43,8 @@ export function SettingsForm({ ritual, appUrl }: { ritual: Ritual; appUrl: strin
   const [activityType, setActivityType] = useState(ritual.activityType)
   const [foundingYear, setFoundingYear] = useState(ritual.foundingYear ?? '')
   const [bylaws, setBylaws] = useState(ritual.bylaws ?? '')
+  const [description, setDescription] = useState(ritual.description ?? '')
+  const [rewriting, setRewriting] = useState(false)
   const [logoUrl, setLogoUrl] = useState(ritual.logoUrl ?? '')
   const [logoUploading, setLogoUploading] = useState(false)
   const logoInputRef = useRef<HTMLInputElement>(null)
@@ -50,6 +53,24 @@ export function SettingsForm({ ritual, appUrl }: { ritual: Ritual; appUrl: strin
 
   const inviteLink = `${appUrl}/join/${ritual.inviteToken}`
   const [copied, setCopied] = useState(false)
+
+  async function handleRewrite() {
+    if (!description.trim()) return
+    setRewriting(true)
+    try {
+      const res = await fetch('/api/ritual/rewrite-description', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ description, ritualName: name, activityType }),
+      })
+      if (res.ok) {
+        const { rewritten } = await res.json()
+        setDescription(rewritten)
+      }
+    } finally {
+      setRewriting(false)
+    }
+  }
 
   function copyInvite() {
     navigator.clipboard.writeText(inviteLink)
@@ -74,7 +95,7 @@ export function SettingsForm({ ritual, appUrl }: { ritual: Ritual; appUrl: strin
 
   function save() {
     startTransition(async () => {
-      await updateRitual(ritual.id, { name, tagline, theme: theme as 'circuit' | 'club' | 'trail' | 'getaway', activityType, foundingYear, bylaws, logoUrl: logoUrl || undefined })
+      await updateRitual(ritual.id, { name, tagline, theme: theme as 'circuit' | 'club' | 'trail' | 'getaway', activityType, foundingYear, bylaws, description, logoUrl: logoUrl || undefined })
       setSaved(true)
       setTimeout(() => setSaved(false), 2000)
     })
@@ -150,6 +171,27 @@ export function SettingsForm({ ritual, appUrl }: { ritual: Ritual; appUrl: strin
             onChange={(e) => setBylaws(e.target.value)}
             rows={3}
             placeholder="The rules, the creed, the legend."
+            className="w-full bg-transparent border border-[var(--border)] rounded-lg p-3 text-sm text-[var(--fg)] placeholder-[var(--fg-muted)] focus:border-[var(--fg)] outline-none resize-none transition-colors"
+          />
+        </div>
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center gap-2">
+            <label className="text-xs text-[var(--fg-muted)]">Description</label>
+            <button
+              type="button"
+              onClick={handleRewrite}
+              disabled={rewriting || !description.trim()}
+              className="p-1 text-[var(--fg-muted)] hover:text-[var(--accent)] transition-colors disabled:opacity-40"
+              title="AI rewrite"
+            >
+              {rewriting ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
+            </button>
+          </div>
+          <textarea
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            rows={4}
+            placeholder="Tell the story of this ritual. What makes it legendary?"
             className="w-full bg-transparent border border-[var(--border)] rounded-lg p-3 text-sm text-[var(--fg)] placeholder-[var(--fg-muted)] focus:border-[var(--fg)] outline-none resize-none transition-colors"
           />
         </div>

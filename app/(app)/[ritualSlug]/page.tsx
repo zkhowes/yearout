@@ -199,7 +199,18 @@ export default async function RitualTourPage({
                 className="grid grid-cols-[3rem_1fr_1fr_1fr] gap-2 px-3 py-3 rounded-lg text-sm border border-transparent hover:border-[var(--border)] hover:bg-[var(--surface)] transition-all"
               >
                 <span className="font-mono font-bold text-[var(--fg)]">{event.year}</span>
-                <span className="text-[var(--fg)] truncate">{event.location ?? '—'}</span>
+                <div className="min-w-0">
+                  <span className="text-[var(--fg)] truncate block">{event.location ?? '—'}</span>
+                  {event.mountains && (
+                    <div className="flex flex-wrap gap-1 mt-0.5">
+                      {event.mountains.split(',').map((v) => v.trim()).filter(Boolean).map((venue) => (
+                        <span key={venue} className="px-1.5 py-0.5 rounded text-[10px] bg-[var(--border)] text-[var(--fg-muted)]">
+                          {venue}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
                 <span className="text-[var(--fg-muted)] truncate">
                   {organizer?.name?.split(' ')[0] ?? '—'}
                 </span>

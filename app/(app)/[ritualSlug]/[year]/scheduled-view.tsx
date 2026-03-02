@@ -4,6 +4,7 @@ import { useState, useTransition } from 'react'
 import { ExternalLink, Loader2, Plane, ChevronDown, ChevronUp, Settings } from 'lucide-react'
 import { updateBookingStatus, advanceEventStatus, updateFlightDetails } from '@/lib/event-actions'
 import { ItinerarySection, LoreTab, ExpensesTab } from './in-progress-view'
+import { EventDetailsCard } from './closed-view'
 
 type BookingStatus = 'not_yet' | 'committed' | 'flights_booked' | 'all_booked' | 'out'
 
@@ -50,18 +51,6 @@ type Event = {
   startDate: Date | null
   endDate: Date | null
   year: number
-}
-
-function formatDateRange(start: Date | null, end: Date | null): string | null {
-  if (!start && !end) return null
-  const fmt = (d: Date) =>
-    d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-  if (start && end) {
-    return start.getMonth() === end.getMonth()
-      ? `${fmt(start)}–${end.getDate()}, ${end.getFullYear()}`
-      : `${fmt(start)} – ${fmt(end)}, ${end.getFullYear()}`
-  }
-  return start ? fmt(start) : end ? fmt(end!) : null
 }
 
 function BookingChip({
@@ -387,7 +376,6 @@ export function ScheduledView({
   const [showControls, setShowControls] = useState(false)
 
   const userMap = new Map(attendeeUsers.map((u) => [u.id, u]))
-  const dateRange = formatDateRange(event.startDate, event.endDate)
   const flightsUrl = `https://www.google.com/travel/flights?q=flights+to+${encodeURIComponent(event.location ?? '')}`
 
   function handleAdvance() {
@@ -405,17 +393,7 @@ export function ScheduledView({
     <div className="flex flex-col gap-6">
 
       {/* Details card */}
-      <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5 flex flex-col gap-2">
-        {event.location && (
-          <p className="text-xl font-bold text-[var(--fg)]">{event.location}</p>
-        )}
-        {event.mountains && (
-          <p className="text-sm text-[var(--fg-muted)]">{event.mountains}</p>
-        )}
-        {dateRange && (
-          <p className="text-sm text-[var(--fg-muted)]">{dateRange}</p>
-        )}
-      </div>
+      <EventDetailsCard event={event} canEdit={canEdit} ritualSlug={ritualSlug} />
 
       {/* Google Flights link */}
       {event.location && (

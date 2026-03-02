@@ -33,7 +33,7 @@ export default async function SettingsPage({
 
   if (!member || member.role !== 'sponsor') redirect(`/${params.ritualSlug}`)
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://yearout.zkhowes.fun'
+  const appUrl = (process.env.NEXT_PUBLIC_APP_URL ?? 'https://yearout.zkhowes.fun').trim()
 
   return (
     <div className="flex flex-col gap-6">
@@ -57,6 +57,7 @@ export default async function SettingsPage({
           activityType: ritual.activityType,
           foundingYear: ritual.foundingYear,
           bylaws: ritual.bylaws,
+          description: ritual.description,
           logoUrl: ritual.logoUrl,
           inviteToken: ritual.inviteToken,
           slug: ritual.slug,

@@ -163,32 +163,8 @@ export default async function EventPage({
     }
   }
 
-  // ── Closed-event extras: member overrides, default awards, all members ───
-  let memberOverrides: { userId: string; photoOverride: string | null; nicknameOverride: string | null }[] = []
-  let allRitualMembers: { userId: string; userName: string | null; userImage: string | null }[] = []
-  if (event.status === 'closed') {
-    const rawOverrides = await db
-      .select({
-        userId: ritualMembers.userId,
-        photoOverride: ritualMembers.photoOverride,
-        nicknameOverride: ritualMembers.nicknameOverride,
-      })
-      .from(ritualMembers)
-      .where(eq(ritualMembers.ritualId, ritual.id))
-    memberOverrides = rawOverrides
-
-    // All ritual members (for add-crew UI)
-    allRitualMembers = await db
-      .select({
-        userId: ritualMembers.userId,
-        userName: users.name,
-        userImage: users.image,
-      })
-      .from(ritualMembers)
-      .innerJoin(users, eq(ritualMembers.userId, users.id))
-      .where(eq(ritualMembers.ritualId, ritual.id))
-
-    // Ensure default award definitions exist (runner_up, totem)
+  // ── Ensure default award definitions exist for non-planning events ───
+  if (event.status !== 'planning') {
     const defaultTypes = [
       { type: 'runner_up', name: 'Runner Up', label: '2nd Place MVP' },
       { type: 'totem', name: 'Totem', label: 'Totem Holder' },
@@ -213,6 +189,32 @@ export default async function EventPage({
     }
   }
 
+  // ── Closed-event extras: member overrides, all members ───
+  let memberOverrides: { userId: string; photoOverride: string | null; nicknameOverride: string | null }[] = []
+  let allRitualMembers: { userId: string; userName: string | null; userImage: string | null }[] = []
+  if (event.status === 'closed') {
+    const rawOverrides = await db
+      .select({
+        userId: ritualMembers.userId,
+        photoOverride: ritualMembers.photoOverride,
+        nicknameOverride: ritualMembers.nicknameOverride,
+      })
+      .from(ritualMembers)
+      .where(eq(ritualMembers.ritualId, ritual.id))
+    memberOverrides = rawOverrides
+
+    // All ritual members (for add-crew UI)
+    allRitualMembers = await db
+      .select({
+        userId: ritualMembers.userId,
+        userName: users.name,
+        userImage: users.image,
+      })
+      .from(ritualMembers)
+      .innerJoin(users, eq(ritualMembers.userId, users.id))
+      .where(eq(ritualMembers.ritualId, ritual.id))
+  }
+
   // ── Status badge ──────────────────────────────────────────────────────────
   const statusBadge = {
     planning: <span className="text-xs px-2 py-1 rounded-full bg-yellow-400/20 text-yellow-600 font-medium border border-yellow-400/30">Planning</span>,
@@ -228,13 +230,13 @@ export default async function EventPage({
       {/* Back to ritual */}
       <Link
         href={`/${ritual.slug}`}
-        className="flex items-center gap-2 text-sm text-[var(--fg-muted)] hover:text-[var(--fg)] transition-colors -mt-2"
+        className="flex items-center gap-2 text-sm text-[var(--fg-muted)] hover:text-[var(--fg)] transition-colors pt-4"
       >
         <ArrowLeft size={14} />
         {ritual.logoUrl ? (
-          <img src={ritual.logoUrl} alt={ritual.name} className="w-5 h-5 rounded-full object-cover" />
+          <img src={ritual.logoUrl} alt={ritual.name} className="w-8 h-8 rounded-full object-cover" />
         ) : (
-          <div className="w-5 h-5 rounded-full bg-[var(--accent)] opacity-40" />
+          <div className="w-8 h-8 rounded-full bg-[var(--accent)] opacity-40" />
         )}
         <span>{ritual.name}</span>
       </Link>

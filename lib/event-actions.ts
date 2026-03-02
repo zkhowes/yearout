@@ -975,19 +975,23 @@ export async function updateEventDetails(
   eventId: string,
   ritualSlug: string,
   year: number,
-  data: { location?: string; mountains?: string }
+  data: { location?: string; mountains?: string; startDate?: Date | null; endDate?: Date | null }
 ) {
   const session = await auth()
   if (!session?.user?.id) redirect('/login')
 
   await requireSponsorOrOrganizer(eventId, session.user.id!)
 
+  const updateData: Record<string, unknown> = {
+    location: data.location?.trim() || null,
+    mountains: data.mountains?.trim() || null,
+  }
+  if (data.startDate !== undefined) updateData.startDate = data.startDate
+  if (data.endDate !== undefined) updateData.endDate = data.endDate
+
   await db
     .update(events)
-    .set({
-      location: data.location?.trim() || null,
-      mountains: data.mountains?.trim() || null,
-    })
+    .set(updateData)
     .where(eq(events.id, eventId))
 
   revalidatePath(`/${ritualSlug}/${year}`)
