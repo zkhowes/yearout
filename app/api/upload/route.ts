@@ -14,6 +14,16 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'No file provided' }, { status: 400 })
   }
 
+  const MAX_SIZE = 10 * 1024 * 1024 // 10MB
+  if (file.size > MAX_SIZE) {
+    return NextResponse.json({ error: 'File too large (max 10MB)' }, { status: 400 })
+  }
+
+  const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/heic', 'image/heif']
+  if (!ALLOWED_TYPES.includes(file.type)) {
+    return NextResponse.json({ error: 'Only image files are allowed' }, { status: 400 })
+  }
+
   try {
     const blob = await put(file.name, file, {
       access: 'public',

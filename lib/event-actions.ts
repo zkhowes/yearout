@@ -408,20 +408,25 @@ export async function addLoreEntry(
   eventId: string,
   ritualSlug: string,
   year: number,
-  type: 'memory' | 'checkin',
+  type: 'memory' | 'checkin' | 'image',
   content: string,
   location?: string,
-  day?: Date
+  day?: Date,
+  mediaUrl?: string
 ) {
   const session = await auth()
   if (!session?.user?.id) redirect('/login')
+
+  const trimmed = content.trim()
+  if (trimmed.length > 200) throw new Error('Content must be 200 characters or less')
 
   await db.insert(loreEntries).values({
     id: crypto.randomUUID(),
     eventId,
     authorId: session.user.id!,
     type,
-    content: content.trim(),
+    content: trimmed,
+    mediaUrl: mediaUrl || null,
     location: location?.trim() || null,
     day: day || null,
     isHallOfFame: false,
@@ -467,6 +472,57 @@ export async function toggleLoreHOF(
     .update(loreEntries)
     .set({ isHallOfFame: !entry.isHallOfFame })
     .where(eq(loreEntries.id, entryId))
+
+  revalidatePath(`/${ritualSlug}/${year}`)
+}
+
+export async function deleteLoreEntry(
+  entryId: string,
+  ritualSlug: string,
+  year: number
+) {
+  const session = await auth()
+  if (!session?.user?.id) redirect('/login')
+
+  const entry = await db.query.loreEntries.findFirst({
+    where: (le, { eq }) => eq(le.id, entryId),
+  })
+  if (!entry) throw new Error('Lore entry not found')
+
+  const event = await db.query.events.findFirst({
+    where: (e, { eq }) => eq(e.id, entry.eventId),
+  })
+  if (!event) throw new Error('Event not found')
+
+  const isAuthor = entry.authorId === session.user.id
+  if (!isAuthor) {
+    await requireSponsorOrOrganizer(event.id, session.user.id!)
+  }
+
+  await db.delete(loreEntries).where(eq(loreEntries.id, entryId))
+
+  revalidatePath(`/${ritualSlug}/${year}`)
+}
+
+export async function updateEventEdit(
+  eventId: string,
+  ritualSlug: string,
+  year: number,
+  editUrl: string,
+  editThumbnailUrl?: string
+) {
+  const session = await auth()
+  if (!session?.user?.id) redirect('/login')
+
+  await requireSponsorOrOrganizer(eventId, session.user.id!)
+
+  await db
+    .update(events)
+    .set({
+      editUrl: editUrl.trim() || null,
+      editThumbnailUrl: editThumbnailUrl?.trim() || null,
+    })
+    .where(eq(events.id, eventId))
 
   revalidatePath(`/${ritualSlug}/${year}`)
 }

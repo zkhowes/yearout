@@ -21,6 +21,7 @@ import { ArrowLeft } from 'lucide-react'
 import { Proposals } from './proposals'
 import { ScheduledView } from './scheduled-view'
 import { InProgressView } from './in-progress-view'
+import { ClosedView } from './closed-view'
 import { EventLogoUpload } from './event-logo-upload'
 
 export default async function EventPage({
@@ -95,7 +96,7 @@ export default async function EventPage({
 
   // In-progress / closed: also load lore, expenses, activity, awards
   let expenseList: { id: string; paidBy: string; description: string; amount: number; createdAt: Date }[] = []
-  let loreList: { id: string; authorId: string; type: 'memory' | 'checkin' | 'image'; content: string | null; location: string | null; isHallOfFame: boolean; day: Date | null; createdAt: Date }[] = []
+  let loreList: { id: string; authorId: string; type: 'memory' | 'checkin' | 'image'; content: string | null; mediaUrl: string | null; location: string | null; isHallOfFame: boolean; day: Date | null; createdAt: Date }[] = []
   let activityList: { id: string; userId: string; metric: string; value: string; unit: string | null; day: Date | null; createdAt: Date }[] = []
   let awardDefs: { id: string; name: string; label: string; type: string }[] = []
   let currentAwards: { id: string; awardDefinitionId: string; winnerId: string }[] = []
@@ -159,6 +160,20 @@ export default async function EventPage({
         attendeeUsers = [...attendeeUsers, ...extra]
       }
     }
+  }
+
+  // ── Member overrides (for crew roster photos/nicknames) ──────────────────
+  let memberOverrides: { userId: string; photoOverride: string | null; nicknameOverride: string | null }[] = []
+  if (event.status === 'closed') {
+    const rawOverrides = await db
+      .select({
+        userId: ritualMembers.userId,
+        photoOverride: ritualMembers.photoOverride,
+        nicknameOverride: ritualMembers.nicknameOverride,
+      })
+      .from(ritualMembers)
+      .where(eq(ritualMembers.ritualId, ritual.id))
+    memberOverrides = rawOverrides
   }
 
   // ── Status badge ──────────────────────────────────────────────────────────
@@ -273,76 +288,29 @@ export default async function EventPage({
 
       {/* ── Closed / archive state ── */}
       {event.status === 'closed' && (
-        <div className="flex flex-col gap-6">
-          {/* Location card */}
-          {event.location && (
-            <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5">
-              <p className="text-xl font-bold text-[var(--fg)]">{event.location}</p>
-              {event.mountains && (
-                <p className="text-sm text-[var(--fg-muted)] mt-1">{event.mountains}</p>
-              )}
-              {(event.startDate || event.endDate) && (
-                <p className="text-sm text-[var(--fg-muted)] mt-1">
-                  {[event.startDate, event.endDate]
-                    .filter(Boolean)
-                    .map((d) => d!.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }))
-                    .join(' – ')}
-                </p>
-              )}
-            </div>
-          )}
-
-          {/* Awards */}
-          {currentAwards.length > 0 && (
-            <div className="flex flex-col gap-2">
-              <p className="text-xs uppercase tracking-widest text-[var(--fg-muted)]">Awards</p>
-              <div className="flex flex-col gap-1">
-                {currentAwards.map((award) => {
-                  const def = awardDefs.find((d) => d.id === award.awardDefinitionId)
-                  const winner = attendeeUsers.find((u) => u.id === award.winnerId)
-                  return (
-                    <div key={award.id} className="flex items-center gap-3 py-2 border-b border-[var(--border)]">
-                      <p className="text-sm text-[var(--fg-muted)] w-24 shrink-0">{def?.name}</p>
-                      <p className="text-sm font-semibold text-[var(--fg)]">{winner?.name ?? 'Unknown'}</p>
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-          )}
-
-          {/* Lore */}
-          {loreList.length > 0 && (
-            <div className="flex flex-col gap-2">
-              <p className="text-xs uppercase tracking-widest text-[var(--fg-muted)]">Lore</p>
-              {[...loreList]
-                .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-                .filter((e) => e.isHallOfFame)
-                .map((entry) => {
-                  const author = attendeeUsers.find((u) => u.id === entry.authorId)
-                  return (
-                    <div key={entry.id} className="p-4 rounded-xl border border-[var(--border)] bg-[var(--surface)]">
-                      <p className="text-sm text-[var(--fg)]">{entry.content}</p>
-                      <p className="text-xs text-[var(--fg-muted)] mt-1">{author?.name?.split(' ')[0]}</p>
-                    </div>
-                  )
-                })}
-            </div>
-          )}
-
-          {/* Attendees */}
-          {attendeeList.length > 0 && (
-            <div className="flex flex-col gap-2">
-              <p className="text-xs uppercase tracking-widest text-[var(--fg-muted)]">Crew</p>
-              <p className="text-sm text-[var(--fg)]">
-                {attendeeList
-                  .map((a) => attendeeUsers.find((u) => u.id === a.userId)?.name?.split(' ')[0])
-                  .filter(Boolean)
-                  .join(', ')}
-              </p>
-            </div>
-          )}
-        </div>
+        <ClosedView
+          event={{
+            id: event.id,
+            name: event.name,
+            location: event.location,
+            mountains: event.mountains,
+            year: event.year,
+            startDate: event.startDate,
+            endDate: event.endDate,
+            editUrl: event.editUrl,
+            editThumbnailUrl: event.editThumbnailUrl,
+          }}
+          attendees={attendeeList}
+          attendeeUsers={attendeeUsers}
+          awardDefs={awardDefs}
+          currentAwards={currentAwards}
+          loreList={loreList}
+          itineraryList={itineraryList}
+          memberOverrides={memberOverrides}
+          currentUserId={session.user!.id!}
+          canEdit={canEdit}
+          ritualSlug={ritual.slug}
+        />
       )}
     </div>
   )

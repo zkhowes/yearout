@@ -27,6 +27,8 @@ export const events = pgTable('events', {
   endDate: timestamp('end_date', { mode: 'date' }),
   logoUrl: text('logo_url'),
   status: eventStatusEnum('status').notNull().default('planning'),
+  editUrl: text('edit_url'),                    // YouTube/Vimeo link for trip edit video
+  editThumbnailUrl: text('edit_thumbnail_url'), // custom thumbnail (Vercel Blob)
   sealedAt: timestamp('sealed_at', { mode: 'date' }),
   createdAt: timestamp('created_at', { mode: 'date' }).defaultNow().notNull(),
 })
