@@ -1,0 +1,1 @@
+ALTER TABLE "rituals" ADD COLUMN "hero_photos" text;

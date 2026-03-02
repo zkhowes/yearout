@@ -969,6 +969,30 @@ export async function addEventAttendee(
   revalidatePath(`/${ritualSlug}/${year}`)
 }
 
+// ─── Event Details (location, mountains) ─────────────────────────
+
+export async function updateEventDetails(
+  eventId: string,
+  ritualSlug: string,
+  year: number,
+  data: { location?: string; mountains?: string }
+) {
+  const session = await auth()
+  if (!session?.user?.id) redirect('/login')
+
+  await requireSponsorOrOrganizer(eventId, session.user.id!)
+
+  await db
+    .update(events)
+    .set({
+      location: data.location?.trim() || null,
+      mountains: data.mountains?.trim() || null,
+    })
+    .where(eq(events.id, eventId))
+
+  revalidatePath(`/${ritualSlug}/${year}`)
+}
+
 // ─── Event Logo ──────────────────────────────────────────────────────────────
 
 export async function updateEventLogo(

@@ -116,6 +116,16 @@ export function AwardsPodium({
               <p className={`font-semibold text-[var(--fg)] text-center ${size === 'hero' ? 'text-sm' : 'text-xs'}`}>
                 {winnerUser.name?.split(' ')[0] ?? 'Unknown'}
               </p>
+              {isSponsor && (
+                <button
+                  onClick={() => setPickerDefId(def.id)}
+                  disabled={assigning}
+                  className="flex items-center gap-1 text-[var(--fg-muted)] hover:text-[var(--fg)] transition-colors disabled:opacity-50 mt-1"
+                >
+                  <Trophy size={12} />
+                  <span className="text-[10px]">Reassign</span>
+                </button>
+              )}
             </>
           ) : isSponsor ? (
             <button
@@ -169,21 +179,33 @@ export function AwardsPodium({
                       <p className="text-sm font-semibold text-[var(--fg)]">{winnerUser.name?.split(' ')[0] ?? 'Unknown'}</p>
                       <p className="text-[10px] uppercase tracking-widest text-[var(--fg-muted)]">{totemDef.name}</p>
                     </div>
-                  </>
-                ) : (
-                  <>
-                    <Trophy size={18} className={isSponsor ? 'text-[var(--fg-muted)]' : 'text-[var(--border)]'} />
-                    <div className="flex-1">
-                      <p className="text-[10px] uppercase tracking-widest text-[var(--fg-muted)]">{totemDef.name}</p>
-                    </div>
                     {isSponsor && (
                       <button
                         onClick={() => setPickerDefId(totemDef.id)}
                         disabled={assigning}
-                        className="text-xs text-[var(--fg-muted)] hover:text-[var(--fg)] transition-colors disabled:opacity-50"
+                        className="flex items-center gap-1 text-[var(--fg-muted)] hover:text-[var(--fg)] transition-colors disabled:opacity-50"
                       >
-                        Assign
+                        <Trophy size={12} />
+                        <span className="text-[10px]">Reassign</span>
                       </button>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <div className="flex-1">
+                      <p className="text-[10px] uppercase tracking-widest text-[var(--fg-muted)]">{totemDef.name}</p>
+                    </div>
+                    {isSponsor ? (
+                      <button
+                        onClick={() => setPickerDefId(totemDef.id)}
+                        disabled={assigning}
+                        className="flex items-center gap-1 text-[var(--fg-muted)] hover:text-[var(--fg)] transition-colors disabled:opacity-50"
+                      >
+                        <Trophy size={18} />
+                        <span className="text-[10px]">Assign</span>
+                      </button>
+                    ) : (
+                      <Trophy size={18} className="text-[var(--border)]" />
                     )}
                   </>
                 )}

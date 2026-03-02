@@ -36,6 +36,13 @@
       "when": 1772467013935,
       "tag": "0004_low_newton_destine",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1772477814942,
+      "tag": "0005_marvelous_jack_power",
+      "breakpoints": true
     }
   ]
 }

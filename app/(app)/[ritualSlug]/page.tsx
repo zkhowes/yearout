@@ -11,6 +11,7 @@ import {
 } from '@/db/schema'
 import { eq, and, inArray, desc } from 'drizzle-orm'
 import { Plus } from 'lucide-react'
+import { HeroCarousel } from './hero-carousel'
 
 const STATUS_LABEL: Record<string, string> = {
   planning: 'Planning',
@@ -99,8 +100,20 @@ export default async function RitualTourPage({
   )
   const lastClosedEvent = eventList.find((e) => e.status === 'closed')
 
+  const heroPhotos: string[] = ritual.heroPhotos
+    ? JSON.parse(ritual.heroPhotos)
+    : []
+
   return (
     <div className="flex flex-col gap-8">
+
+      {/* ── Hero carousel ── */}
+      <HeroCarousel
+        ritualId={ritual.id}
+        ritualSlug={ritual.slug}
+        initialPhotos={heroPhotos}
+        canEdit={isSponsor}
+      />
 
       {/* ── Hero block ── */}
       {activeEvent ? (

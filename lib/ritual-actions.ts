@@ -5,6 +5,7 @@ import { rituals, ritualAwardDefinitions, ritualMembers } from '@/db/schema'
 import { auth } from '@/auth'
 import { redirect } from 'next/navigation'
 import { eq } from 'drizzle-orm'
+import { revalidatePath } from 'next/cache'
 import type { RitualInference } from '@/app/api/ritual/infer/route'
 
 export async function updateRitual(
@@ -40,6 +41,28 @@ export async function updateRitual(
       ...(data.logoUrl !== undefined && { logoUrl: data.logoUrl }),
     })
     .where(eq(rituals.id, ritualId))
+}
+
+export async function updateRitualHeroPhotos(
+  ritualId: string,
+  ritualSlug: string,
+  photos: string[]
+) {
+  const session = await auth()
+  if (!session?.user?.id) redirect('/login')
+
+  const member = await db.query.ritualMembers.findFirst({
+    where: (rm, { and, eq }) =>
+      and(eq(rm.ritualId, ritualId), eq(rm.userId, session.user!.id!), eq(rm.role, 'sponsor')),
+  })
+  if (!member) throw new Error('Only sponsors can update hero photos')
+
+  await db
+    .update(rituals)
+    .set({ heroPhotos: JSON.stringify(photos) })
+    .where(eq(rituals.id, ritualId))
+
+  revalidatePath(`/${ritualSlug}`)
 }
 
 export async function joinRitual(token: string) {

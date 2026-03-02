@@ -9,6 +9,7 @@ import {
   deleteLoreEntry,
   updateEventEdit,
   addEventAttendee,
+  updateEventDetails,
 } from '@/lib/event-actions'
 
 type Attendee = {
@@ -140,7 +141,7 @@ export function ClosedView({
   return (
     <div className="flex flex-col gap-8">
       {/* Event Details Card */}
-      <EventDetailsCard event={event} />
+      <EventDetailsCard event={event} canEdit={canEdit} ritualSlug={ritualSlug} />
 
       {/* Daily Itinerary Recap */}
       {itineraryList.length > 0 && (
@@ -193,14 +194,67 @@ export function ClosedView({
 
 // ─── 4a. Event Details Card ──────────────────────────────────────────────────
 
-function EventDetailsCard({ event }: { event: Event }) {
-  const venues = event.mountains?.split(',').map((m) => m.trim()).filter(Boolean) ?? []
-  const hasContent = venues.length > 0 || event.startDate || event.endDate
+function EventDetailsCard({ event, canEdit, ritualSlug }: { event: Event; canEdit: boolean; ritualSlug: string }) {
+  const [editing, setEditing] = useState(false)
+  const [locationInput, setLocationInput] = useState(event.location ?? '')
+  const [mountainsInput, setMountainsInput] = useState(event.mountains ?? '')
+  const [saving, startSave] = useTransition()
 
-  if (!hasContent) return null
+  const venues = event.mountains?.split(',').map((m) => m.trim()).filter(Boolean) ?? []
+  const hasContent = venues.length > 0 || event.startDate || event.endDate || event.location
+
+  function handleSave() {
+    startSave(async () => {
+      await updateEventDetails(event.id, ritualSlug, event.year, {
+        location: locationInput,
+        mountains: mountainsInput,
+      })
+      setEditing(false)
+    })
+  }
+
+  if (editing) {
+    return (
+      <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5 flex flex-col gap-3">
+        <p className="text-xs uppercase tracking-widest text-[var(--fg-muted)]">Edit Details</p>
+        <input
+          value={locationInput}
+          onChange={(e) => setLocationInput(e.target.value)}
+          placeholder="Location (e.g. South Lake Tahoe, CA)"
+          className="w-full bg-transparent border-b border-[var(--border)] focus:border-[var(--fg)] outline-none py-1 text-sm text-[var(--fg)] placeholder-[var(--fg-muted)]"
+        />
+        <input
+          value={mountainsInput}
+          onChange={(e) => setMountainsInput(e.target.value)}
+          placeholder="Resorts / venues (comma-separated)"
+          className="w-full bg-transparent border-b border-[var(--border)] focus:border-[var(--fg)] outline-none py-1 text-sm text-[var(--fg)] placeholder-[var(--fg-muted)]"
+        />
+        <div className="flex gap-2">
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className="px-4 py-2 rounded-lg btn-accent text-sm font-semibold disabled:opacity-50 flex items-center gap-1"
+          >
+            {saving ? <Loader2 size={13} className="animate-spin" /> : 'Save'}
+          </button>
+          <button
+            onClick={() => { setEditing(false); setLocationInput(event.location ?? ''); setMountainsInput(event.mountains ?? '') }}
+            className="px-4 py-2 rounded-lg border border-[var(--border)] text-sm text-[var(--fg-muted)]"
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  if (!hasContent && !canEdit) return null
 
   return (
     <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5 flex flex-col gap-3">
+      {event.location && (
+        <p className="text-sm text-[var(--fg)]">{event.location}</p>
+      )}
       {venues.length > 0 && (
         <div className="flex flex-wrap gap-2">
           {venues.map((venue) => (
@@ -226,6 +280,14 @@ function EventDetailsCard({ event }: { event: Event }) {
             )
             .join(' \u2013 ')}
         </p>
+      )}
+      {canEdit && (
+        <button
+          onClick={() => setEditing(true)}
+          className="self-start text-xs text-[var(--fg-muted)] hover:text-[var(--fg)] transition-colors"
+        >
+          {hasContent ? 'Edit details' : '+ Add location / resorts'}
+        </button>
       )}
     </div>
   )
@@ -292,14 +354,29 @@ function CrewTiles({
   ritualSlug: string
 }) {
   const [showPicker, setShowPicker] = useState(false)
+  const [selected, setSelected] = useState<Set<string>>(new Set())
   const [adding, startAdd] = useTransition()
   const userMap = new Map(attendeeUsers.map((u) => [u.id, u]))
   const attendeeSet = new Set(attendees.map((a) => a.userId))
   const availableMembers = allRitualMembers.filter((m) => !attendeeSet.has(m.userId))
 
-  function handleAdd(userId: string) {
+  function toggleSelect(userId: string) {
+    setSelected((prev) => {
+      const next = new Set(prev)
+      if (next.has(userId)) next.delete(userId)
+      else next.add(userId)
+      return next
+    })
+  }
+
+  function handleAddSelected() {
+    if (selected.size === 0) return
     startAdd(async () => {
-      await addEventAttendee(event.id, ritualSlug, event.year, userId)
+      const userIds = Array.from(selected)
+      for (const userId of userIds) {
+        await addEventAttendee(event.id, ritualSlug, event.year, userId)
+      }
+      setSelected(new Set())
       setShowPicker(false)
     })
   }
@@ -344,25 +421,39 @@ function CrewTiles({
       {canEdit && availableMembers.length > 0 && (
         showPicker ? (
           <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3 flex flex-col gap-2">
-            <p className="text-xs text-[var(--fg-muted)]">Add crew member</p>
+            <p className="text-xs text-[var(--fg-muted)]">Select crew members</p>
             <div className="flex flex-wrap gap-2">
               {availableMembers.map((m) => (
                 <button
                   key={m.userId}
-                  onClick={() => handleAdd(m.userId)}
+                  onClick={() => toggleSelect(m.userId)}
                   disabled={adding}
-                  className="px-3 py-1.5 rounded-lg border border-[var(--border)] text-sm text-[var(--fg)] hover:bg-[var(--border)] transition-colors disabled:opacity-50"
+                  className={`px-3 py-1.5 rounded-lg border text-sm transition-colors disabled:opacity-50 ${
+                    selected.has(m.userId)
+                      ? 'border-[var(--accent)] bg-[var(--accent)] text-[var(--accent-fg)]'
+                      : 'border-[var(--border)] text-[var(--fg)] hover:bg-[var(--border)]'
+                  }`}
                 >
                   {m.userName?.split(' ')[0] ?? 'Unknown'}
                 </button>
               ))}
             </div>
-            <button
-              onClick={() => setShowPicker(false)}
-              className="self-start text-xs text-[var(--fg-muted)] hover:text-[var(--fg)] transition-colors"
-            >
-              Cancel
-            </button>
+            <div className="flex gap-2">
+              <button
+                onClick={handleAddSelected}
+                disabled={adding || selected.size === 0}
+                className="px-4 py-2 rounded-lg btn-accent text-sm font-semibold disabled:opacity-50 flex items-center gap-1"
+              >
+                {adding ? <Loader2 size={13} className="animate-spin" /> : <Plus size={13} />}
+                Add {selected.size > 0 ? `${selected.size} member${selected.size > 1 ? 's' : ''}` : ''}
+              </button>
+              <button
+                onClick={() => { setShowPicker(false); setSelected(new Set()) }}
+                className="px-4 py-2 rounded-lg border border-[var(--border)] text-sm text-[var(--fg-muted)] hover:text-[var(--fg)] transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
           </div>
         ) : (
           <button
@@ -412,6 +503,17 @@ function VideoEditSection({
         if (res.ok) {
           const { url } = await res.json()
           thumbnailUrl = url
+        }
+      } else if (!thumbnailUrl && editUrlInput.trim()) {
+        // Auto-fetch thumbnail from video URL (works for Vimeo + YouTube)
+        try {
+          const res = await fetch(`/api/video-thumbnail?url=${encodeURIComponent(editUrlInput.trim())}`)
+          if (res.ok) {
+            const { thumbnailUrl: fetched } = await res.json()
+            if (fetched) thumbnailUrl = fetched
+          }
+        } catch {
+          // ignore — user can still upload a custom thumbnail
         }
       }
 

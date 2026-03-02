@@ -31,6 +31,7 @@ export const rituals = pgTable('rituals', {
   bylaws: text('bylaws'),
   foundingYear: text('founding_year'),
   typicalMonth: text('typical_month'), // e.g. "january" — used for Stage 1 Call timing
+  heroPhotos: text('hero_photos'),                      // JSON array of photo URLs
   inviteToken: text('invite_token').notNull().unique(), // shared link token
   createdAt: timestamp('created_at', { mode: 'date' }).defaultNow().notNull(),
 })
