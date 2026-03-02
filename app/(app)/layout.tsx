@@ -12,7 +12,7 @@ export default async function AppLayout({
 
   return (
     <div className="min-h-dvh bg-[var(--bg)]">
-      <Header />
+      <Header user={session.user} />
       <main className="w-full">
         {children}
       </main>
