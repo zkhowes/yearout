@@ -10,12 +10,15 @@ import {
   loreEntries,
   activityResults,
   expenses,
+  expenseSplits,
+  settlementPayments,
   awardVotes,
   awards,
   ritualAwardDefinitions,
   dailyItinerary,
   loreMentions,
 } from '@/db/schema'
+import { computeEqualSplit, validateExactSplit } from '@/lib/expense-utils'
 import { auth } from '@/auth'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
@@ -344,6 +347,74 @@ export async function updateBookingStatus(
   revalidatePath(`/${ritualSlug}/${year}`)
 }
 
+export async function updateBookingStatusForUser(
+  eventId: string,
+  ritualSlug: string,
+  year: number,
+  targetUserId: string,
+  status: 'not_yet' | 'committed' | 'flights_booked' | 'all_booked' | 'out'
+) {
+  const session = await auth()
+  if (!session?.user?.id) redirect('/login')
+
+  await requireSponsorOrHost(eventId, session.user.id!)
+
+  const existing = await db.query.eventAttendees.findFirst({
+    where: (ea, { and, eq }) =>
+      and(eq(ea.eventId, eventId), eq(ea.userId, targetUserId)),
+  })
+
+  if (existing) {
+    await db
+      .update(eventAttendees)
+      .set({ bookingStatus: status })
+      .where(eq(eventAttendees.id, existing.id))
+  }
+
+  revalidatePath(`/${ritualSlug}/${year}`)
+}
+
+export async function updateFlightDetailsForUser(
+  eventId: string,
+  ritualSlug: string,
+  year: number,
+  targetUserId: string,
+  flightData: {
+    arrivalAirline?: string
+    arrivalFlightNumber?: string
+    arrivalDatetime?: Date | null
+    departureAirline?: string
+    departureFlightNumber?: string
+    departureDatetime?: Date | null
+  }
+) {
+  const session = await auth()
+  if (!session?.user?.id) redirect('/login')
+
+  await requireSponsorOrHost(eventId, session.user.id!)
+
+  const existing = await db.query.eventAttendees.findFirst({
+    where: (ea, { and, eq }) =>
+      and(eq(ea.eventId, eventId), eq(ea.userId, targetUserId)),
+  })
+
+  if (!existing) throw new Error('Not an attendee of this event')
+
+  await db
+    .update(eventAttendees)
+    .set({
+      arrivalAirline: flightData.arrivalAirline?.trim() || null,
+      arrivalFlightNumber: flightData.arrivalFlightNumber?.trim() || null,
+      arrivalDatetime: flightData.arrivalDatetime || null,
+      departureAirline: flightData.departureAirline?.trim() || null,
+      departureFlightNumber: flightData.departureFlightNumber?.trim() || null,
+      departureDatetime: flightData.departureDatetime || null,
+    })
+    .where(eq(eventAttendees.id, existing.id))
+
+  revalidatePath(`/${ritualSlug}/${year}`)
+}
+
 // ─── Event Status ─────────────────────────────────────────────────────────────
 
 export async function advanceEventStatus(
@@ -372,19 +443,140 @@ export async function addExpense(
   ritualSlug: string,
   year: number,
   description: string,
-  amountCents: number
+  amountCents: number,
+  options?: {
+    splitType?: 'equal' | 'exact'
+    splitUserIds?: string[]
+    exactAmounts?: { userId: string; amount: number }[]
+    category?: string
+  }
 ) {
   const session = await auth()
   if (!session?.user?.id) redirect('/login')
 
+  const splitType = options?.splitType ?? 'equal'
+  const category = options?.category ?? null
+
+  // Determine participants: provided list, or all non-"out" attendees
+  let splitUserIds = options?.splitUserIds
+  if (!splitUserIds || splitUserIds.length === 0) {
+    const attendees = await db
+      .select()
+      .from(eventAttendees)
+      .where(eq(eventAttendees.eventId, eventId))
+    splitUserIds = attendees
+      .filter((a) => a.bookingStatus !== 'out')
+      .map((a) => a.userId)
+  }
+
+  // Compute splits
+  let splits: { userId: string; amount: number }[]
+  if (splitType === 'exact' && options?.exactAmounts) {
+    const err = validateExactSplit(amountCents, options.exactAmounts)
+    if (err) throw new Error(err)
+    splits = options.exactAmounts
+  } else {
+    const splitMap = computeEqualSplit(amountCents, splitUserIds)
+    splits = Array.from(splitMap.entries()).map(([userId, amount]) => ({ userId, amount }))
+  }
+
+  const expenseId = crypto.randomUUID()
+
   await db.insert(expenses).values({
-    id: crypto.randomUUID(),
+    id: expenseId,
     eventId,
     paidBy: session.user.id!,
     description: description.trim(),
     amount: amountCents,
+    splitType,
+    category,
     createdAt: new Date(),
   })
+
+  if (splits.length > 0) {
+    await db.insert(expenseSplits).values(
+      splits.map((s) => ({
+        id: crypto.randomUUID(),
+        expenseId,
+        userId: s.userId,
+        amount: s.amount,
+      }))
+    )
+  }
+
+  revalidatePath(`/${ritualSlug}/${year}`)
+}
+
+export async function updateExpense(
+  expenseId: string,
+  ritualSlug: string,
+  year: number,
+  description: string,
+  amountCents: number,
+  options?: {
+    splitType?: 'equal' | 'exact'
+    splitUserIds?: string[]
+    exactAmounts?: { userId: string; amount: number }[]
+    category?: string
+  }
+) {
+  const session = await auth()
+  if (!session?.user?.id) redirect('/login')
+
+  // Only expense creator can edit
+  const expense = await db.query.expenses.findFirst({
+    where: (e, { eq: eqFn }) => eqFn(e.id, expenseId),
+  })
+  if (!expense) throw new Error('Expense not found')
+  if (expense.paidBy !== session.user.id) throw new Error('Only the creator can edit this expense')
+
+  const splitType = options?.splitType ?? 'equal'
+  const category = options?.category ?? null
+
+  let splitUserIds = options?.splitUserIds
+  if (!splitUserIds || splitUserIds.length === 0) {
+    const attendees = await db
+      .select()
+      .from(eventAttendees)
+      .where(eq(eventAttendees.eventId, expense.eventId))
+    splitUserIds = attendees
+      .filter((a) => a.bookingStatus !== 'out')
+      .map((a) => a.userId)
+  }
+
+  let splits: { userId: string; amount: number }[]
+  if (splitType === 'exact' && options?.exactAmounts) {
+    const err = validateExactSplit(amountCents, options.exactAmounts)
+    if (err) throw new Error(err)
+    splits = options.exactAmounts
+  } else {
+    const splitMap = computeEqualSplit(amountCents, splitUserIds)
+    splits = Array.from(splitMap.entries()).map(([userId, amount]) => ({ userId, amount }))
+  }
+
+  await db
+    .update(expenses)
+    .set({
+      description: description.trim(),
+      amount: amountCents,
+      splitType,
+      category,
+    })
+    .where(eq(expenses.id, expenseId))
+
+  // Delete old splits, insert new
+  await db.delete(expenseSplits).where(eq(expenseSplits.expenseId, expenseId))
+
+  if (splits.length > 0) {
+    await db.insert(expenseSplits).values(
+      splits.map((s) => ({
+        id: crypto.randomUUID(),
+        expenseId,
+        userId: s.userId,
+        amount: s.amount,
+      }))
+    )
+  }
 
   revalidatePath(`/${ritualSlug}/${year}`)
 }
@@ -397,11 +589,119 @@ export async function deleteExpense(
   const session = await auth()
   if (!session?.user?.id) redirect('/login')
 
+  // Splits cascade-delete via FK
   await db
     .delete(expenses)
     .where(
       and(eq(expenses.id, expenseId), eq(expenses.paidBy, session.user.id!))
     )
+
+  revalidatePath(`/${ritualSlug}/${year}`)
+}
+
+// ─── Settlement Payments ──────────────────────────────────────────────────────
+
+export async function markSettlementPaid(
+  eventId: string,
+  ritualSlug: string,
+  year: number,
+  toUserId: string,
+  amountCents: number
+) {
+  const session = await auth()
+  if (!session?.user?.id) redirect('/login')
+
+  // Check for existing non-reset payment to prevent duplicates
+  const existing = await db.query.settlementPayments.findFirst({
+    where: (sp, { and: andFn, eq: eqFn }) =>
+      andFn(
+        eqFn(sp.eventId, eventId),
+        eqFn(sp.fromUserId, session.user!.id!),
+        eqFn(sp.toUserId, toUserId),
+      ),
+  })
+
+  if (existing && existing.status !== 'pending') {
+    throw new Error('Payment already marked')
+  }
+
+  if (existing) {
+    // Update existing pending payment
+    await db
+      .update(settlementPayments)
+      .set({ status: 'paid', paidAt: new Date() })
+      .where(eq(settlementPayments.id, existing.id))
+  } else {
+    await db.insert(settlementPayments).values({
+      id: crypto.randomUUID(),
+      eventId,
+      fromUserId: session.user.id!,
+      toUserId,
+      amount: amountCents,
+      status: 'paid',
+      paidAt: new Date(),
+      createdAt: new Date(),
+    })
+  }
+
+  revalidatePath(`/${ritualSlug}/${year}`)
+}
+
+export async function confirmSettlementPayment(
+  paymentId: string,
+  ritualSlug: string,
+  year: number
+) {
+  const session = await auth()
+  if (!session?.user?.id) redirect('/login')
+
+  const payment = await db.query.settlementPayments.findFirst({
+    where: (sp, { eq: eqFn }) => eqFn(sp.id, paymentId),
+  })
+  if (!payment) throw new Error('Payment not found')
+
+  // Require sponsor/host or the creditor (toUserId)
+  const isCreditor = payment.toUserId === session.user.id
+  if (!isCreditor) {
+    await requireSponsorOrHost(payment.eventId, session.user.id!)
+  }
+
+  await db
+    .update(settlementPayments)
+    .set({
+      status: 'confirmed',
+      confirmedAt: new Date(),
+      confirmedBy: session.user.id!,
+    })
+    .where(eq(settlementPayments.id, paymentId))
+
+  revalidatePath(`/${ritualSlug}/${year}`)
+}
+
+export async function resetSettlementPayment(
+  paymentId: string,
+  ritualSlug: string,
+  year: number
+) {
+  const session = await auth()
+  if (!session?.user?.id) redirect('/login')
+
+  const payment = await db.query.settlementPayments.findFirst({
+    where: (sp, { eq: eqFn }) => eqFn(sp.id, paymentId),
+  })
+  if (!payment) throw new Error('Payment not found')
+
+  await requireSponsorOrHost(payment.eventId, session.user.id!)
+
+  await db
+    .update(settlementPayments)
+    .set({
+      status: 'pending',
+      paidAt: null,
+      confirmedAt: null,
+      confirmedBy: null,
+    })
+    .where(eq(settlementPayments.id, paymentId))
 
   revalidatePath(`/${ritualSlug}/${year}`)
 }
@@ -1009,11 +1309,10 @@ export async function updateEventDetails(
 
   await requireSponsorOrHost(eventId, session.user.id!)
 
-  const updateData: Record<string, unknown> = {
-    location: data.location?.trim() || null,
-    mountains: data.mountains?.trim() || null,
-  }
+  const updateData: Record<string, unknown> = {}
   if (data.name !== undefined) updateData.name = data.name.trim()
+  if (data.location !== undefined) updateData.location = data.location?.trim() || null
+  if (data.mountains !== undefined) updateData.mountains = data.mountains?.trim() || null
   if (data.startDate !== undefined) updateData.startDate = data.startDate
   if (data.endDate !== undefined) updateData.endDate = data.endDate
 

@@ -8,6 +8,7 @@ import {
   finalizeAwardVotes,
   sealEvent,
 } from '@/lib/event-actions'
+import { computeSettlements, type ExpenseInput, type PaymentInput } from '@/lib/expense-utils'
 
 type Attendee = {
   id: string
@@ -26,6 +27,22 @@ type Expense = {
   paidBy: string
   description: string
   amount: number
+  splitType: string
+  category: string | null
+  createdAt: Date
+  splits: { userId: string; amount: number }[]
+}
+
+type SettlementPayment = {
+  id: string
+  eventId: string
+  fromUserId: string
+  toUserId: string
+  amount: number
+  status: string
+  paidAt: Date | null
+  confirmedAt: Date | null
+  confirmedBy: string | null
   createdAt: Date
 }
 
@@ -49,65 +66,17 @@ type AwardVote = {
   nomineeId: string
 }
 
-// ─── Expense Settlement Math ──────────────────────────────────────────────────
-
-type Settlement = {
-  from: string
-  to: string
-  amountCents: number
-}
-
-function computeSettlement(expenses: Expense[], attendeeIds: string[]): Settlement[] {
-  if (attendeeIds.length === 0) return []
-
-  const totalCents = expenses.reduce((s, e) => s + e.amount, 0)
-  const perPersonCents = Math.round(totalCents / attendeeIds.length)
-
-  // net[userId] = total paid by user - per person share
-  // positive = owed back; negative = owes others
-  const net = new Map<string, number>()
-  for (const id of attendeeIds) net.set(id, -perPersonCents)
-  for (const e of expenses) {
-    net.set(e.paidBy, (net.get(e.paidBy) ?? 0) + e.amount)
-  }
-
-  // Greedy settlement
-  const settlements: Settlement[] = []
-  const creditors = Array.from(net.entries()).filter(([, v]) => v > 0).sort((a, b) => b[1] - a[1])
-  const debtors = Array.from(net.entries()).filter(([, v]) => v < 0).sort((a, b) => a[1] - b[1])
-
-  let ci = 0
-  let di = 0
-  const cAmounts = creditors.map(([, v]) => v)
-  const dAmounts = debtors.map(([, v]) => Math.abs(v))
-
-  while (ci < creditors.length && di < debtors.length) {
-    const transfer = Math.min(cAmounts[ci], dAmounts[di])
-    if (transfer > 0) {
-      settlements.push({
-        from: debtors[di][0],
-        to: creditors[ci][0],
-        amountCents: transfer,
-      })
-    }
-    cAmounts[ci] -= transfer
-    dAmounts[di] -= transfer
-    if (cAmounts[ci] === 0) ci++
-    if (dAmounts[di] === 0) di++
-  }
-
-  return settlements
-}
-
 // ─── Step 1: Expenses ─────────────────────────────────────────────────────────
 
 function ExpensesStep({
   expenses,
+  settlementPayments,
   attendees,
   attendeeUsers,
   onNext,
 }: {
   expenses: Expense[]
+  settlementPayments: SettlementPayment[]
   attendees: Attendee[]
   attendeeUsers: AttendeeUser[]
   onNext: () => void
@@ -115,7 +84,21 @@ function ExpensesStep({
   const userMap = new Map(attendeeUsers.map((u) => [u.id, u]))
   const attendeeIds = attendees.map((a) => a.userId)
   const totalCents = expenses.reduce((s, e) => s + e.amount, 0)
-  const settlements = computeSettlement(expenses, attendeeIds)
+
+  const expenseInputs: ExpenseInput[] = expenses.map((e) => ({
+    id: e.id,
+    paidBy: e.paidBy,
+    amount: e.amount,
+    splits: e.splits,
+  }))
+  const paymentInputs: PaymentInput[] = settlementPayments.map((p) => ({
+    id: p.id,
+    fromUserId: p.fromUserId,
+    toUserId: p.toUserId,
+    amount: p.amount,
+    status: p.status as 'pending' | 'paid' | 'confirmed',
+  }))
+  const settlements = computeSettlements(expenseInputs, paymentInputs, attendeeIds)
 
   return (
     <div className="flex flex-col gap-6">
@@ -433,6 +416,7 @@ export function CloseoutView({
   attendees,
   attendeeUsers,
   expenseList,
+  settlementPayments,
   awardDefs,
   currentAwards,
   awardVoteList,
@@ -445,6 +429,7 @@ export function CloseoutView({
   attendees: Attendee[]
   attendeeUsers: AttendeeUser[]
   expenseList: Expense[]
+  settlementPayments: SettlementPayment[]
   awardDefs: AwardDef[]
   currentAwards: Award[]
   awardVoteList: AwardVote[]
@@ -473,6 +458,7 @@ export function CloseoutView({
         {step === 1 && (
           <ExpensesStep
             expenses={expenseList}
+            settlementPayments={settlementPayments}
             attendees={attendees}
             attendeeUsers={attendeeUsers}
             onNext={() => setStep(2)}

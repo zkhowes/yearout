@@ -3,13 +3,12 @@
 import { useState, useTransition } from 'react'
 import { Plus, Loader2, Trash2, Pencil, Calendar } from 'lucide-react'
 import {
-  addExpense,
-  deleteExpense,
   addActivityResult,
   addItineraryDay,
   updateItineraryDay,
   deleteItineraryDay,
 } from '@/lib/event-actions'
+import { ExpensesTab } from '@/components/expenses-tab'
 import { CloseoutView } from './closeout-view'
 import { AwardsPodium } from './awards-podium'
 import { EventDetailsCard } from './closed-view'
@@ -34,6 +33,22 @@ type Expense = {
   paidBy: string
   description: string
   amount: number
+  splitType: string
+  category: string | null
+  createdAt: Date
+  splits: { userId: string; amount: number }[]
+}
+
+type SettlementPayment = {
+  id: string
+  eventId: string
+  fromUserId: string
+  toUserId: string
+  amount: number
+  status: string
+  paidAt: Date | null
+  confirmedAt: Date | null
+  confirmedBy: string | null
   createdAt: Date
 }
 
@@ -87,20 +102,6 @@ type Event = {
   year: number
   startDate: Date | null
   endDate: Date | null
-}
-
-// ─── Expense Settlement Math ──────────────────────────────────────────────────
-
-function computeNetPerPerson(expenses: Expense[], attendeeIds: string[]) {
-  if (attendeeIds.length === 0) return new Map<string, number>()
-  const totalCents = expenses.reduce((s, e) => s + e.amount, 0)
-  const perPersonCents = Math.round(totalCents / attendeeIds.length)
-  const net = new Map<string, number>()
-  for (const id of attendeeIds) net.set(id, -perPersonCents)
-  for (const e of expenses) {
-    net.set(e.paidBy, (net.get(e.paidBy) ?? 0) + e.amount)
-  }
-  return net
 }
 
 // ─── Itinerary Section ───────────────────────────────────────────────────────
@@ -222,7 +223,7 @@ export function ItinerarySection({
       <input
         value={themeName}
         onChange={(e) => setThemeName(e.target.value)}
-        placeholder="Theme name (e.g. Jersey Day)"
+        placeholder="Activity (eg. Jersey Day, Prom Night)"
         className="w-full bg-transparent border-b border-[var(--border)] focus:border-[var(--fg)] outline-none py-1 text-sm text-[var(--fg)] placeholder-[var(--fg-muted)]"
       />
       <input
@@ -293,7 +294,7 @@ export function ItinerarySection({
                       <input
                         value={themeName}
                         onChange={(e) => setThemeName(e.target.value)}
-                        placeholder="Theme name (e.g. Jersey Day)"
+                        placeholder="Activity (eg. Jersey Day, Prom Night)"
                         className="w-full bg-transparent border-b border-[var(--border)] focus:border-[var(--fg)] outline-none py-1 text-sm text-[var(--fg)] placeholder-[var(--fg-muted)]"
                       />
                       <input
@@ -546,175 +547,6 @@ function StatsTab({
   )
 }
 
-// ─── Expenses Tab ─────────────────────────────────────────────────────────────
-
-export function ExpensesTab({
-  event,
-  expenseList,
-  attendees,
-  attendeeUsers,
-  currentUserId,
-  ritualSlug,
-}: {
-  event: Event
-  expenseList: Expense[]
-  attendees: Attendee[]
-  attendeeUsers: AttendeeUser[]
-  currentUserId: string
-  ritualSlug: string
-}) {
-  const [showForm, setShowForm] = useState(false)
-  const [description, setDescription] = useState('')
-  const [dollarAmount, setDollarAmount] = useState('')
-  const [adding, startAdd] = useTransition()
-  const [deleting, startDelete] = useTransition()
-  const [deletingId, setDeletingId] = useState<string | null>(null)
-  const userMap = new Map(attendeeUsers.map((u) => [u.id, u]))
-  const attendeeIds = attendees.filter((a) => a.bookingStatus !== 'out').map((a) => a.userId)
-
-  const totalCents = expenseList.reduce((s, e) => s + e.amount, 0)
-  const perPersonCents = attendeeIds.length > 0 ? Math.round(totalCents / attendeeIds.length) : 0
-  const net = computeNetPerPerson(expenseList, attendeeIds)
-
-  function handleAdd(e: React.FormEvent) {
-    e.preventDefault()
-    const amountCents = Math.round(parseFloat(dollarAmount) * 100)
-    if (!description.trim() || isNaN(amountCents) || amountCents <= 0) return
-    startAdd(async () => {
-      await addExpense(event.id, ritualSlug, event.year, description, amountCents)
-      setDescription('')
-      setDollarAmount('')
-      setShowForm(false)
-    })
-  }
-
-  function handleDelete(expenseId: string) {
-    setDeletingId(expenseId)
-    startDelete(async () => {
-      await deleteExpense(expenseId, ritualSlug, event.year)
-      setDeletingId(null)
-    })
-  }
-
-  return (
-    <div className="flex flex-col gap-4">
-      {showForm ? (
-        <form onSubmit={handleAdd} className="flex flex-col gap-3 p-4 rounded-xl border border-dashed border-[var(--border)] bg-[var(--surface)]">
-          <p className="text-xs uppercase tracking-widest text-[var(--fg-muted)]">Add Expense</p>
-          <input
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder="Description"
-            className="w-full bg-transparent border-b border-[var(--border)] focus:border-[var(--fg)] outline-none py-1 text-sm text-[var(--fg)] placeholder-[var(--fg-muted)]"
-          />
-          <input
-            type="number"
-            value={dollarAmount}
-            onChange={(e) => setDollarAmount(e.target.value)}
-            placeholder="Amount ($)"
-            min="0"
-            step="0.01"
-            className="w-full bg-transparent border-b border-[var(--border)] focus:border-[var(--fg)] outline-none py-1 text-sm text-[var(--fg)] placeholder-[var(--fg-muted)]"
-          />
-          <div className="flex gap-2 pt-1">
-            <button
-              type="submit"
-              disabled={adding || !description.trim() || !dollarAmount}
-              className="px-4 py-2 rounded-lg btn-accent text-sm font-semibold disabled:opacity-50 flex items-center gap-1"
-            >
-              {adding ? <Loader2 size={13} className="animate-spin" /> : <Plus size={13} />}
-              Add
-            </button>
-            <button
-              type="button"
-              onClick={() => setShowForm(false)}
-              className="px-4 py-2 rounded-lg border border-[var(--border)] text-sm text-[var(--fg-muted)] hover:text-[var(--fg)] transition-colors"
-            >
-              Cancel
-            </button>
-          </div>
-        </form>
-      ) : (
-        <button
-          onClick={() => setShowForm(true)}
-          className="flex items-center justify-center gap-1.5 w-full py-2.5 rounded-xl border border-dashed border-[var(--border)] text-sm text-[var(--fg-muted)] hover:text-[var(--fg)] hover:border-[var(--fg-muted)] transition-colors"
-        >
-          <Plus size={13} /> Add expense
-        </button>
-      )}
-
-      {/* Expense list */}
-      {expenseList.length === 0 ? (
-        <p className="text-sm text-[var(--fg-muted)] text-center py-4">No expenses yet.</p>
-      ) : (
-        <>
-          {expenseList.map((e) => {
-            const payer = userMap.get(e.paidBy)
-            const isOwn = e.paidBy === currentUserId
-            return (
-              <div key={e.id} className="flex items-center justify-between py-2 border-b border-[var(--border)]">
-                <div className="flex flex-col gap-0.5">
-                  <p className="text-sm text-[var(--fg)]">{e.description}</p>
-                  <p className="text-xs text-[var(--fg-muted)]">
-                    {payer?.name?.split(' ')[0] ?? 'Unknown'}
-                  </p>
-                </div>
-                <div className="flex items-center gap-3">
-                  <p className="text-sm font-semibold text-[var(--fg)]">
-                    ${(e.amount / 100).toFixed(2)}
-                  </p>
-                  {isOwn && (
-                    <button
-                      onClick={() => handleDelete(e.id)}
-                      disabled={deleting && deletingId === e.id}
-                      className="p-1 text-[var(--fg-muted)] hover:text-red-400 transition-colors disabled:opacity-50"
-                      aria-label="Delete expense"
-                    >
-                      {deleting && deletingId === e.id
-                        ? <Loader2 size={13} className="animate-spin" />
-                        : <Trash2 size={13} />}
-                    </button>
-                  )}
-                </div>
-              </div>
-            )
-          })}
-
-          {/* Total + split */}
-          <div className="flex flex-col gap-2 pt-2">
-            <div className="flex items-center justify-between">
-              <p className="text-sm font-semibold text-[var(--fg)]">Total</p>
-              <p className="text-sm font-semibold text-[var(--fg)]">${(totalCents / 100).toFixed(2)}</p>
-            </div>
-            {attendeeIds.length > 0 && (
-              <div className="flex items-center justify-between">
-                <p className="text-xs text-[var(--fg-muted)]">Per person ({attendeeIds.length})</p>
-                <p className="text-xs text-[var(--fg-muted)]">${(perPersonCents / 100).toFixed(2)}</p>
-              </div>
-            )}
-          </div>
-
-          {/* Net per person */}
-          <div className="flex flex-col gap-1 pt-1">
-            <p className="text-xs uppercase tracking-widest text-[var(--fg-muted)]">Net</p>
-            {Array.from(net.entries()).map(([uid, netCents]) => {
-              const user = userMap.get(uid)
-              return (
-                <div key={uid} className="flex items-center justify-between text-sm">
-                  <span className="text-[var(--fg)]">{user?.name?.split(' ')[0] ?? 'Unknown'}</span>
-                  <span className={netCents >= 0 ? 'text-green-600 font-medium' : 'text-red-500 font-medium'}>
-                    {netCents >= 0 ? '+' : ''}{(netCents / 100).toFixed(2)}
-                  </span>
-                </div>
-              )
-            })}
-          </div>
-        </>
-      )}
-    </div>
-  )
-}
-
 // ─── Main In Progress View ────────────────────────────────────────────────────
 
 export function InProgressView({
@@ -724,6 +556,7 @@ export function InProgressView({
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   myAttendee,
   expenseList,
+  settlementPayments,
   loreList,
   activityList,
   awardDefs,
@@ -741,6 +574,7 @@ export function InProgressView({
   attendeeUsers: AttendeeUser[]
   myAttendee: Attendee | null
   expenseList: Expense[]
+  settlementPayments: SettlementPayment[]
   loreList: LoreEntryData[]
   activityList: ActivityResult[]
   awardDefs: AwardDef[]
@@ -832,9 +666,11 @@ export function InProgressView({
         <ExpensesTab
           event={event}
           expenseList={expenseList}
+          settlementPayments={settlementPayments}
           attendees={attendees}
           attendeeUsers={attendeeUsers}
           currentUserId={currentUserId}
+          canEdit={canEdit}
           ritualSlug={ritualSlug}
         />
       )}
@@ -856,6 +692,7 @@ export function InProgressView({
           attendees={attendees}
           attendeeUsers={attendeeUsers}
           expenseList={expenseList}
+          settlementPayments={settlementPayments}
           awardDefs={awardDefs}
           currentAwards={currentAwards}
           awardVoteList={awardVoteList}

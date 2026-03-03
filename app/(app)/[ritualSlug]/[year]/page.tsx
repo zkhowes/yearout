@@ -11,6 +11,8 @@ import {
   loreMentions,
   activityResults,
   expenses,
+  expenseSplits,
+  settlementPayments,
   awardVotes,
   awards,
   ritualAwardDefinitions,
@@ -97,7 +99,8 @@ export default async function EventPage({
   let myAttendee: (typeof attendeeList)[0] | null = null
 
   // In-progress / closed: also load lore, expenses, activity, awards
-  let expenseList: { id: string; paidBy: string; description: string; amount: number; createdAt: Date }[] = []
+  let expenseList: { id: string; paidBy: string; description: string; amount: number; splitType: string; category: string | null; createdAt: Date; splits: { userId: string; amount: number }[] }[] = []
+  let settlementPaymentList: { id: string; eventId: string; fromUserId: string; toUserId: string; amount: number; status: string; paidAt: Date | null; confirmedAt: Date | null; confirmedBy: string | null; createdAt: Date }[] = []
   let loreList: { id: string; authorId: string; type: 'memory' | 'checkin' | 'image'; content: string | null; mediaUrl: string | null; location: string | null; isHallOfFame: boolean; day: Date | null; createdAt: Date; mentions: { userId: string }[] }[] = []
   let activityList: { id: string; userId: string; metric: string; value: string; unit: string | null; day: Date | null; createdAt: Date }[] = []
   let awardDefs: { id: string; name: string; label: string; type: string }[] = []
@@ -125,7 +128,7 @@ export default async function EventPage({
     }
 
     if (event.status === 'scheduled' || event.status === 'in_progress' || event.status === 'closed') {
-      const [rawExpenses, rawLore, rawActivity, rawAwardDefs, rawAwards, rawVotes, rawItinerary] =
+      const [rawExpenses, rawLore, rawActivity, rawAwardDefs, rawAwards, rawVotes, rawItinerary, rawSettlementPayments] =
         await Promise.all([
           db.select().from(expenses).where(eq(expenses.eventId, event.id)),
           db.select().from(loreEntries).where(eq(loreEntries.eventId, event.id)),
@@ -134,9 +137,22 @@ export default async function EventPage({
           db.select().from(awards).where(eq(awards.eventId, event.id)),
           db.select().from(awardVotes).where(eq(awardVotes.eventId, event.id)),
           db.select().from(dailyItinerary).where(eq(dailyItinerary.eventId, event.id)),
+          db.select().from(settlementPayments).where(eq(settlementPayments.eventId, event.id)),
         ])
 
-      expenseList = rawExpenses as typeof expenseList
+      // Fetch expense splits
+      const expenseIds = rawExpenses.map((e) => e.id)
+      const rawSplits = expenseIds.length > 0
+        ? await db.select().from(expenseSplits).where(inArray(expenseSplits.expenseId, expenseIds))
+        : []
+
+      expenseList = rawExpenses.map((e) => ({
+        ...e,
+        splits: rawSplits
+          .filter((s) => s.expenseId === e.id)
+          .map((s) => ({ userId: s.userId, amount: s.amount })),
+      }))
+      settlementPaymentList = rawSettlementPayments as typeof settlementPaymentList
       activityList = rawActivity as typeof activityList
 
       // Fetch mentions for lore entries
@@ -324,6 +340,7 @@ export default async function EventPage({
           isSponsor={isSponsor}
           itineraryList={itineraryList}
           expenseList={expenseList}
+          settlementPayments={settlementPaymentList}
           loreList={loreList}
           crewMembers={allRitualMembers.map((m) => ({ id: m.userId, name: m.userName, image: m.userImage }))}
           currentUserId={session.user!.id!}
@@ -346,6 +363,7 @@ export default async function EventPage({
           attendeeUsers={attendeeUsers}
           myAttendee={myAttendee}
           expenseList={expenseList}
+          settlementPayments={settlementPaymentList}
           loreList={loreList}
           activityList={activityList}
           awardDefs={awardDefs}

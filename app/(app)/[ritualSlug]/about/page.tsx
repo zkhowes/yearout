@@ -63,25 +63,6 @@ export default async function AboutPage({
 
   return (
     <div className="flex flex-col gap-8">
-      {/* Logo */}
-      {ritual.logoUrl && (
-        <div className="flex justify-center">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={ritual.logoUrl}
-            alt={ritual.name}
-            className="w-28 h-28 rounded-full object-cover"
-          />
-        </div>
-      )}
-
-      {/* Tagline */}
-      {ritual.tagline && (
-        <p className="text-center text-sm italic text-[var(--fg-muted)]">
-          {ritual.tagline}
-        </p>
-      )}
-
       {/* Founding Year */}
       {ritual.foundingYear && (
         <p className="text-center text-xs uppercase tracking-widest text-[var(--fg-muted)]">
@@ -104,7 +85,7 @@ export default async function AboutPage({
       <div className="flex flex-col gap-3">
         <p className="text-xs uppercase tracking-widest text-[var(--fg-muted)]">The Crew</p>
         <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
-          {members.map((member) => {
+          {[...members].sort((a, b) => (attendanceCounts.get(b.userId) ?? 0) - (attendanceCounts.get(a.userId) ?? 0)).map((member) => {
             const photoUrl = member.photoOverride ?? member.userImage
             const displayName = member.nicknameOverride ?? member.userName?.split(' ')[0] ?? 'Unknown'
             const count = attendanceCounts.get(member.userId) ?? 0

@@ -97,6 +97,28 @@ export const expenses = pgTable('expenses', {
   paidBy: text('paid_by').notNull().references(() => users.id),
   description: text('description').notNull(),
   amount: integer('amount').notNull(), // stored in cents
+  splitType: text('split_type').notNull().default('equal'), // 'equal' | 'exact'
+  category: text('category'), // lodging | food | transport | activity | other
+  createdAt: timestamp('created_at', { mode: 'date' }).defaultNow().notNull(),
+})
+
+export const expenseSplits = pgTable('expense_splits', {
+  id: text('id').primaryKey(),
+  expenseId: text('expense_id').notNull().references(() => expenses.id, { onDelete: 'cascade' }),
+  userId: text('user_id').notNull().references(() => users.id),
+  amount: integer('amount').notNull(), // this user's share in cents
+})
+
+export const settlementPayments = pgTable('settlement_payments', {
+  id: text('id').primaryKey(),
+  eventId: text('event_id').notNull().references(() => events.id, { onDelete: 'cascade' }),
+  fromUserId: text('from_user_id').notNull().references(() => users.id),
+  toUserId: text('to_user_id').notNull().references(() => users.id),
+  amount: integer('amount').notNull(), // cents
+  status: text('status').notNull().default('pending'), // 'pending' | 'paid' | 'confirmed'
+  paidAt: timestamp('paid_at', { mode: 'date' }),
+  confirmedAt: timestamp('confirmed_at', { mode: 'date' }),
+  confirmedBy: text('confirmed_by').references(() => users.id),
   createdAt: timestamp('created_at', { mode: 'date' }).defaultNow().notNull(),
 })
 

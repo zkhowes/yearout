@@ -131,13 +131,13 @@ export function ClosedView({
         <ItineraryRecap itineraryList={itineraryList} />
       )}
 
-      {/* Awards Podium */}
+      {/* Awards Podium (exclude totem for archived events) */}
       {awardDefs.length > 0 && (
         <AwardsPodium
           event={event}
           attendees={attendees}
           attendeeUsers={attendeeUsers}
-          awardDefs={awardDefs}
+          awardDefs={awardDefs.filter((d) => d.type !== 'totem')}
           currentAwards={currentAwards}
           isSponsor={canEdit}
           ritualSlug={ritualSlug}
@@ -286,6 +286,7 @@ export function EventDetailsCard({ event, canEdit, ritualSlug }: { event: { id: 
                 month: 'short',
                 day: 'numeric',
                 year: 'numeric',
+                timeZone: 'UTC',
               })
             )
             .join(' \u2013 ')}
@@ -327,6 +328,7 @@ function ItineraryRecap({ itineraryList }: { itineraryList: ItineraryDay[] }) {
                     weekday: 'short',
                     month: 'short',
                     day: 'numeric',
+                    timeZone: 'UTC',
                   })}
                 </span>
                 {item.themeName && (

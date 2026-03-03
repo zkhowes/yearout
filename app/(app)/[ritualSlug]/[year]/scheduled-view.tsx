@@ -2,8 +2,9 @@
 
 import { useState, useTransition } from 'react'
 import { ExternalLink, Loader2, Plane, ChevronDown, ChevronUp, Settings } from 'lucide-react'
-import { updateBookingStatus, advanceEventStatus, updateFlightDetails, toggleHostStatus } from '@/lib/event-actions'
-import { ItinerarySection, ExpensesTab } from './in-progress-view'
+import { updateBookingStatus, updateBookingStatusForUser, advanceEventStatus, updateFlightDetails, updateFlightDetailsForUser, toggleHostStatus } from '@/lib/event-actions'
+import { ItinerarySection } from './in-progress-view'
+import { ExpensesTab } from '@/components/expenses-tab'
 import { EventDetailsCard } from './closed-view'
 import { LoreFeed } from '@/components/lore/lore-feed'
 import type { LoreEntryData } from '@/components/lore/lore-post'
@@ -60,38 +61,57 @@ function BookingChip({
   attendee,
   user,
   isCurrentUser,
+  canEdit,
   eventId,
   ritualSlug,
   year,
+  onSelect,
+  isSelected,
 }: {
   attendee: Attendee
   user: AttendeeUser
   isCurrentUser: boolean
+  canEdit: boolean
   eventId: string
   ritualSlug: string
   year: number
+  onSelect?: () => void
+  isSelected?: boolean
 }) {
   const [pending, startTransition] = useTransition()
   const status = attendee.bookingStatus
+  const canInteract = isCurrentUser || canEdit
 
   function cycleStatus() {
-    if (!isCurrentUser) return
+    if (!canInteract) return
     const nextIndex = (STATUS_CYCLE.indexOf(status) + 1) % STATUS_CYCLE.length
     const nextStatus = STATUS_CYCLE[nextIndex]
     startTransition(async () => {
-      await updateBookingStatus(eventId, ritualSlug, year, nextStatus)
+      if (isCurrentUser) {
+        await updateBookingStatus(eventId, ritualSlug, year, nextStatus)
+      } else {
+        await updateBookingStatusForUser(eventId, ritualSlug, year, attendee.userId, nextStatus)
+      }
     })
+  }
+
+  function handleClick() {
+    if (canEdit && !isCurrentUser && onSelect) {
+      onSelect()
+    } else {
+      cycleStatus()
+    }
   }
 
   const isOut = status === 'out'
 
   return (
     <button
-      onClick={cycleStatus}
-      disabled={!isCurrentUser || pending}
+      onClick={handleClick}
+      disabled={!canInteract || pending}
       className={`flex flex-col items-center gap-1.5 p-3 rounded-xl border transition-all ${STATUS_COLORS[status]} ${
-        isCurrentUser ? 'cursor-pointer hover:opacity-80 active:scale-95' : 'cursor-default'
-      } disabled:opacity-60`}
+        canInteract ? 'cursor-pointer hover:opacity-80 active:scale-95' : 'cursor-default'
+      } ${isSelected ? 'ring-2 ring-[var(--accent)]' : ''} disabled:opacity-60`}
     >
       {user.image ? (
         // eslint-disable-next-line @next/next/no-img-element
@@ -127,11 +147,13 @@ function FlightDetailsForm({
   eventId,
   ritualSlug,
   year,
+  isCurrentUser = true,
 }: {
   attendee: Attendee
   eventId: string
   ritualSlug: string
   year: number
+  isCurrentUser?: boolean
 }) {
   const [expanded, setExpanded] = useState(false)
   const [saving, startSave] = useTransition()
@@ -154,14 +176,19 @@ function FlightDetailsForm({
 
   function handleSave() {
     startSave(async () => {
-      await updateFlightDetails(eventId, ritualSlug, year, {
+      const data = {
         arrivalAirline: arrAirline || undefined,
         arrivalFlightNumber: arrFlight || undefined,
         arrivalDatetime: arrDatetime ? new Date(arrDatetime) : null,
         departureAirline: depAirline || undefined,
         departureFlightNumber: depFlight || undefined,
         departureDatetime: depDatetime ? new Date(depDatetime) : null,
-      })
+      }
+      if (isCurrentUser) {
+        await updateFlightDetails(eventId, ritualSlug, year, data)
+      } else {
+        await updateFlightDetailsForUser(eventId, ritualSlug, year, attendee.userId, data)
+      }
       setExpanded(false)
     })
   }
@@ -339,6 +366,22 @@ type Expense = {
   paidBy: string
   description: string
   amount: number
+  splitType: string
+  category: string | null
+  createdAt: Date
+  splits: { userId: string; amount: number }[]
+}
+
+type SettlementPayment = {
+  id: string
+  eventId: string
+  fromUserId: string
+  toUserId: string
+  amount: number
+  status: string
+  paidAt: Date | null
+  confirmedAt: Date | null
+  confirmedBy: string | null
   createdAt: Date
 }
 
@@ -408,6 +451,107 @@ function HostManager({
   )
 }
 
+function MemberDetailPanel({
+  attendee,
+  user,
+  eventId,
+  ritualSlug,
+  year,
+  isSponsor,
+  onClose,
+}: {
+  attendee: Attendee
+  user: AttendeeUser
+  eventId: string
+  ritualSlug: string
+  year: number
+  isSponsor: boolean
+  onClose: () => void
+}) {
+  const [pending, startTransition] = useTransition()
+  const status = attendee.bookingStatus
+
+  function cycleStatus() {
+    const nextIndex = (STATUS_CYCLE.indexOf(status) + 1) % STATUS_CYCLE.length
+    const nextStatus = STATUS_CYCLE[nextIndex]
+    startTransition(async () => {
+      await updateBookingStatusForUser(eventId, ritualSlug, year, attendee.userId, nextStatus)
+    })
+  }
+
+  const [togglingHost, startToggleHost] = useTransition()
+  function handleToggleHost() {
+    startToggleHost(async () => {
+      await toggleHostStatus(eventId, ritualSlug, year, attendee.userId)
+    })
+  }
+
+  return (
+    <div className="rounded-xl border border-[var(--accent)] bg-[var(--surface)] p-4 flex flex-col gap-3">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          {user.image ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={user.image} alt={user.name ?? ''} className="w-8 h-8 rounded-full object-cover" />
+          ) : (
+            <div className="w-8 h-8 rounded-full bg-[var(--border)] flex items-center justify-center text-sm font-semibold text-[var(--fg-muted)]">
+              {(user.name ?? '?').charAt(0).toUpperCase()}
+            </div>
+          )}
+          <p className="text-sm font-semibold text-[var(--fg)]">{user.name ?? 'Unknown'}</p>
+        </div>
+        <button onClick={onClose} className="text-xs text-[var(--fg-muted)] hover:text-[var(--fg)]">Close</button>
+      </div>
+
+      {/* Status cycling */}
+      <div className="flex items-center gap-2">
+        <span className="text-xs text-[var(--fg-muted)]">Status:</span>
+        <button
+          onClick={cycleStatus}
+          disabled={pending}
+          className={`px-3 py-1 rounded-full text-xs font-semibold border ${STATUS_COLORS[status]} hover:opacity-80 transition-all disabled:opacity-50`}
+        >
+          {pending ? <Loader2 size={10} className="animate-spin inline" /> : STATUS_LABELS[status]}
+        </button>
+        <span className="text-[10px] text-[var(--fg-muted)]">Tap to cycle</span>
+      </div>
+
+      {/* Host toggle */}
+      {isSponsor && (
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-[var(--fg-muted)]">Host:</span>
+          <button
+            onClick={handleToggleHost}
+            disabled={togglingHost}
+            className={`relative w-10 h-5 rounded-full transition-colors ${
+              attendee.isHost ? 'bg-[var(--accent)]' : 'bg-[var(--border)]'
+            } disabled:opacity-50`}
+          >
+            {togglingHost ? (
+              <Loader2 size={12} className="absolute top-1 left-1/2 -translate-x-1/2 animate-spin text-[var(--fg-muted)]" />
+            ) : (
+              <span
+                className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-transform ${
+                  attendee.isHost ? 'translate-x-5' : 'translate-x-0.5'
+                }`}
+              />
+            )}
+          </button>
+        </div>
+      )}
+
+      {/* Flight details */}
+      <FlightDetailsForm
+        attendee={attendee}
+        eventId={eventId}
+        ritualSlug={ritualSlug}
+        year={year}
+        isCurrentUser={false}
+      />
+    </div>
+  )
+}
+
 export function ScheduledView({
   event,
   attendees,
@@ -417,6 +561,7 @@ export function ScheduledView({
   isSponsor,
   itineraryList,
   expenseList,
+  settlementPayments,
   loreList,
   crewMembers,
   currentUserId,
@@ -430,6 +575,7 @@ export function ScheduledView({
   isSponsor: boolean
   itineraryList: ItineraryDay[]
   expenseList: Expense[]
+  settlementPayments: SettlementPayment[]
   loreList: LoreEntryData[]
   crewMembers: CrewMember[]
   currentUserId: string
@@ -438,8 +584,10 @@ export function ScheduledView({
   const [advancing, startAdvance] = useTransition()
   const [activeTab, setActiveTab] = useState<'lore' | 'expenses'>('lore')
   const [showControls, setShowControls] = useState(false)
+  const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null)
 
   const userMap = new Map(attendeeUsers.map((u) => [u.id, u]))
+  const selectedAttendee = selectedMemberId ? attendees.find((a) => a.userId === selectedMemberId) : null
   const flightsUrl = `https://www.google.com/travel/flights?q=flights+to+${encodeURIComponent(event.location ?? '')}`
 
   function handleAdvance() {
@@ -482,27 +630,49 @@ export function ScheduledView({
             {attendees.map((attendee) => {
               const user = userMap.get(attendee.userId)
               if (!user) return null
+              const isSelf = attendee.userId === myAttendee?.userId
               return (
                 <BookingChip
                   key={attendee.id}
                   attendee={attendee}
                   user={user}
-                  isCurrentUser={attendee.userId === myAttendee?.userId}
+                  isCurrentUser={isSelf}
+                  canEdit={canEdit}
                   eventId={event.id}
                   ritualSlug={ritualSlug}
                   year={event.year}
+                  isSelected={selectedMemberId === attendee.userId}
+                  onSelect={() => setSelectedMemberId(
+                    selectedMemberId === attendee.userId ? null : attendee.userId
+                  )}
                 />
               )
             })}
           </div>
         )}
         <p className="text-xs text-[var(--fg-muted)]">
-          Tap your chip to cycle through booking status.
+          {canEdit ? 'Tap a chip to manage that member.' : 'Tap your chip to cycle through booking status.'}
         </p>
       </div>
 
-      {/* Flight details form (when user has flights booked) */}
-      {myAttendee && (myAttendee.bookingStatus === 'flights_booked' || myAttendee.bookingStatus === 'all_booked') && (
+      {/* Member detail panel (sponsor/host managing a selected member) */}
+      {canEdit && selectedAttendee && (() => {
+        const selectedUser = userMap.get(selectedAttendee.userId)
+        return (
+          <MemberDetailPanel
+            attendee={selectedAttendee}
+            user={selectedUser!}
+            eventId={event.id}
+            ritualSlug={ritualSlug}
+            year={event.year}
+            isSponsor={isSponsor}
+            onClose={() => setSelectedMemberId(null)}
+          />
+        )
+      })()}
+
+      {/* Flight details form (current user, when flights booked) */}
+      {!selectedMemberId && myAttendee && (myAttendee.bookingStatus === 'flights_booked' || myAttendee.bookingStatus === 'all_booked') && (
         <FlightDetailsForm
           attendee={myAttendee}
           eventId={event.id}
@@ -560,9 +730,11 @@ export function ScheduledView({
         <ExpensesTab
           event={event}
           expenseList={expenseList}
+          settlementPayments={settlementPayments}
           attendees={attendees}
           attendeeUsers={attendeeUsers}
           currentUserId={currentUserId}
+          canEdit={canEdit}
           ritualSlug={ritualSlug}
         />
       )}
