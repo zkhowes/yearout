@@ -200,7 +200,7 @@ function QuickEnterForm({
   const [mountains, setMountains] = useState('')
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
-  const [organizerId, setOrganizerId] = useState(currentUserId)
+  const [hostIds, setHostIds] = useState<string[]>([currentUserId])
   const [status, setStatus] = useState<'scheduled' | 'in_progress' | 'closed'>('scheduled')
   const [mvpWinnerId, setMvpWinnerId] = useState('')
   const [lupWinnerId, setLupWinnerId] = useState('')
@@ -231,7 +231,7 @@ function QuickEnterForm({
         mountains: mountains.trim() || undefined,
         startDate: startDate ? new Date(startDate) : undefined,
         endDate: endDate ? new Date(endDate) : undefined,
-        organizerId,
+        hostIds,
         status,
         mvpWinnerId: status === 'closed' && mvpWinnerId ? mvpWinnerId : undefined,
         lupWinnerId: status === 'closed' && lupWinnerId ? lupWinnerId : undefined,
@@ -310,20 +310,32 @@ function QuickEnterForm({
         </div>
       </div>
 
-      {/* Organizer */}
+      {/* Hosts */}
       <div className="flex flex-col gap-2">
-        <label className="text-xs uppercase tracking-widest text-[var(--fg-muted)]">Organizer</label>
-        <select
-          value={organizerId}
-          onChange={(e) => setOrganizerId(e.target.value)}
-          className="w-full bg-transparent border-b-2 border-[var(--border)] focus:border-[var(--fg)] outline-none pb-2 text-base text-[var(--fg)]"
-        >
-          {crewUsers.map((u) => (
-            <option key={u.id} value={u.id}>
-              {u.name ?? u.id}
-            </option>
-          ))}
-        </select>
+        <label className="text-xs uppercase tracking-widest text-[var(--fg-muted)]">Hosts</label>
+        <div className="flex flex-wrap gap-2">
+          {crewUsers.map((u) => {
+            const selected = hostIds.includes(u.id)
+            return (
+              <button
+                key={u.id}
+                type="button"
+                onClick={() =>
+                  setHostIds((prev) =>
+                    selected ? prev.filter((id) => id !== u.id) : [...prev, u.id]
+                  )
+                }
+                className={`px-3 py-1.5 rounded-lg text-sm border transition-all ${
+                  selected
+                    ? 'bg-[var(--accent)] border-[var(--accent)] text-[var(--accent-fg)]'
+                    : 'border-[var(--border)] text-[var(--fg-muted)]'
+                }`}
+              >
+                {u.name?.split(' ')[0] ?? u.id}
+              </button>
+            )
+          })}
+        </div>
       </div>
 
       {/* Status */}

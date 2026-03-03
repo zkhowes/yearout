@@ -33,6 +33,7 @@ export const eventAttendees = pgTable('event_attendees', {
   eventId: text('event_id').notNull(), // references events.id — declared in events.ts
   userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   bookingStatus: bookingStatusEnum('booking_status').notNull().default('not_yet'),
+  isHost: boolean('is_host').notNull().default(false),
   confirmedAt: timestamp('confirmed_at', { mode: 'date' }),
   // Flight details
   arrivalAirline: text('arrival_airline'),

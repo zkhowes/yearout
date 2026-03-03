@@ -8,6 +8,7 @@ import {
   events,
   awards,
   users,
+  eventAttendees,
 } from '@/db/schema'
 import { eq, and, inArray, desc } from 'drizzle-orm'
 import { Plus } from 'lucide-react'
@@ -78,9 +79,26 @@ export default async function RitualTourPage({
           )
       : []
 
-  // Fetch all referenced users (organizers + award winners)
+  // Load hosts for all events
+  const hostAttendees =
+    eventIds.length > 0
+      ? await db
+          .select({ eventId: eventAttendees.eventId, userId: eventAttendees.userId })
+          .from(eventAttendees)
+          .where(and(inArray(eventAttendees.eventId, eventIds), eq(eventAttendees.isHost, true)))
+      : []
+
+  // Build hosts-by-event map: eventId → userId[]
+  const hostsByEvent = new Map<string, string[]>()
+  for (const h of hostAttendees) {
+    const list = hostsByEvent.get(h.eventId) ?? []
+    list.push(h.userId)
+    hostsByEvent.set(h.eventId, list)
+  }
+
+  // Fetch all referenced users (hosts + award winners)
   const userIdSet = new Set<string>()
-  eventList.forEach((e) => { if (e.organizerId) userIdSet.add(e.organizerId) })
+  hostAttendees.forEach((h) => userIdSet.add(h.userId))
   mvpAwards.forEach((a) => userIdSet.add(a.winnerId))
   const userIds = Array.from(userIdSet)
   const userList =
@@ -190,7 +208,9 @@ export default async function RitualTourPage({
 
           {/* Event rows */}
           {eventList.map((event) => {
-            const organizer = event.organizerId ? userMap[event.organizerId] : null
+            const hosts = (hostsByEvent.get(event.id) ?? [])
+              .map((id) => userMap[id]?.name?.split(' ')[0])
+              .filter(Boolean)
             const mvp = mvpByEvent[event.id]
             return (
               <Link
@@ -212,7 +232,7 @@ export default async function RitualTourPage({
                   )}
                 </div>
                 <span className="text-[var(--fg-muted)] truncate">
-                  {organizer?.name?.split(' ')[0] ?? '—'}
+                  {hosts.length > 0 ? hosts.join(', ') : '—'}
                 </span>
                 <span className="text-[var(--fg-muted)] truncate">
                   {mvp?.name?.split(' ')[0] ?? '—'}

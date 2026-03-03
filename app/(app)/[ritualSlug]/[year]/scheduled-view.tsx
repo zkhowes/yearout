@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import { ExternalLink, Loader2, Plane, ChevronDown, ChevronUp, Settings } from 'lucide-react'
-import { updateBookingStatus, advanceEventStatus, updateFlightDetails } from '@/lib/event-actions'
+import { updateBookingStatus, advanceEventStatus, updateFlightDetails, toggleHostStatus } from '@/lib/event-actions'
 import { ItinerarySection, ExpensesTab } from './in-progress-view'
 import { EventDetailsCard } from './closed-view'
 import { LoreFeed } from '@/components/lore/lore-feed'
@@ -32,6 +32,7 @@ type Attendee = {
   id: string
   userId: string
   bookingStatus: BookingStatus
+  isHost: boolean
   arrivalAirline: string | null
   arrivalFlightNumber: string | null
   arrivalDatetime: Date | null
@@ -107,6 +108,9 @@ function BookingChip({
       <span className={`text-xs font-medium text-center leading-tight max-w-[72px] truncate ${isOut ? 'line-through opacity-60' : ''}`}>
         {user.name?.split(' ')[0] ?? 'Unknown'}
       </span>
+      {attendee.isHost && (
+        <span className="text-[9px] font-bold uppercase tracking-wider text-[var(--accent)] opacity-80">Host</span>
+      )}
       {pending ? (
         <Loader2 size={10} className="animate-spin" />
       ) : (
@@ -345,12 +349,72 @@ type ItineraryDay = {
   notes: string | null
 }
 
+function HostManager({
+  eventId,
+  attendees,
+  attendeeUsers,
+  ritualSlug,
+  year,
+}: {
+  eventId: string
+  attendees: Attendee[]
+  attendeeUsers: AttendeeUser[]
+  ritualSlug: string
+  year: number
+}) {
+  const [toggling, startToggle] = useTransition()
+  const [togglingId, setTogglingId] = useState<string | null>(null)
+  const userMap = new Map(attendeeUsers.map((u) => [u.id, u]))
+
+  function handleToggle(userId: string) {
+    setTogglingId(userId)
+    startToggle(async () => {
+      await toggleHostStatus(eventId, ritualSlug, year, userId)
+      setTogglingId(null)
+    })
+  }
+
+  return (
+    <div className="flex flex-col gap-2 p-3 rounded-xl border border-[var(--border)] bg-[var(--surface)]">
+      <p className="text-xs uppercase tracking-widest text-[var(--fg-muted)]">Manage Hosts</p>
+      {attendees.map((a) => {
+        const user = userMap.get(a.userId)
+        if (!user) return null
+        const isToggling = toggling && togglingId === a.userId
+        return (
+          <div key={a.userId} className="flex items-center justify-between py-1.5">
+            <span className="text-sm text-[var(--fg)]">{user.name?.split(' ')[0] ?? 'Unknown'}</span>
+            <button
+              onClick={() => handleToggle(a.userId)}
+              disabled={toggling}
+              className={`relative w-10 h-5 rounded-full transition-colors ${
+                a.isHost ? 'bg-[var(--accent)]' : 'bg-[var(--border)]'
+              } disabled:opacity-50`}
+            >
+              {isToggling ? (
+                <Loader2 size={12} className="absolute top-1 left-1/2 -translate-x-1/2 animate-spin text-[var(--fg-muted)]" />
+              ) : (
+                <span
+                  className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-transform ${
+                    a.isHost ? 'translate-x-5' : 'translate-x-0.5'
+                  }`}
+                />
+              )}
+            </button>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
 export function ScheduledView({
   event,
   attendees,
   attendeeUsers,
   myAttendee,
   canEdit,
+  isSponsor,
   itineraryList,
   expenseList,
   loreList,
@@ -363,6 +427,7 @@ export function ScheduledView({
   attendeeUsers: AttendeeUser[]
   myAttendee: Attendee | null
   canEdit: boolean
+  isSponsor: boolean
   itineraryList: ItineraryDay[]
   expenseList: Expense[]
   loreList: LoreEntryData[]
@@ -515,17 +580,30 @@ export function ScheduledView({
           </button>
 
           {showControls && (
-            <button
-              onClick={handleAdvance}
-              disabled={advancing}
-              className="flex items-center justify-center gap-2 w-full py-4 rounded-xl btn-accent text-base font-semibold disabled:opacity-50"
-            >
-              {advancing ? (
-                <><Loader2 size={16} className="animate-spin" /> Starting…</>
-              ) : (
-                'Start the event'
+            <div className="flex flex-col gap-4">
+              {/* Host management (sponsor-only) */}
+              {isSponsor && (
+                <HostManager
+                  eventId={event.id}
+                  attendees={attendees}
+                  attendeeUsers={attendeeUsers}
+                  ritualSlug={ritualSlug}
+                  year={event.year}
+                />
               )}
-            </button>
+
+              <button
+                onClick={handleAdvance}
+                disabled={advancing}
+                className="flex items-center justify-center gap-2 w-full py-4 rounded-xl btn-accent text-base font-semibold disabled:opacity-50"
+              >
+                {advancing ? (
+                  <><Loader2 size={16} className="animate-spin" /> Starting…</>
+                ) : (
+                  'Start the event'
+                )}
+              </button>
+            </div>
           )}
         </div>
       )}

@@ -59,8 +59,7 @@ export default async function EventPage({
   })
   if (!event) redirect(`/${params.ritualSlug}`)
 
-  const isOrganizer = event.organizerId === session.user.id
-  const canEdit = isSponsor || isOrganizer
+  let canEdit = isSponsor
 
   // ── Planning state: load proposals + votes ────────────────────────────────
   const proposalList =
@@ -93,7 +92,7 @@ export default async function EventPage({
   }))
 
   // ── Scheduled / In-Progress / Closed: load attendees ─────────────────────
-  let attendeeList: { id: string; userId: string; bookingStatus: 'not_yet' | 'committed' | 'flights_booked' | 'all_booked' | 'out'; arrivalAirline: string | null; arrivalFlightNumber: string | null; arrivalDatetime: Date | null; departureAirline: string | null; departureFlightNumber: string | null; departureDatetime: Date | null }[] = []
+  let attendeeList: { id: string; userId: string; bookingStatus: 'not_yet' | 'committed' | 'flights_booked' | 'all_booked' | 'out'; isHost: boolean; arrivalAirline: string | null; arrivalFlightNumber: string | null; arrivalDatetime: Date | null; departureAirline: string | null; departureFlightNumber: string | null; departureDatetime: Date | null }[] = []
   let attendeeUsers: { id: string; name: string | null; image: string | null }[] = []
   let myAttendee: (typeof attendeeList)[0] | null = null
 
@@ -114,6 +113,7 @@ export default async function EventPage({
 
     attendeeList = rawAttendees as typeof attendeeList
     myAttendee = attendeeList.find((a) => a.userId === session.user!.id) ?? null
+    if (myAttendee?.isHost) canEdit = true
 
     if (rawAttendees.length > 0) {
       const userIds = Array.from(new Set(rawAttendees.map((a) => a.userId)))
@@ -321,6 +321,7 @@ export default async function EventPage({
           attendeeUsers={attendeeUsers}
           myAttendee={myAttendee}
           canEdit={canEdit}
+          isSponsor={isSponsor}
           itineraryList={itineraryList}
           expenseList={expenseList}
           loreList={loreList}

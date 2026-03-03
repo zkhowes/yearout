@@ -19,8 +19,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'File too large (max 10MB)' }, { status: 400 })
   }
 
-  const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/heic', 'image/heif']
-  if (!ALLOWED_TYPES.includes(file.type)) {
+  // Accept any image/* MIME type, or fall back to file extension check
+  // (some mobile browsers report empty or incorrect MIME types for photos)
+  const isImage =
+    file.type.startsWith('image/') ||
+    /\.(jpe?g|png|gif|webp|heic|heif|tiff?|bmp|avif)$/i.test(file.name)
+  if (!isImage) {
     return NextResponse.json({ error: 'Only image files are allowed' }, { status: 400 })
   }
 

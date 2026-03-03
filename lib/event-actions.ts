@@ -49,7 +49,7 @@ export async function createEvent(
   await db.insert(events).values({
     id: eventId,
     ritualId,
-    organizerId: session.user.id!,
+    organizerId: null,
     name: data.name.trim(),
     year: data.year,
     location: null,   // set when a proposal is locked
@@ -168,6 +168,7 @@ export async function lockProposal(proposalId: string, ritualSlug: string) {
           eventId: event.id,
           userId: m.userId,
           bookingStatus: 'not_yet' as const,
+          isHost: m.userId === session.user!.id!,
         }))
       )
       .onConflictDoNothing()
@@ -202,7 +203,7 @@ export async function quickEnterEvent(
     mountains?: string
     startDate?: Date
     endDate?: Date
-    organizerId: string
+    hostIds: string[]
     status: 'scheduled' | 'in_progress' | 'closed'
     mvpWinnerId?: string
     lupWinnerId?: string
@@ -227,7 +228,7 @@ export async function quickEnterEvent(
   await db.insert(events).values({
     id: eventId,
     ritualId,
-    organizerId: data.organizerId,
+    organizerId: null,
     name: data.name.trim(),
     year: data.year,
     location: data.location.trim(),
@@ -245,6 +246,7 @@ export async function quickEnterEvent(
     .from(ritualMembers)
     .where(eq(ritualMembers.ritualId, ritualId))
 
+  const hostIdSet = new Set(data.hostIds)
   if (members.length > 0) {
     await db
       .insert(eventAttendees)
@@ -254,6 +256,7 @@ export async function quickEnterEvent(
           eventId,
           userId: m.userId,
           bookingStatus: 'not_yet' as const,
+          isHost: hostIdSet.has(m.userId),
         }))
       )
       .onConflictDoNothing()
@@ -352,7 +355,7 @@ export async function advanceEventStatus(
   const session = await auth()
   if (!session?.user?.id) redirect('/login')
 
-  await requireSponsorOrOrganizer(eventId, session.user.id!)
+  await requireSponsorOrHost(eventId, session.user.id!)
 
   await db
     .update(events)
@@ -477,9 +480,12 @@ export async function toggleLoreHOF(
         eq(rm.role, 'sponsor')
       ),
   }))
-  const isOrganizer = event.organizerId === session.user.id
+  const isHost = !!(await db.query.eventAttendees.findFirst({
+    where: (ea, { and, eq }) =>
+      and(eq(ea.eventId, event.id), eq(ea.userId, session.user!.id!), eq(ea.isHost, true)),
+  }))
 
-  if (!isAuthor && !isSponsor && !isOrganizer) throw new Error('Not authorized')
+  if (!isAuthor && !isSponsor && !isHost) throw new Error('Not authorized')
 
   await db
     .update(loreEntries)
@@ -510,7 +516,7 @@ export async function deleteLoreEntry(
 
   const isAuthor = entry.authorId === session.user.id
   if (!isAuthor) {
-    await requireSponsorOrOrganizer(event.id, session.user.id!)
+    await requireSponsorOrHost(event.id, session.user.id!)
   }
 
   await db.delete(loreEntries).where(eq(loreEntries.id, entryId))
@@ -529,7 +535,7 @@ export async function updateEventEdit(
   const session = await auth()
   if (!session?.user?.id) redirect('/login')
 
-  await requireSponsorOrOrganizer(eventId, session.user.id!)
+  await requireSponsorOrHost(eventId, session.user.id!)
 
   await db
     .update(events)
@@ -840,7 +846,7 @@ export async function finalizeAwardVotes(
 
 // ─── Daily Itinerary ─────────────────────────────────────────────────────────
 
-async function requireSponsorOrOrganizer(eventId: string, userId: string) {
+async function requireSponsorOrHost(eventId: string, userId: string) {
   const event = await db.query.events.findFirst({
     where: (e, { eq }) => eq(e.id, eventId),
   })
@@ -856,8 +862,14 @@ async function requireSponsorOrOrganizer(eventId: string, userId: string) {
   if (!member) throw new Error('Not a member')
 
   const isSponsor = member.role === 'sponsor'
-  const isOrganizer = event.organizerId === userId
-  if (!isSponsor && !isOrganizer) throw new Error('Only sponsors or organizers can manage itinerary')
+
+  if (!isSponsor) {
+    const attendee = await db.query.eventAttendees.findFirst({
+      where: (ea, { and, eq }) =>
+        and(eq(ea.eventId, eventId), eq(ea.userId, userId), eq(ea.isHost, true)),
+    })
+    if (!attendee) throw new Error('Only sponsors or hosts can do this')
+  }
 
   return event
 }
@@ -873,7 +885,7 @@ export async function addItineraryDay(
   const session = await auth()
   if (!session?.user?.id) redirect('/login')
 
-  await requireSponsorOrOrganizer(eventId, session.user.id!)
+  await requireSponsorOrHost(eventId, session.user.id!)
 
   await db.insert(dailyItinerary).values({
     id: crypto.randomUUID(),
@@ -901,7 +913,7 @@ export async function updateItineraryDay(
   })
   if (!entry) throw new Error('Itinerary day not found')
 
-  await requireSponsorOrOrganizer(entry.eventId, session.user.id!)
+  await requireSponsorOrHost(entry.eventId, session.user.id!)
 
   await db
     .update(dailyItinerary)
@@ -927,7 +939,7 @@ export async function deleteItineraryDay(
   })
   if (!entry) throw new Error('Itinerary day not found')
 
-  await requireSponsorOrOrganizer(entry.eventId, session.user.id!)
+  await requireSponsorOrHost(entry.eventId, session.user.id!)
 
   await db.delete(dailyItinerary).where(eq(dailyItinerary.id, itineraryId))
 
@@ -945,7 +957,7 @@ export async function updateEventCoverPhoto(
   const session = await auth()
   if (!session?.user?.id) redirect('/login')
 
-  await requireSponsorOrOrganizer(eventId, session.user.id!)
+  await requireSponsorOrHost(eventId, session.user.id!)
 
   await db
     .update(events)
@@ -966,7 +978,7 @@ export async function addEventAttendee(
   const session = await auth()
   if (!session?.user?.id) redirect('/login')
 
-  await requireSponsorOrOrganizer(eventId, session.user.id!)
+  await requireSponsorOrHost(eventId, session.user.id!)
 
   const existing = await db.query.eventAttendees.findFirst({
     where: (ea, { and, eq }) =>
@@ -995,7 +1007,7 @@ export async function updateEventDetails(
   const session = await auth()
   if (!session?.user?.id) redirect('/login')
 
-  await requireSponsorOrOrganizer(eventId, session.user.id!)
+  await requireSponsorOrHost(eventId, session.user.id!)
 
   const updateData: Record<string, unknown> = {
     location: data.location?.trim() || null,
@@ -1024,7 +1036,7 @@ export async function updateEventLogo(
   const session = await auth()
   if (!session?.user?.id) redirect('/login')
 
-  await requireSponsorOrOrganizer(eventId, session.user.id!)
+  await requireSponsorOrHost(eventId, session.user.id!)
 
   await db
     .update(events)
@@ -1104,4 +1116,45 @@ export async function sealEvent(
     .where(eq(events.id, eventId))
 
   redirect(`/${ritualSlug}`)
+}
+
+// ─── Host Management ──────────────────────────────────────────────────────────
+
+export async function toggleHostStatus(
+  eventId: string,
+  ritualSlug: string,
+  year: number,
+  targetUserId: string
+) {
+  const session = await auth()
+  if (!session?.user?.id) redirect('/login')
+
+  // Only sponsors can toggle host status
+  const event = await db.query.events.findFirst({
+    where: (e, { eq }) => eq(e.id, eventId),
+  })
+  if (!event) throw new Error('Event not found')
+
+  const member = await db.query.ritualMembers.findFirst({
+    where: (rm, { and, eq }) =>
+      and(
+        eq(rm.ritualId, event.ritualId),
+        eq(rm.userId, session.user!.id!),
+        eq(rm.role, 'sponsor')
+      ),
+  })
+  if (!member) throw new Error('Only sponsors can manage hosts')
+
+  const attendee = await db.query.eventAttendees.findFirst({
+    where: (ea, { and, eq }) =>
+      and(eq(ea.eventId, eventId), eq(ea.userId, targetUserId)),
+  })
+  if (!attendee) throw new Error('User is not an attendee')
+
+  await db
+    .update(eventAttendees)
+    .set({ isHost: !attendee.isHost })
+    .where(eq(eventAttendees.id, attendee.id))
+
+  revalidatePath(`/${ritualSlug}/${year}`)
 }

@@ -15,6 +15,7 @@ type Attendee = {
   id: string
   userId: string
   bookingStatus: string
+  isHost: boolean
 }
 
 type AttendeeUser = {
@@ -421,6 +422,9 @@ function CrewTiles({
               <span className="text-xs font-medium text-[var(--fg)] text-center leading-tight max-w-[72px] truncate">
                 {displayName}
               </span>
+              {a.isHost && (
+                <span className="text-[9px] font-bold uppercase tracking-wider text-[var(--accent)] opacity-80">Host</span>
+              )}
             </div>
           )
         })}

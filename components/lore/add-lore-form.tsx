@@ -33,6 +33,7 @@ export function AddLoreForm({
   const [day, setDay] = useState('')
   const [photoFile, setPhotoFile] = useState<File | null>(null)
   const [mentionedUserIds, setMentionedUserIds] = useState<Set<string>>(new Set())
+  const [uploadError, setUploadError] = useState('')
   const [pending, startTransition] = useTransition()
 
   // Mention autocomplete state
@@ -127,6 +128,7 @@ export function AddLoreForm({
     e.preventDefault()
     if (!content.trim()) return
 
+    setUploadError('')
     startTransition(async () => {
       let mediaUrl: string | undefined
 
@@ -137,6 +139,10 @@ export function AddLoreForm({
         if (res.ok) {
           const { url } = await res.json()
           mediaUrl = url
+        } else {
+          const body = await res.json().catch(() => ({}))
+          setUploadError(body.error || 'Photo upload failed')
+          return
         }
       }
 
@@ -212,7 +218,7 @@ export function AddLoreForm({
         {isMentioning && filteredCrew.length > 0 && (
           <div
             ref={dropdownRef}
-            className="absolute left-0 right-0 top-full mt-1 z-10 bg-[var(--surface)] border border-[var(--border)] rounded-lg shadow-lg max-h-40 overflow-y-auto"
+            className="absolute left-0 right-0 bottom-full mb-1 z-50 bg-[var(--surface)] border border-[var(--border)] rounded-lg shadow-lg max-h-40 overflow-y-auto"
           >
             {filteredCrew.slice(0, 6).map((member, i) => (
               <button
@@ -268,9 +274,12 @@ export function AddLoreForm({
             ref={fileInputRef}
             type="file"
             accept="image/*"
-            onChange={(e) => setPhotoFile(e.target.files?.[0] ?? null)}
+            onChange={(e) => { setPhotoFile(e.target.files?.[0] ?? null); setUploadError('') }}
             className="hidden"
           />
+          {uploadError && (
+            <span className="text-xs text-red-500">{uploadError}</span>
+          )}
         </div>
       )}
 
