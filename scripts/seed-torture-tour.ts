@@ -198,7 +198,7 @@ async function seed() {
     await db.insert(schema.events).values({
       id: eventId,
       ritualId,
-      organizerId: organizerId ?? null,
+      organizerId: null,
       name: `Torture Tour ${h.year}`,
       year: h.year,
       location: h.location,
@@ -207,6 +207,17 @@ async function seed() {
       sealedAt: new Date(h.year, 3, 1), // approximate seal date: April of that year
       createdAt: new Date(h.year, 0, 1),
     })
+
+    // Seed all crew as attendees, with organizer as host
+    await db.insert(schema.eventAttendees).values(
+      CREW_DEFS.map((c) => ({
+        id: crypto.randomUUID(),
+        eventId,
+        userId: crewByNickname[c.nickname],
+        bookingStatus: 'all_booked' as const,
+        isHost: c.nickname === h.organizer,
+      }))
+    )
 
     // Awards
     const mvpNicknames = h.mvp
