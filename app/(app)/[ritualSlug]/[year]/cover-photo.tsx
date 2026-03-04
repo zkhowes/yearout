@@ -3,6 +3,7 @@
 import { useState, useRef } from 'react'
 import { ImagePlus, Loader2 } from 'lucide-react'
 import { updateEventCoverPhoto } from '@/lib/event-actions'
+import { compressImage } from '@/lib/compress-image'
 
 export function CoverPhoto({
   eventId,
@@ -28,8 +29,9 @@ export function CoverPhoto({
     setUploading(true)
     setUploadError('')
     try {
+      const compressed = await compressImage(file)
       const formData = new FormData()
-      formData.append('file', file)
+      formData.append('file', compressed)
       const res = await fetch('/api/upload', { method: 'POST', body: formData })
       if (!res.ok) {
         const body = await res.json().catch(() => ({}))

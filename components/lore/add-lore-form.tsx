@@ -3,6 +3,7 @@
 import { useState, useRef, useTransition, useEffect, useCallback } from 'react'
 import { Plus, Loader2, User } from 'lucide-react'
 import { addLoreEntry } from '@/lib/event-actions'
+import { compressImage } from '@/lib/compress-image'
 
 type CrewMember = {
   id: string
@@ -133,8 +134,9 @@ export function AddLoreForm({
       let mediaUrl: string | undefined
 
       if (type === 'image' && photoFile) {
+        const compressed = await compressImage(photoFile)
         const formData = new FormData()
-        formData.append('file', photoFile)
+        formData.append('file', compressed)
         const res = await fetch('/api/upload', { method: 'POST', body: formData })
         if (res.ok) {
           const { url } = await res.json()

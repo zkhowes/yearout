@@ -5,7 +5,7 @@ export async function GET(req: NextRequest) {
   if (!url) return NextResponse.json({ error: 'Missing url param' }, { status: 400 })
 
   // Vimeo oEmbed
-  const vimeoMatch = url.match(/vimeo\.com\/(\d+)/)
+  const vimeoMatch = url.match(/vimeo\.com\/(\d+)(?:\/[\w]+)?/)
   if (vimeoMatch) {
     try {
       const res = await fetch(

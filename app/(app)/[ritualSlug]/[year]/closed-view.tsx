@@ -81,6 +81,20 @@ function getYouTubeId(url: string): string | null {
   return match?.[1] ?? null
 }
 
+function getVimeoInfo(url: string): { id: string; hash?: string } | null {
+  const match = url.match(/vimeo\.com\/(\d+)(?:\/([\w]+))?/)
+  if (!match) return null
+  return { id: match[1], hash: match[2] }
+}
+
+function getEmbedUrl(url: string): string | null {
+  const ytId = getYouTubeId(url)
+  if (ytId) return `https://www.youtube.com/embed/${ytId}`
+  const vimeo = getVimeoInfo(url)
+  if (vimeo) return `https://player.vimeo.com/video/${vimeo.id}${vimeo.hash ? `?h=${vimeo.hash}` : ''}`
+  return null
+}
+
 function getThumbnailUrl(url: string, customThumbnail: string | null): string | null {
   if (customThumbnail) return customThumbnail
   const ytId = getYouTubeId(url)
@@ -549,30 +563,42 @@ function VideoEditSection({
     <div className="flex flex-col gap-3">
       <p className="text-xs uppercase tracking-widest text-[var(--fg-muted)]">Video Edit</p>
 
-      {event.editUrl && (
-        <a
-          href={event.editUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="relative rounded-xl overflow-hidden border border-[var(--border)] aspect-video w-full bg-black block"
-        >
-          {thumbUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={thumbUrl}
-              alt="Video thumbnail"
-              className="w-full h-full object-cover"
+      {event.editUrl && (() => {
+        const embedUrl = getEmbedUrl(event.editUrl)
+        return embedUrl ? (
+          <div className="relative rounded-xl overflow-hidden border border-[var(--border)] aspect-video w-full bg-black">
+            <iframe
+              src={embedUrl}
+              className="absolute inset-0 w-full h-full"
+              allow="autoplay; fullscreen; picture-in-picture"
+              allowFullScreen
             />
-          ) : (
-            <div className="w-full h-full bg-[var(--surface)]" />
-          )}
-          <div className="absolute inset-0 flex items-center justify-center bg-black/30">
-            <div className="w-16 h-16 rounded-full bg-white/90 flex items-center justify-center">
-              <Play size={28} className="text-black ml-1" />
-            </div>
           </div>
-        </a>
-      )}
+        ) : (
+          <a
+            href={event.editUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="relative rounded-xl overflow-hidden border border-[var(--border)] aspect-video w-full bg-black block"
+          >
+            {thumbUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={thumbUrl}
+                alt="Video thumbnail"
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <div className="w-full h-full bg-[var(--surface)]" />
+            )}
+            <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+              <div className="w-16 h-16 rounded-full bg-white/90 flex items-center justify-center">
+                <Play size={28} className="text-black ml-1" />
+              </div>
+            </div>
+          </a>
+        )
+      })()}
 
       {canEdit && (
         showEditForm ? (

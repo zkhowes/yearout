@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback, useTransition } from 'react'
 import { ChevronLeft, ChevronRight, ImagePlus, Loader2, X } from 'lucide-react'
 import { updateRitualHeroPhotos } from '@/lib/ritual-actions'
+import { compressImage } from '@/lib/compress-image'
 
 export function HeroCarousel({
   ritualId,
@@ -49,8 +50,9 @@ export function HeroCarousel({
     try {
       const urls: string[] = []
       for (const file of files) {
+        const compressed = await compressImage(file)
         const formData = new FormData()
-        formData.append('file', file)
+        formData.append('file', compressed)
         const res = await fetch('/api/upload', { method: 'POST', body: formData })
         if (res.ok) {
           const { url } = await res.json()
