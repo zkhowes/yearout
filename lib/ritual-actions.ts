@@ -4,7 +4,7 @@ import { db } from '@/db'
 import { rituals, ritualAwardDefinitions, ritualMembers } from '@/db/schema'
 import { auth } from '@/auth'
 import { redirect } from 'next/navigation'
-import { eq } from 'drizzle-orm'
+import { eq, and } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
 import type { RitualInference } from '@/app/api/ritual/infer/route'
 
@@ -161,4 +161,32 @@ export async function createRitual(
   })
 
   return { slug, inviteToken }
+}
+
+export async function updateCrewNickname(
+  ritualId: string,
+  targetUserId: string,
+  nickname: string,
+  ritualSlug: string
+) {
+  const session = await auth()
+  if (!session?.user?.id) redirect('/login')
+
+  const member = await db.query.ritualMembers.findFirst({
+    where: (rm, { and: a, eq: e }) =>
+      a(e(rm.ritualId, ritualId), e(rm.userId, session.user!.id!), e(rm.role, 'sponsor')),
+  })
+  if (!member) throw new Error('Only the sponsor can edit nicknames')
+
+  await db
+    .update(ritualMembers)
+    .set({ nicknameOverride: nickname.trim() || null })
+    .where(
+      and(
+        eq(ritualMembers.ritualId, ritualId),
+        eq(ritualMembers.userId, targetUserId)
+      )
+    )
+
+  revalidatePath(`/${ritualSlug}/crew`)
 }

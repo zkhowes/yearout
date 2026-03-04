@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 400">
+  <!-- Blue stripe -->
+  <rect width="600" height="133" fill="#003DA5"/>
+  <!-- White stripe -->
+  <rect y="133" width="600" height="134" fill="#FFFFFF"/>
+  <!-- Green stripe -->
+  <rect y="267" width="600" height="133" fill="#006B3F"/>
+  <!-- Douglas Fir -->
+  <g transform="translate(300,200)">
+    <!-- Trunk -->
+    <rect x="-6" y="40" width="12" height="60" fill="#003DA5"/>
+    <!-- Tree layers -->
+    <polygon points="0,-120 -20,-60 20,-60" fill="#003DA5"/>
+    <polygon points="0,-90 -30,-30 30,-30" fill="#003DA5"/>
+    <polygon points="0,-60 -40,10 40,10" fill="#003DA5"/>
+    <polygon points="0,-30 -50,40 50,40" fill="#003DA5"/>
+  </g>
+</svg>

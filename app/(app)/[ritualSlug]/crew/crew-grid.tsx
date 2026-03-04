@@ -1,7 +1,9 @@
 'use client'
 
-import { useState } from 'react'
-import { Trophy, Shield, Star } from 'lucide-react'
+import { useState, useTransition } from 'react'
+import { Trophy, Shield, Star, Pencil, Check, X } from 'lucide-react'
+import { getNationalityFlag } from '@/lib/flags'
+import { updateCrewNickname } from '@/lib/ritual-actions'
 
 type CrewMember = {
   userId: string
@@ -21,8 +23,21 @@ const ROLE_LABELS: Record<string, string> = {
   crew_member: 'Crew Member',
 }
 
-export function CrewGrid({ crew }: { crew: CrewMember[] }) {
+export function CrewGrid({
+  crew,
+  isSponsor = false,
+  ritualId,
+  ritualSlug,
+}: {
+  crew: CrewMember[]
+  isSponsor?: boolean
+  ritualId?: string
+  ritualSlug?: string
+}) {
   const [expandedId, setExpandedId] = useState<string | null>(null)
+  const [editingNicknameId, setEditingNicknameId] = useState<string | null>(null)
+  const [nicknameValue, setNicknameValue] = useState('')
+  const [saving, startSave] = useTransition()
 
   return (
     <div className="flex flex-col gap-2">
@@ -41,20 +56,33 @@ export function CrewGrid({ crew }: { crew: CrewMember[] }) {
                   : 'border-[var(--border)] bg-[var(--surface)] hover:border-[var(--fg-muted)]'
               }`}
             >
-              {member.image ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={member.image}
-                  alt={displayName}
-                  className="w-12 h-12 rounded-full object-cover shrink-0"
-                />
-              ) : (
-                <div className="w-12 h-12 rounded-full bg-[var(--border)] flex items-center justify-center shrink-0">
-                  <span className="text-lg font-semibold text-[var(--fg-muted)]">
-                    {displayName.charAt(0).toUpperCase()}
-                  </span>
-                </div>
-              )}
+              <div className="relative shrink-0">
+                {member.image ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={member.image}
+                    alt={displayName}
+                    className="w-12 h-12 rounded-full object-cover"
+                  />
+                ) : (
+                  <div className="w-12 h-12 rounded-full bg-[var(--border)] flex items-center justify-center">
+                    <span className="text-lg font-semibold text-[var(--fg-muted)]">
+                      {displayName.charAt(0).toUpperCase()}
+                    </span>
+                  </div>
+                )}
+                {(() => {
+                  const flagUrl = getNationalityFlag(member.nationality)
+                  return flagUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={flagUrl}
+                      alt=""
+                      className="absolute -top-0.5 -right-0.5 w-5 h-4 rounded-sm object-cover border border-[var(--surface)]"
+                    />
+                  ) : null
+                })()}
+              </div>
               <div className="flex-1 text-left min-w-0">
                 <p className="text-sm font-semibold text-[var(--fg)] truncate">{displayName}</p>
                 <p className="text-xs text-[var(--fg-muted)]">{ROLE_LABELS[member.role] ?? member.role}</p>
@@ -79,10 +107,68 @@ export function CrewGrid({ crew }: { crew: CrewMember[] }) {
                     <span className="text-[var(--fg-muted)]">Full Name</span>
                     <span className="text-[var(--fg)]">{fullName}</span>
                   </div>
-                  {member.nickname && (
-                    <div className="flex justify-between">
+                  {(member.nickname || isSponsor) && (
+                    <div className="flex justify-between items-center">
                       <span className="text-[var(--fg-muted)]">Nickname</span>
-                      <span className="text-[var(--fg)]">{member.nickname}</span>
+                      {editingNicknameId === member.userId ? (
+                        <div className="flex items-center gap-1">
+                          <input
+                            value={nicknameValue}
+                            onChange={(e) => setNicknameValue(e.target.value)}
+                            className="w-28 bg-transparent border-b border-[var(--border)] focus:border-[var(--fg)] outline-none text-sm text-[var(--fg)] text-right"
+                            placeholder="Nickname"
+                            autoFocus
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault()
+                                startSave(async () => {
+                                  if (ritualId && ritualSlug) {
+                                    await updateCrewNickname(ritualId, member.userId, nicknameValue, ritualSlug)
+                                  }
+                                  setEditingNicknameId(null)
+                                })
+                              }
+                              if (e.key === 'Escape') setEditingNicknameId(null)
+                            }}
+                          />
+                          <button
+                            onClick={() => {
+                              startSave(async () => {
+                                if (ritualId && ritualSlug) {
+                                  await updateCrewNickname(ritualId, member.userId, nicknameValue, ritualSlug)
+                                }
+                                setEditingNicknameId(null)
+                              })
+                            }}
+                            disabled={saving}
+                            className="p-0.5 text-green-500 hover:text-green-400"
+                          >
+                            <Check size={12} />
+                          </button>
+                          <button
+                            onClick={() => setEditingNicknameId(null)}
+                            className="p-0.5 text-[var(--fg-muted)] hover:text-[var(--fg)]"
+                          >
+                            <X size={12} />
+                          </button>
+                        </div>
+                      ) : (
+                        <span className="flex items-center gap-1 text-[var(--fg)]">
+                          {member.nickname ?? <span className="text-[var(--fg-muted)] italic text-xs">none</span>}
+                          {isSponsor && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                setNicknameValue(member.nickname ?? '')
+                                setEditingNicknameId(member.userId)
+                              }}
+                              className="p-0.5 text-[var(--fg-muted)] hover:text-[var(--fg)]"
+                            >
+                              <Pencil size={10} />
+                            </button>
+                          )}
+                        </span>
+                      )}
                     </div>
                   )}
                   {member.nationality && (

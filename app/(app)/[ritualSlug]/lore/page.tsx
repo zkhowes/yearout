@@ -10,6 +10,7 @@ import {
 } from '@/db/schema'
 import { eq, inArray, desc } from 'drizzle-orm'
 import { RitualLoreFeed } from './ritual-lore-feed'
+import type { LoreEntryData } from '@/components/lore/lore-post'
 
 export default async function LorePage({
   params,
@@ -87,7 +88,7 @@ export default async function LorePage({
   )
 
   // Attach mentions + event context to entries
-  const enrichedLore = allLore.map((l) => ({
+  const enrichedLore: LoreEntryData[] = allLore.map((l) => ({
     ...l,
     type: l.type as 'memory' | 'checkin' | 'image',
     mentions: allMentions
@@ -96,6 +97,45 @@ export default async function LorePage({
     eventYear: eventMap.get(l.eventId)?.year,
     eventName: eventMap.get(l.eventId)?.name,
   }))
+
+  // Generate synthetic lore entries for video edits and group photos
+  for (const ev of allEvents) {
+    if (ev.editUrl) {
+      enrichedLore.push({
+        id: `synth-edit-${ev.id}`,
+        authorId: ev.organizerId ?? member.userId,
+        type: 'image',
+        content: null,
+        mediaUrl: ev.editThumbnailUrl ?? null,
+        location: ev.location,
+        isHallOfFame: false,
+        day: null,
+        createdAt: ev.createdAt,
+        mentions: [],
+        eventYear: ev.year,
+        eventName: ev.name,
+        subtype: 'video_edit',
+        editUrl: ev.editUrl,
+      })
+    }
+    if (ev.coverPhotoUrl) {
+      enrichedLore.push({
+        id: `synth-photo-${ev.id}`,
+        authorId: ev.organizerId ?? member.userId,
+        type: 'image',
+        content: null,
+        mediaUrl: ev.coverPhotoUrl,
+        location: ev.location,
+        isHallOfFame: false,
+        day: null,
+        createdAt: ev.createdAt,
+        mentions: [],
+        eventYear: ev.year,
+        eventName: ev.name,
+        subtype: 'group_photo',
+      })
+    }
+  }
 
   return (
     <RitualLoreFeed

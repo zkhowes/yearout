@@ -10,6 +10,7 @@ import {
 } from '@/lib/event-actions'
 import { LoreFeed as SharedLoreFeed } from '@/components/lore/lore-feed'
 import type { LoreEntryData } from '@/components/lore/lore-post'
+import { BookingsSection, type EventBooking } from '@/components/bookings-section'
 
 type Attendee = {
   id: string
@@ -112,6 +113,7 @@ export function ClosedView({
   currentAwards,
   loreList,
   itineraryList,
+  bookingList,
   memberOverrides,
   allRitualMembers,
   crewMembers,
@@ -126,6 +128,7 @@ export function ClosedView({
   currentAwards: Award[]
   loreList: LoreEntryData[]
   itineraryList: ItineraryDay[]
+  bookingList: EventBooking[]
   memberOverrides: MemberOverride[]
   allRitualMembers: RitualMember[]
   crewMembers: CrewMember[]
@@ -139,6 +142,15 @@ export function ClosedView({
     <div className="flex flex-col gap-8">
       {/* Event Details Card */}
       <EventDetailsCard event={event} canEdit={canEdit} ritualSlug={ritualSlug} />
+
+      {/* Lodging & Transportation */}
+      <BookingsSection
+        bookings={bookingList}
+        eventId={event.id}
+        canEdit={canEdit}
+        ritualSlug={ritualSlug}
+        year={event.year}
+      />
 
       {/* Daily Itinerary Recap */}
       {itineraryList.length > 0 && (

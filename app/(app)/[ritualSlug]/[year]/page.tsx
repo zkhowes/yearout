@@ -17,6 +17,7 @@ import {
   awards,
   ritualAwardDefinitions,
   dailyItinerary,
+  eventBookings,
   users,
 } from '@/db/schema'
 import { eq, and, inArray } from 'drizzle-orm'
@@ -107,6 +108,7 @@ export default async function EventPage({
   let currentAwards: { id: string; awardDefinitionId: string; winnerId: string }[] = []
   let awardVoteList: { id: string; awardDefinitionId: string; voterId: string; nomineeId: string }[] = []
   let itineraryList: { id: string; day: Date; themeName: string | null; notes: string | null }[] = []
+  let bookingList: { id: string; type: string; name: string; link: string | null; note: string | null; startDate: Date | null; endDate: Date | null }[] = []
 
   if (event.status !== 'planning') {
     const rawAttendees = await db
@@ -128,7 +130,7 @@ export default async function EventPage({
     }
 
     if (event.status === 'scheduled' || event.status === 'in_progress' || event.status === 'closed') {
-      const [rawExpenses, rawLore, rawActivity, rawAwardDefs, rawAwards, rawVotes, rawItinerary, rawSettlementPayments] =
+      const [rawExpenses, rawLore, rawActivity, rawAwardDefs, rawAwards, rawVotes, rawItinerary, rawSettlementPayments, rawBookings] =
         await Promise.all([
           db.select().from(expenses).where(eq(expenses.eventId, event.id)),
           db.select().from(loreEntries).where(eq(loreEntries.eventId, event.id)),
@@ -138,6 +140,7 @@ export default async function EventPage({
           db.select().from(awardVotes).where(eq(awardVotes.eventId, event.id)),
           db.select().from(dailyItinerary).where(eq(dailyItinerary.eventId, event.id)),
           db.select().from(settlementPayments).where(eq(settlementPayments.eventId, event.id)),
+          db.select().from(eventBookings).where(eq(eventBookings.eventId, event.id)),
         ])
 
       // Fetch expense splits
@@ -169,6 +172,7 @@ export default async function EventPage({
       currentAwards = rawAwards
       awardVoteList = rawVotes
       itineraryList = rawItinerary
+      bookingList = rawBookings
 
       // Collect any additional user IDs from expenses/lore/activity
       const extraUserIds = [
@@ -339,6 +343,7 @@ export default async function EventPage({
           canEdit={canEdit}
           isSponsor={isSponsor}
           itineraryList={itineraryList}
+          bookingList={bookingList}
           expenseList={expenseList}
           settlementPayments={settlementPaymentList}
           loreList={loreList}
@@ -370,6 +375,7 @@ export default async function EventPage({
           currentAwards={currentAwards}
           awardVoteList={awardVoteList}
           itineraryList={itineraryList}
+          bookingList={bookingList}
           crewMembers={allRitualMembers.map((m) => ({ id: m.userId, name: m.userName, image: m.userImage }))}
           currentUserId={session.user!.id!}
           canEdit={canEdit}
@@ -397,6 +403,7 @@ export default async function EventPage({
           currentAwards={currentAwards}
           loreList={loreList}
           itineraryList={itineraryList}
+          bookingList={bookingList}
           memberOverrides={memberOverrides}
           allRitualMembers={allRitualMembers}
           crewMembers={allRitualMembers.map((m) => ({ id: m.userId, name: m.userName, image: m.userImage }))}

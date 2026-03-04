@@ -17,6 +17,7 @@ import {
   ritualAwardDefinitions,
   dailyItinerary,
   loreMentions,
+  eventBookings,
 } from '@/db/schema'
 import { computeEqualSplit, validateExactSplit } from '@/lib/expense-utils'
 import { auth } from '@/auth'
@@ -1454,6 +1455,94 @@ export async function toggleHostStatus(
     .update(eventAttendees)
     .set({ isHost: !attendee.isHost })
     .where(eq(eventAttendees.id, attendee.id))
+
+  revalidatePath(`/${ritualSlug}/${year}`)
+}
+
+// ─── Event Bookings (Lodging & Transportation) ───────────────────────────────
+
+export async function addEventBooking(
+  eventId: string,
+  ritualSlug: string,
+  year: number,
+  type: 'lodging' | 'transportation',
+  name: string,
+  link?: string,
+  note?: string,
+  startDate?: Date,
+  endDate?: Date
+) {
+  const session = await auth()
+  if (!session?.user?.id) redirect('/login')
+
+  await requireSponsorOrHost(eventId, session.user.id!)
+
+  await db.insert(eventBookings).values({
+    id: crypto.randomUUID(),
+    eventId,
+    type,
+    name: name.trim(),
+    link: link?.trim() || null,
+    note: note?.trim() || null,
+    startDate: startDate || null,
+    endDate: endDate || null,
+    createdAt: new Date(),
+  })
+
+  revalidatePath(`/${ritualSlug}/${year}`)
+}
+
+export async function updateEventBooking(
+  bookingId: string,
+  ritualSlug: string,
+  year: number,
+  name?: string,
+  link?: string,
+  note?: string,
+  startDate?: Date | null,
+  endDate?: Date | null
+) {
+  const session = await auth()
+  if (!session?.user?.id) redirect('/login')
+
+  const booking = await db.query.eventBookings.findFirst({
+    where: (eb, { eq: e }) => e(eb.id, bookingId),
+  })
+  if (!booking) throw new Error('Booking not found')
+
+  await requireSponsorOrHost(booking.eventId, session.user.id!)
+
+  const updateData: Record<string, unknown> = {}
+  if (name !== undefined) updateData.name = name.trim()
+  if (link !== undefined) updateData.link = link.trim() || null
+  if (note !== undefined) updateData.note = note.trim() || null
+  if (startDate !== undefined) updateData.startDate = startDate
+  if (endDate !== undefined) updateData.endDate = endDate
+
+  await db
+    .update(eventBookings)
+    .set(updateData)
+    .where(eq(eventBookings.id, bookingId))
+
+  revalidatePath(`/${ritualSlug}/${year}`)
+}
+
+export async function deleteEventBooking(
+  bookingId: string,
+  ritualSlug: string,
+  year: number
+) {
+  const session = await auth()
+  if (!session?.user?.id) redirect('/login')
+
+  const booking = await db.query.eventBookings.findFirst({
+    where: (eb, { eq: e }) => e(eb.id, bookingId),
+  })
+  if (!booking) throw new Error('Booking not found')
+
+  await requireSponsorOrHost(booking.eventId, session.user.id!)
+
+  await db.delete(eventBookings).where(eq(eventBookings.id, bookingId))
 
   revalidatePath(`/${ritualSlug}/${year}`)
 }

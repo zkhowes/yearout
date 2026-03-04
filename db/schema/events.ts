@@ -140,6 +140,18 @@ export const awards = pgTable('awards', {
   createdAt: timestamp('created_at', { mode: 'date' }).defaultNow().notNull(),
 })
 
+export const eventBookings = pgTable('event_bookings', {
+  id: text('id').primaryKey(),
+  eventId: text('event_id').notNull().references(() => events.id, { onDelete: 'cascade' }),
+  type: text('type').notNull(), // 'lodging' | 'transportation'
+  name: text('name').notNull(), // e.g. "AirBnb", "Van"
+  link: text('link'),           // URL (mainly for lodging)
+  note: text('note'),           // free text note
+  startDate: timestamp('start_date', { mode: 'date' }),
+  endDate: timestamp('end_date', { mode: 'date' }),
+  createdAt: timestamp('created_at', { mode: 'date' }).defaultNow().notNull(),
+})
+
 export const callSends = pgTable('call_sends', {
   id: text('id').primaryKey(),
   ritualId: text('ritual_id').notNull().references(() => rituals.id, { onDelete: 'cascade' }),

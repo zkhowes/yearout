@@ -1,6 +1,6 @@
 'use client'
 
-import { Star, Trash2, Loader2, MapPin, User } from 'lucide-react'
+import { Star, Trash2, Loader2, MapPin, User, Film, Camera } from 'lucide-react'
 
 export type LoreEntryData = {
   id: string
@@ -15,6 +15,8 @@ export type LoreEntryData = {
   mentions: { userId: string }[]
   eventYear?: number
   eventName?: string
+  subtype?: 'video_edit' | 'group_photo'
+  editUrl?: string
 }
 
 type LorePostProps = {
@@ -90,8 +92,9 @@ export function LorePost({
   isDeleting,
 }: LorePostProps) {
   const author = userMap.get(entry.authorId)
-  const canToggleHOF = entry.authorId === currentUserId || canEdit
-  const canDeleteEntry = entry.authorId === currentUserId || canEdit
+  const isSynthetic = !!entry.subtype
+  const canToggleHOF = !isSynthetic && (entry.authorId === currentUserId || canEdit)
+  const canDeleteEntry = !isSynthetic && (entry.authorId === currentUserId || canEdit)
 
   return (
     <div
@@ -163,13 +166,84 @@ export function LorePost({
         </div>
       </div>
 
+      {/* Subtype badge */}
+      {entry.subtype && (
+        <div className="flex items-center gap-1.5 px-4 pb-1">
+          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wide ${
+            entry.subtype === 'video_edit'
+              ? 'bg-purple-400/20 text-purple-600 border border-purple-400/30'
+              : 'bg-teal-400/20 text-teal-600 border border-teal-400/30'
+          }`}>
+            {entry.subtype === 'video_edit' ? <Film size={10} /> : <Camera size={10} />}
+            {entry.subtype === 'video_edit' ? 'Edit' : 'Group Pic'}
+          </span>
+          {entry.eventName && (
+            <span className="text-[10px] text-[var(--fg-muted)]">
+              {entry.eventName} {entry.eventYear ? `'${String(entry.eventYear).slice(2)}` : ''}
+            </span>
+          )}
+        </div>
+      )}
+
+      {/* Video edit embed */}
+      {entry.subtype === 'video_edit' && entry.editUrl && (() => {
+        const url = entry.editUrl!
+        const ytMatch = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([\w-]+)/)
+        const vimeoMatch = url.match(/vimeo\.com\/(\d+)/)
+        if (ytMatch) {
+          return (
+            <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
+              <iframe
+                src={`https://www.youtube.com/embed/${ytMatch[1]}`}
+                className="absolute inset-0 w-full h-full"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              />
+            </div>
+          )
+        }
+        if (vimeoMatch) {
+          return (
+            <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
+              <iframe
+                src={`https://player.vimeo.com/video/${vimeoMatch[1]}`}
+                className="absolute inset-0 w-full h-full"
+                allow="autoplay; fullscreen; picture-in-picture"
+                allowFullScreen
+              />
+            </div>
+          )
+        }
+        return (
+          <a
+            href={url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-2 px-4 py-3 text-sm text-[var(--accent)] hover:opacity-70"
+          >
+            <Film size={14} />
+            Watch Edit
+          </a>
+        )
+      })()}
+
+      {/* Group photo */}
+      {entry.subtype === 'group_photo' && entry.mediaUrl && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={entry.mediaUrl}
+          alt="Group photo"
+          className="w-full max-h-[32rem] object-contain"
+        />
+      )}
+
       {/* Image */}
-      {entry.type === 'image' && entry.mediaUrl && (
+      {!entry.subtype && entry.type === 'image' && entry.mediaUrl && (
         // eslint-disable-next-line @next/next/no-img-element
         <img
           src={entry.mediaUrl}
           alt="Lore photo"
-          className="w-full max-h-80 object-cover"
+          className="w-full max-h-[32rem] object-contain"
         />
       )}
 

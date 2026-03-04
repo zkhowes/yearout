@@ -8,6 +8,7 @@ import { ExpensesTab } from '@/components/expenses-tab'
 import { EventDetailsCard } from './closed-view'
 import { LoreFeed } from '@/components/lore/lore-feed'
 import type { LoreEntryData } from '@/components/lore/lore-post'
+import { BookingsSection, type EventBooking } from '@/components/bookings-section'
 
 type BookingStatus = 'not_yet' | 'committed' | 'flights_booked' | 'all_booked' | 'out'
 
@@ -16,7 +17,7 @@ const STATUS_CYCLE: BookingStatus[] = ['not_yet', 'committed', 'flights_booked',
 const STATUS_LABELS: Record<BookingStatus, string> = {
   not_yet: 'Not Yet',
   committed: 'Committed',
-  flights_booked: 'Flights',
+  flights_booked: 'Booking Travel',
   all_booked: 'All Booked',
   out: 'Out',
 }
@@ -560,6 +561,7 @@ export function ScheduledView({
   canEdit,
   isSponsor,
   itineraryList,
+  bookingList,
   expenseList,
   settlementPayments,
   loreList,
@@ -574,6 +576,7 @@ export function ScheduledView({
   canEdit: boolean
   isSponsor: boolean
   itineraryList: ItineraryDay[]
+  bookingList: EventBooking[]
   expenseList: Expense[]
   settlementPayments: SettlementPayment[]
   loreList: LoreEntryData[]
@@ -685,6 +688,15 @@ export function ScheduledView({
       <ArrivalDepartureBoard
         attendees={attendees}
         attendeeUsers={attendeeUsers}
+      />
+
+      {/* Lodging & Transportation */}
+      <BookingsSection
+        bookings={bookingList}
+        eventId={event.id}
+        canEdit={canEdit}
+        ritualSlug={ritualSlug}
+        year={event.year}
       />
 
       {/* Itinerary */}

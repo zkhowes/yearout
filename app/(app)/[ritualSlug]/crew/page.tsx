@@ -110,9 +110,20 @@ export default async function CrewPage({
     awards: userAwards.get(m.userId) ?? [],
   }))
 
+  crewData.sort((a, b) => b.eventsAttended - a.eventsAttended)
+
+  const isSponsor = members.some(
+    (m) => m.userId === session.user!.id && m.role === 'sponsor'
+  )
+
   return (
     <div className="flex flex-col gap-4">
-      <CrewGrid crew={crewData} />
+      <CrewGrid
+        crew={crewData}
+        isSponsor={isSponsor}
+        ritualId={ritual.id}
+        ritualSlug={params.ritualSlug}
+      />
     </div>
   )
 }

@@ -14,6 +14,7 @@ import { AwardsPodium } from './awards-podium'
 import { EventDetailsCard } from './closed-view'
 import { LoreFeed } from '@/components/lore/lore-feed'
 import type { LoreEntryData } from '@/components/lore/lore-post'
+import { BookingsSection, type EventBooking } from '@/components/bookings-section'
 
 type Attendee = {
   id: string
@@ -563,6 +564,7 @@ export function InProgressView({
   currentAwards,
   awardVoteList,
   itineraryList,
+  bookingList,
   crewMembers,
   currentUserId,
   canEdit,
@@ -581,6 +583,7 @@ export function InProgressView({
   currentAwards: Award[]
   awardVoteList: AwardVote[]
   itineraryList: ItineraryDay[]
+  bookingList: EventBooking[]
   crewMembers: CrewMember[]
   currentUserId: string
   canEdit: boolean
@@ -610,6 +613,15 @@ export function InProgressView({
         currentAwards={currentAwards}
         isSponsor={isSponsor}
         ritualSlug={ritualSlug}
+      />
+
+      {/* Lodging & Transportation */}
+      <BookingsSection
+        bookings={bookingList}
+        eventId={event.id}
+        canEdit={canEdit}
+        ritualSlug={ritualSlug}
+        year={event.year}
       />
 
       {/* Itinerary */}
