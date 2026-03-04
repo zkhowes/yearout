@@ -1,6 +1,6 @@
 'use client'
 
-import { Star, Trash2, Loader2, MapPin, User, Film, Camera } from 'lucide-react'
+import { Star, Trash2, Loader2, MapPin, User, Film, Camera, Play, MessageSquare, Image as ImageIcon, Navigation } from 'lucide-react'
 
 export type LoreEntryData = {
   id: string
@@ -29,21 +29,6 @@ type LorePostProps = {
   onDelete: (entryId: string) => void
   isToggling: boolean
   isDeleting: boolean
-}
-
-function relativeTime(date: Date): string {
-  const now = Date.now()
-  const diff = now - new Date(date).getTime()
-  const mins = Math.floor(diff / 60000)
-  if (mins < 1) return 'just now'
-  if (mins < 60) return `${mins}m`
-  const hours = Math.floor(mins / 60)
-  if (hours < 24) return `${hours}h`
-  const days = Math.floor(hours / 24)
-  if (days < 7) return `${days}d`
-  const weeks = Math.floor(days / 7)
-  if (weeks < 4) return `${weeks}w`
-  return new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 }
 
 function renderContentWithMentions(
@@ -121,9 +106,6 @@ export function LorePost({
             <span className="text-sm font-medium text-[var(--fg)]">
               {author?.name?.split(' ')[0] ?? 'Unknown'}
             </span>
-            <span className="text-xs text-[var(--fg-muted)]">
-              {relativeTime(entry.createdAt)}
-            </span>
             {entry.isHallOfFame && (
               <Star size={12} className="text-[var(--accent)] fill-current" />
             )}
@@ -166,66 +148,61 @@ export function LorePost({
         </div>
       </div>
 
-      {/* Subtype badge */}
-      {entry.subtype && (
-        <div className="flex items-center gap-1.5 px-4 pb-1">
-          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wide ${
-            entry.subtype === 'video_edit'
-              ? 'bg-purple-400/20 text-purple-600 border border-purple-400/30'
-              : 'bg-teal-400/20 text-teal-600 border border-teal-400/30'
-          }`}>
-            {entry.subtype === 'video_edit' ? <Film size={10} /> : <Camera size={10} />}
-            {entry.subtype === 'video_edit' ? 'Edit' : 'Group Pic'}
+      {/* Type badge */}
+      <div className="flex items-center gap-1.5 px-4 pb-1">
+        {entry.subtype === 'video_edit' ? (
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wide bg-purple-400/20 text-purple-600 border border-purple-400/30">
+            <Film size={10} /> Edit
           </span>
-          {entry.eventName && (
-            <span className="text-[10px] text-[var(--fg-muted)]">
-              {entry.eventName} {entry.eventYear ? `'${String(entry.eventYear).slice(2)}` : ''}
-            </span>
-          )}
-        </div>
-      )}
+        ) : entry.subtype === 'group_photo' ? (
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wide bg-teal-400/20 text-teal-600 border border-teal-400/30">
+            <Camera size={10} /> Group Pic
+          </span>
+        ) : entry.type === 'memory' ? (
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wide bg-blue-400/20 text-blue-500 border border-blue-400/30">
+            <MessageSquare size={10} /> Memory
+          </span>
+        ) : entry.type === 'image' ? (
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wide bg-amber-400/20 text-amber-500 border border-amber-400/30">
+            <ImageIcon size={10} /> Image
+          </span>
+        ) : entry.type === 'checkin' ? (
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wide bg-green-400/20 text-green-500 border border-green-400/30">
+            <Navigation size={10} /> Checkin
+          </span>
+        ) : null}
+      </div>
 
-      {/* Video edit embed */}
-      {entry.subtype === 'video_edit' && entry.editUrl && (() => {
-        const url = entry.editUrl!
-        const ytMatch = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([\w-]+)/)
-        const vimeoMatch = url.match(/vimeo\.com\/(\d+)/)
-        if (ytMatch) {
-          return (
-            <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
-              <iframe
-                src={`https://www.youtube.com/embed/${ytMatch[1]}`}
-                className="absolute inset-0 w-full h-full"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
+      {/* Video edit - thumbnail with play link */}
+      {entry.subtype === 'video_edit' && entry.editUrl && (
+        <a
+          href={entry.editUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="relative block group"
+        >
+          {entry.mediaUrl ? (
+            <>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={entry.mediaUrl}
+                alt="Video edit thumbnail"
+                className="w-full max-h-[32rem] object-contain"
               />
+              <div className="absolute inset-0 flex items-center justify-center bg-black/30 group-hover:bg-black/40 transition-colors">
+                <div className="w-14 h-14 rounded-full bg-black/60 flex items-center justify-center">
+                  <Play size={24} className="text-white ml-1" fill="white" />
+                </div>
+              </div>
+            </>
+          ) : (
+            <div className="flex items-center gap-2 px-4 py-3 text-sm text-[var(--accent)] hover:opacity-70">
+              <Film size={14} />
+              Watch Edit
             </div>
-          )
-        }
-        if (vimeoMatch) {
-          return (
-            <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
-              <iframe
-                src={`https://player.vimeo.com/video/${vimeoMatch[1]}`}
-                className="absolute inset-0 w-full h-full"
-                allow="autoplay; fullscreen; picture-in-picture"
-                allowFullScreen
-              />
-            </div>
-          )
-        }
-        return (
-          <a
-            href={url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-2 px-4 py-3 text-sm text-[var(--accent)] hover:opacity-70"
-          >
-            <Film size={14} />
-            Watch Edit
-          </a>
-        )
-      })()}
+          )}
+        </a>
+      )}
 
       {/* Group photo */}
       {entry.subtype === 'group_photo' && entry.mediaUrl && (
@@ -258,7 +235,7 @@ export function LorePost({
 
       {/* Footer */}
       {(entry.location || entry.day) && (
-        <div className="flex items-center gap-3 px-4 pb-3 text-xs text-[var(--fg-muted)]">
+        <div className="flex items-center gap-3 px-4 pt-2 pb-3 text-xs text-[var(--fg-muted)]">
           {entry.location && (
             <span className="flex items-center gap-1">
               <MapPin size={10} />

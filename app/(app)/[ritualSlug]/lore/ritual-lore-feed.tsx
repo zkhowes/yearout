@@ -41,6 +41,7 @@ export function RitualLoreFeed({
   const [filterYear, setFilterYear] = useState<number | null>(null)
   const [filterUserId, setFilterUserId] = useState<string | null>(null)
   const [filterHOFOnly, setFilterHOFOnly] = useState(false)
+  const [filterType, setFilterType] = useState<string | null>(null)
   const [showFilters, setShowFilters] = useState(false)
   const [toggling, startToggle] = useTransition()
   const [deletingId, setDeletingId] = useState<string | null>(null)
@@ -77,6 +78,13 @@ export function RitualLoreFeed({
   if (filterHOFOnly) {
     filtered = filtered.filter((e) => e.isHallOfFame)
   }
+  if (filterType !== null) {
+    filtered = filtered.filter((e) => {
+      if (filterType === 'video_edit') return e.subtype === 'video_edit'
+      if (filterType === 'group_photo') return e.subtype === 'group_photo'
+      return !e.subtype && e.type === filterType
+    })
+  }
 
   const sorted = [...filtered].sort(
     (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
@@ -106,7 +114,7 @@ export function RitualLoreFeed({
   }
 
   const selectedEvent = allEvents.find((e) => e.id === selectedEventId)
-  const hasActiveFilters = filterYear !== null || filterUserId !== null || filterHOFOnly
+  const hasActiveFilters = filterYear !== null || filterUserId !== null || filterHOFOnly || filterType !== null
 
   return (
     <div className="flex flex-col gap-4">
@@ -155,6 +163,20 @@ export function RitualLoreFeed({
             ))}
           </select>
 
+          {/* Type filter */}
+          <select
+            value={filterType ?? ''}
+            onChange={(e) => setFilterType(e.target.value || null)}
+            className="bg-transparent border border-[var(--border)] rounded-lg px-2 py-1 text-xs text-[var(--fg)] outline-none"
+          >
+            <option value="">All types</option>
+            <option value="memory">Memory</option>
+            <option value="image">Image</option>
+            <option value="checkin">Checkin</option>
+            <option value="video_edit">Edit</option>
+            <option value="group_photo">Group Photo</option>
+          </select>
+
           {/* HOF toggle */}
           <button
             onClick={() => setFilterHOFOnly(!filterHOFOnly)}
@@ -174,6 +196,7 @@ export function RitualLoreFeed({
                 setFilterYear(null)
                 setFilterUserId(null)
                 setFilterHOFOnly(false)
+                setFilterType(null)
               }}
               className="px-2 py-1 text-xs text-[var(--fg-muted)] hover:text-[var(--fg)] transition-colors"
             >
