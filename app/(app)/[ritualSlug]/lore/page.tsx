@@ -11,6 +11,7 @@ import {
 import { eq, inArray, desc } from 'drizzle-orm'
 import { RitualLoreFeed } from './ritual-lore-feed'
 import type { LoreEntryData } from '@/components/lore/lore-post'
+import { getRitual, getMembership } from '@/lib/ritual-data'
 
 export default async function LorePage({
   params,
@@ -20,20 +21,10 @@ export default async function LorePage({
   const session = await auth()
   if (!session?.user?.id) redirect('/login')
 
-  const ritual = await db.query.rituals.findFirst({
-    where: (r, { eq }) => eq(r.slug, params.ritualSlug),
-  })
+  const ritual = await getRitual(params.ritualSlug)
   if (!ritual) redirect('/')
 
-  const [member] = await db
-    .select()
-    .from(ritualMembers)
-    .where(
-      eq(ritualMembers.ritualId, ritual.id)
-    )
-    .limit(1)
-    .then((rows) => rows.filter((r) => r.userId === session.user!.id))
-
+  const member = await getMembership(ritual.id, session.user.id!)
   if (!member) redirect('/')
 
   // All events for this ritual
@@ -54,14 +45,13 @@ export default async function LorePage({
     )
   }
 
-  // All lore across all events
-  const allLore = await db
-    .select()
-    .from(loreEntries)
-    .where(inArray(loreEntries.eventId, eventIds))
-    .orderBy(desc(loreEntries.createdAt))
+  // Load lore + crew members in parallel
+  const [allLore, allMembers] = await Promise.all([
+    db.select().from(loreEntries).where(inArray(loreEntries.eventId, eventIds)).orderBy(desc(loreEntries.createdAt)),
+    db.select({ id: users.id, name: users.name, image: users.image }).from(ritualMembers).innerJoin(users, eq(ritualMembers.userId, users.id)).where(eq(ritualMembers.ritualId, ritual.id)),
+  ])
 
-  // All mentions
+  // All mentions (depends on lore IDs)
   const loreIds = allLore.map((l) => l.id)
   const allMentions =
     loreIds.length > 0
@@ -70,17 +60,6 @@ export default async function LorePage({
           .from(loreMentions)
           .where(inArray(loreMentions.loreEntryId, loreIds))
       : []
-
-  // All crew member user data
-  const allMembers = await db
-    .select({
-      id: users.id,
-      name: users.name,
-      image: users.image,
-    })
-    .from(ritualMembers)
-    .innerJoin(users, eq(ritualMembers.userId, users.id))
-    .where(eq(ritualMembers.ritualId, ritual.id))
 
   // Build event map for context labels
   const eventMap = new Map(

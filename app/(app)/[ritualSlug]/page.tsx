@@ -3,7 +3,6 @@ import { db } from '@/db'
 import { auth } from '@/auth'
 import { redirect } from 'next/navigation'
 import {
-  ritualMembers,
   ritualAwardDefinitions,
   events,
   awards,
@@ -13,6 +12,7 @@ import {
 import { eq, and, inArray, desc } from 'drizzle-orm'
 import { Plus } from 'lucide-react'
 import { HeroCarousel } from './hero-carousel'
+import { getRitual, getMembership } from '@/lib/ritual-data'
 
 const STATUS_LABEL: Record<string, string> = {
   planning: 'Planning',
@@ -29,24 +29,10 @@ export default async function RitualTourPage({
   const session = await auth()
   if (!session?.user?.id) redirect('/login')
 
-  // Load ritual (layout already verified membership, but we need it for queries)
-  const ritual = await db.query.rituals.findFirst({
-    where: (r, { eq }) => eq(r.slug, params.ritualSlug),
-  })
+  const ritual = await getRitual(params.ritualSlug)
   if (!ritual) redirect('/')
 
-  // Load member role
-  const [member] = await db
-    .select()
-    .from(ritualMembers)
-    .where(
-      and(
-        eq(ritualMembers.ritualId, ritual.id),
-        eq(ritualMembers.userId, session.user.id!)
-      )
-    )
-    .limit(1)
-
+  const member = await getMembership(ritual.id, session.user.id!)
   const isSponsor = member?.role === 'sponsor'
 
   // Load events (newest first)

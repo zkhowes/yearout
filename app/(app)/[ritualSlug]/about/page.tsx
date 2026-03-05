@@ -3,6 +3,7 @@ import { auth } from '@/auth'
 import { redirect } from 'next/navigation'
 import { ritualMembers, eventAttendees, events, users } from '@/db/schema'
 import { eq, and, inArray, sql } from 'drizzle-orm'
+import { getRitual } from '@/lib/ritual-data'
 
 export default async function AboutPage({
   params,
@@ -12,31 +13,26 @@ export default async function AboutPage({
   const session = await auth()
   if (!session?.user?.id) redirect('/login')
 
-  const ritual = await db.query.rituals.findFirst({
-    where: (r, { eq }) => eq(r.slug, params.ritualSlug),
-  })
+  const ritual = await getRitual(params.ritualSlug)
   if (!ritual) redirect('/')
 
-  // Fetch all ritual members with user data
-  const members = await db
-    .select({
-      userId: ritualMembers.userId,
-      role: ritualMembers.role,
-      isCoreCrewe: ritualMembers.isCoreCrewe,
-      nicknameOverride: ritualMembers.nicknameOverride,
-      photoOverride: ritualMembers.photoOverride,
-      userName: users.name,
-      userImage: users.image,
-    })
-    .from(ritualMembers)
-    .innerJoin(users, eq(ritualMembers.userId, users.id))
-    .where(eq(ritualMembers.ritualId, ritual.id))
-
-  // Get all event IDs for this ritual
-  const ritualEvents = await db
-    .select({ id: events.id })
-    .from(events)
-    .where(eq(events.ritualId, ritual.id))
+  // Load members + events in parallel
+  const [members, ritualEvents] = await Promise.all([
+    db
+      .select({
+        userId: ritualMembers.userId,
+        role: ritualMembers.role,
+        isCoreCrewe: ritualMembers.isCoreCrewe,
+        nicknameOverride: ritualMembers.nicknameOverride,
+        photoOverride: ritualMembers.photoOverride,
+        userName: users.name,
+        userImage: users.image,
+      })
+      .from(ritualMembers)
+      .innerJoin(users, eq(ritualMembers.userId, users.id))
+      .where(eq(ritualMembers.ritualId, ritual.id)),
+    db.select({ id: events.id }).from(events).where(eq(events.ritualId, ritual.id)),
+  ])
   const eventIds = ritualEvents.map((e) => e.id)
 
   // Count attendance per user across all events

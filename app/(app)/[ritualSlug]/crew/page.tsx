@@ -11,6 +11,7 @@ import {
 } from '@/db/schema'
 import { eq, and, inArray, sql } from 'drizzle-orm'
 import { CrewGrid } from './crew-grid'
+import { getRitual } from '@/lib/ritual-data'
 
 export default async function CrewPage({
   params,
@@ -20,9 +21,7 @@ export default async function CrewPage({
   const session = await auth()
   if (!session?.user?.id) redirect('/login')
 
-  const ritual = await db.query.rituals.findFirst({
-    where: (r, { eq }) => eq(r.slug, params.ritualSlug),
-  })
+  const ritual = await getRitual(params.ritualSlug)
   if (!ritual) redirect('/')
 
   // Fetch all ritual members with user data
@@ -41,50 +40,40 @@ export default async function CrewPage({
     .innerJoin(users, eq(ritualMembers.userId, users.id))
     .where(eq(ritualMembers.ritualId, ritual.id))
 
-  // Get all events for this ritual
-  const ritualEvents = await db
-    .select({ id: events.id, year: events.year })
-    .from(events)
-    .where(eq(events.ritualId, ritual.id))
+  // Load events + award definitions in parallel
+  const [ritualEvents, awardDefs] = await Promise.all([
+    db.select({ id: events.id, year: events.year }).from(events).where(eq(events.ritualId, ritual.id)),
+    db.select().from(ritualAwardDefinitions).where(eq(ritualAwardDefinitions.ritualId, ritual.id)),
+  ])
   const eventIds = ritualEvents.map((e) => e.id)
 
-  // Count attendance per user
+  // Count attendance + load awards in parallel (both depend on eventIds)
   const attendanceCounts = new Map<string, number>()
+  const userAwards = new Map<string, { name: string; year: number }[]>()
+
   if (eventIds.length > 0) {
-    const counts = await db
-      .select({
-        userId: eventAttendees.userId,
-        count: sql<number>`count(*)::int`,
-      })
-      .from(eventAttendees)
-      .where(
-        and(
-          inArray(eventAttendees.eventId, eventIds),
-          sql`${eventAttendees.bookingStatus} != 'out'`
+    const [counts, allAwards] = await Promise.all([
+      db
+        .select({
+          userId: eventAttendees.userId,
+          count: sql<number>`count(*)::int`,
+        })
+        .from(eventAttendees)
+        .where(
+          and(
+            inArray(eventAttendees.eventId, eventIds),
+            sql`${eventAttendees.bookingStatus} != 'out'`
+          )
         )
-      )
-      .groupBy(eventAttendees.userId)
+        .groupBy(eventAttendees.userId),
+      db.select().from(awards).where(inArray(awards.eventId, eventIds)),
+    ])
 
     for (const row of counts) {
       attendanceCounts.set(row.userId, row.count)
     }
-  }
 
-  // Get award definitions + all awards for this ritual's events
-  const awardDefs = await db
-    .select()
-    .from(ritualAwardDefinitions)
-    .where(eq(ritualAwardDefinitions.ritualId, ritual.id))
-
-  const awardDefMap = new Map(awardDefs.map((d) => [d.id, d]))
-
-  const userAwards = new Map<string, { name: string; year: number }[]>()
-  if (eventIds.length > 0) {
-    const allAwards = await db
-      .select()
-      .from(awards)
-      .where(inArray(awards.eventId, eventIds))
-
+    const awardDefMap = new Map(awardDefs.map((d) => [d.id, d]))
     const eventYearMap = new Map(ritualEvents.map((e) => [e.id, e.year]))
 
     for (const award of allAwards) {

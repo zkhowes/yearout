@@ -1,6 +1,6 @@
-import { pgTable, text, timestamp, pgEnum, integer, boolean } from 'drizzle-orm/pg-core'
+import { pgTable, text, timestamp, pgEnum, integer, boolean, index } from 'drizzle-orm/pg-core'
 import { users } from './users'
-import { rituals } from './rituals'
+import { rituals, ritualAwardDefinitions } from './rituals'
 
 export const eventStatusEnum = pgEnum('event_status', [
   'planning',
@@ -32,7 +32,9 @@ export const events = pgTable('events', {
   editThumbnailUrl: text('edit_thumbnail_url'), // custom thumbnail (Vercel Blob)
   sealedAt: timestamp('sealed_at', { mode: 'date' }),
   createdAt: timestamp('created_at', { mode: 'date' }).defaultNow().notNull(),
-})
+}, (table) => [
+  index('events_ritual_id_idx').on(table.ritualId),
+])
 
 export const eventProposals = pgTable('event_proposals', {
   id: text('id').primaryKey(),
@@ -51,7 +53,9 @@ export const proposalVotes = pgTable('proposal_votes', {
   userId: text('user_id').notNull().references(() => users.id),
   vote: text('vote').notNull(), // "yes" | "no" | "maybe"
   createdAt: timestamp('created_at', { mode: 'date' }).defaultNow().notNull(),
-})
+}, (table) => [
+  index('proposal_votes_proposal_id_idx').on(table.proposalId),
+])
 
 export const dailyItinerary = pgTable('daily_itinerary', {
   id: text('id').primaryKey(),
@@ -72,7 +76,9 @@ export const loreEntries = pgTable('lore_entries', {
   isHallOfFame: boolean('is_hall_of_fame').notNull().default(false),
   day: timestamp('day', { mode: 'date' }),
   createdAt: timestamp('created_at', { mode: 'date' }).defaultNow().notNull(),
-})
+}, (table) => [
+  index('lore_entries_event_id_idx').on(table.eventId),
+])
 
 export const loreMentions = pgTable('lore_mentions', {
   id: text('id').primaryKey(),
@@ -100,14 +106,18 @@ export const expenses = pgTable('expenses', {
   splitType: text('split_type').notNull().default('equal'), // 'equal' | 'exact'
   category: text('category'), // lodging | food | transport | activity | other
   createdAt: timestamp('created_at', { mode: 'date' }).defaultNow().notNull(),
-})
+}, (table) => [
+  index('expenses_event_id_idx').on(table.eventId),
+])
 
 export const expenseSplits = pgTable('expense_splits', {
   id: text('id').primaryKey(),
   expenseId: text('expense_id').notNull().references(() => expenses.id, { onDelete: 'cascade' }),
   userId: text('user_id').notNull().references(() => users.id),
   amount: integer('amount').notNull(), // this user's share in cents
-})
+}, (table) => [
+  index('expense_splits_expense_id_idx').on(table.expenseId),
+])
 
 export const settlementPayments = pgTable('settlement_payments', {
   id: text('id').primaryKey(),
@@ -125,17 +135,19 @@ export const settlementPayments = pgTable('settlement_payments', {
 export const awardVotes = pgTable('award_votes', {
   id: text('id').primaryKey(),
   eventId: text('event_id').notNull().references(() => events.id, { onDelete: 'cascade' }),
-  awardDefinitionId: text('award_definition_id').notNull(),
+  awardDefinitionId: text('award_definition_id').notNull().references(() => ritualAwardDefinitions.id),
   voterId: text('voter_id').notNull().references(() => users.id),
   nomineeId: text('nominee_id').notNull().references(() => users.id),
   createdAt: timestamp('created_at', { mode: 'date' }).defaultNow().notNull(),
   // Enforced in app logic: max 2 votes per award per voter, no self-vote
-})
+}, (table) => [
+  index('award_votes_event_id_idx').on(table.eventId),
+])
 
 export const awards = pgTable('awards', {
   id: text('id').primaryKey(),
   eventId: text('event_id').notNull().references(() => events.id, { onDelete: 'cascade' }),
-  awardDefinitionId: text('award_definition_id').notNull(),
+  awardDefinitionId: text('award_definition_id').notNull().references(() => ritualAwardDefinitions.id),
   winnerId: text('winner_id').notNull().references(() => users.id),
   createdAt: timestamp('created_at', { mode: 'date' }).defaultNow().notNull(),
 })

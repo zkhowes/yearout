@@ -87,9 +87,9 @@ export async function addProposal(
     id: crypto.randomUUID(),
     eventId,
     proposedBy: session.user.id!,
-    location: data.location?.trim() || null,
-    dates: data.dates?.trim() || null,
-    notes: data.notes?.trim() || null,
+    location: data.location?.trim().slice(0, 500) || null,
+    dates: data.dates?.trim().slice(0, 200) || null,
+    notes: data.notes?.trim().slice(0, 1000) || null,
     createdAt: new Date(),
   })
 }
@@ -487,7 +487,7 @@ export async function addExpense(
     id: expenseId,
     eventId,
     paidBy: session.user.id!,
-    description: description.trim(),
+    description: description.trim().slice(0, 500),
     amount: amountCents,
     splitType,
     category,
@@ -723,7 +723,7 @@ export async function addLoreEntry(
   const session = await auth()
   if (!session?.user?.id) redirect('/login')
 
-  const trimmed = content.trim()
+  const trimmed = content.trim().slice(0, 5000)
 
   const entryId = crypto.randomUUID()
   await db.insert(loreEntries).values({
@@ -733,7 +733,7 @@ export async function addLoreEntry(
     type,
     content: trimmed,
     mediaUrl: mediaUrl || null,
-    location: location?.trim() || null,
+    location: location?.trim().slice(0, 200) || null,
     day: day || null,
     isHallOfFame: false,
     createdAt: new Date(),

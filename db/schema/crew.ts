@@ -1,4 +1,4 @@
-import { pgTable, text, boolean, timestamp, pgEnum } from 'drizzle-orm/pg-core'
+import { pgTable, text, boolean, timestamp, pgEnum, index } from 'drizzle-orm/pg-core'
 import { users } from './users'
 import { rituals } from './rituals'
 
@@ -26,7 +26,9 @@ export const ritualMembers = pgTable('ritual_members', {
   nicknameOverride: text('nickname_override'),   // Sponsor sets what the group calls them
   photoOverride: text('photo_override'),         // Sponsor's funnier/more nostalgic mugshot
   joinedAt: timestamp('joined_at', { mode: 'date' }).defaultNow().notNull(),
-})
+}, (table) => [
+  index('ritual_members_ritual_user_idx').on(table.ritualId, table.userId),
+])
 
 export const eventAttendees = pgTable('event_attendees', {
   id: text('id').primaryKey(),
@@ -42,4 +44,6 @@ export const eventAttendees = pgTable('event_attendees', {
   departureAirline: text('departure_airline'),
   departureFlightNumber: text('departure_flight_number'),
   departureDatetime: timestamp('departure_datetime', { mode: 'date' }),
-})
+}, (table) => [
+  index('event_attendees_event_user_idx').on(table.eventId, table.userId),
+])

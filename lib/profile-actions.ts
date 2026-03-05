@@ -18,9 +18,9 @@ export async function updateProfile(data: {
   await db
     .update(users)
     .set({
-      ...(data.name !== undefined && { name: data.name.trim() }),
+      ...(data.name !== undefined && { name: data.name.trim().slice(0, 100) }),
       ...(data.image !== undefined && { image: data.image }),
-      ...(data.nationality !== undefined && { nationality: data.nationality.trim() }),
+      ...(data.nationality !== undefined && { nationality: data.nationality.trim().slice(0, 100) }),
     })
     .where(eq(users.id, session.user.id))
 

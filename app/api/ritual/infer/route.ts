@@ -1,5 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { NextRequest, NextResponse } from 'next/server'
+import { auth } from '@/auth'
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
@@ -12,6 +13,11 @@ export type RitualInference = {
 }
 
 export async function POST(req: NextRequest) {
+  const session = await auth()
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
   const { name } = await req.json()
   if (!name || name.trim().length < 2) {
     return NextResponse.json({ error: 'Name too short' }, { status: 400 })
@@ -42,7 +48,7 @@ Theme guide: circuit=dark/grungy/hard-charging, club=refined/luxury/golf/whiskey
 Awards should fit the ritual's personality. Be creative but appropriate.`,
       },
     ],
-  })
+  }, { timeout: 10_000 })
 
   const raw = message.content[0].type === 'text' ? message.content[0].text : ''
 
@@ -53,7 +59,7 @@ Awards should fit the ritual's personality. Be creative but appropriate.`,
     const inference: RitualInference = JSON.parse(cleaned)
     return NextResponse.json(inference)
   } catch {
-    console.error('[infer] raw response:', raw)
+    console.error('[infer] failed to parse Claude response as JSON')
     return NextResponse.json({ error: 'Inference failed' }, { status: 500 })
   }
 }

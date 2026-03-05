@@ -33,13 +33,13 @@ export async function updateRitual(
   await db
     .update(rituals)
     .set({
-      ...(data.name && { name: data.name.trim() }),
-      ...(data.tagline !== undefined && { tagline: data.tagline.trim() }),
+      ...(data.name && { name: data.name.trim().slice(0, 100) }),
+      ...(data.tagline !== undefined && { tagline: data.tagline.trim().slice(0, 200) }),
       ...(data.theme && { theme: data.theme }),
       ...(data.activityType && { activityType: data.activityType as typeof rituals.$inferInsert['activityType'] }),
       ...(data.foundingYear !== undefined && { foundingYear: data.foundingYear }),
-      ...(data.bylaws !== undefined && { bylaws: data.bylaws }),
-      ...(data.description !== undefined && { description: data.description }),
+      ...(data.bylaws !== undefined && { bylaws: data.bylaws.slice(0, 10000) }),
+      ...(data.description !== undefined && { description: data.description.slice(0, 5000) }),
       ...(data.logoUrl !== undefined && { logoUrl: data.logoUrl }),
     })
     .where(eq(rituals.id, ritualId))

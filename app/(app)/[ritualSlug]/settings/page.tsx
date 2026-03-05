@@ -1,10 +1,8 @@
 import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
-import { db } from '@/db'
 import { auth } from '@/auth'
 import { redirect } from 'next/navigation'
-import { ritualMembers } from '@/db/schema'
-import { and, eq } from 'drizzle-orm'
+import { getRitual, getMembership } from '@/lib/ritual-data'
 import { SettingsForm } from './form'
 
 export default async function SettingsPage({
@@ -15,22 +13,10 @@ export default async function SettingsPage({
   const session = await auth()
   if (!session?.user?.id) redirect('/login')
 
-  const ritual = await db.query.rituals.findFirst({
-    where: (r, { eq }) => eq(r.slug, params.ritualSlug),
-  })
+  const ritual = await getRitual(params.ritualSlug)
   if (!ritual) redirect('/')
 
-  const [member] = await db
-    .select()
-    .from(ritualMembers)
-    .where(
-      and(
-        eq(ritualMembers.ritualId, ritual.id),
-        eq(ritualMembers.userId, session.user.id!)
-      )
-    )
-    .limit(1)
-
+  const member = await getMembership(ritual.id, session.user.id!)
   if (!member || member.role !== 'sponsor') redirect(`/${params.ritualSlug}`)
 
   const appUrl = (process.env.NEXT_PUBLIC_APP_URL ?? 'https://yearout.zkhowes.fun').trim()

@@ -20,7 +20,7 @@ import {
   eventBookings,
   users,
 } from '@/db/schema'
-import { eq, and, inArray } from 'drizzle-orm'
+import { eq, inArray } from 'drizzle-orm'
 import { ArrowLeft } from 'lucide-react'
 import { Proposals } from './proposals'
 import { ScheduledView } from './scheduled-view'
@@ -29,6 +29,7 @@ import { ClosedView } from './closed-view'
 import { CoverPhoto } from './cover-photo'
 import { EventLogoUpload } from './event-logo-upload'
 import { EditableEventName } from './editable-event-name'
+import { getRitual, getMembership } from '@/lib/ritual-data'
 
 export default async function EventPage({
   params,
@@ -41,17 +42,10 @@ export default async function EventPage({
   const year = parseInt(params.year, 10)
   if (isNaN(year)) redirect(`/${params.ritualSlug}`)
 
-  // Ritual + membership (layout has already verified, but we need role here)
-  const ritual = await db.query.rituals.findFirst({
-    where: (r, { eq }) => eq(r.slug, params.ritualSlug),
-  })
+  const ritual = await getRitual(params.ritualSlug)
   if (!ritual) redirect('/')
 
-  const [member] = await db
-    .select()
-    .from(ritualMembers)
-    .where(and(eq(ritualMembers.ritualId, ritual.id), eq(ritualMembers.userId, session.user.id!)))
-    .limit(1)
+  const member = await getMembership(ritual.id, session.user.id!)
   if (!member) redirect('/')
 
   const isSponsor = member.role === 'sponsor'

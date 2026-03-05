@@ -1,16 +1,16 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-// ─── Mock Anthropic before importing the route ───────────────────────────────
-// vi.hoisted ensures mockCreate is available inside the vi.mock factory,
-// which runs before any top-level variable declarations.
-
+// ─── Mock Anthropic + auth before importing the route ─────────────────────────
 const mockCreate = vi.hoisted(() => vi.fn())
+const mockAuth = vi.hoisted(() => vi.fn())
 
 vi.mock('@anthropic-ai/sdk', () => ({
   default: class {
     messages = { create: mockCreate }
   },
 }))
+
+vi.mock('@/auth', () => ({ auth: mockAuth }))
 
 // Import route after mock is in place
 import { POST } from '@/app/api/ritual/infer/route'
@@ -42,7 +42,18 @@ function mockClaudeText(text: string) {
 // ─── Tests ───────────────────────────────────────────────────────────────────
 
 describe('POST /api/ritual/infer', () => {
-  beforeEach(() => mockCreate.mockReset())
+  beforeEach(() => {
+    mockCreate.mockReset()
+    mockAuth.mockReset()
+    mockAuth.mockResolvedValue({ user: { id: 'u1' } })
+  })
+
+  it('returns 401 when no session', async () => {
+    mockAuth.mockResolvedValue(null)
+    const res = await POST(makeReq({ name: 'Mavericks' }))
+    expect(res.status).toBe(401)
+    expect(mockCreate).not.toHaveBeenCalled()
+  })
 
   it('returns valid inference from clean JSON response', async () => {
     mockClaudeText(JSON.stringify(VALID_INFERENCE))

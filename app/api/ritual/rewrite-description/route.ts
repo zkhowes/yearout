@@ -15,6 +15,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Description too short' }, { status: 400 })
   }
 
+  // Cap input to prevent outsized token costs
+  const trimmedDesc = description.trim().slice(0, 2000)
+
   const message = await client.messages.create({
     model: 'claude-haiku-4-5-20251001',
     max_tokens: 512,
@@ -24,10 +27,10 @@ export async function POST(req: NextRequest) {
         content: `Rewrite the following description for an annual group adventure ritual called "${ritualName}" (activity: ${activityType}). Make it more compelling, epic, and memorable — like it belongs in a mythology. Keep it concise (2-3 paragraphs max). Preserve any specific facts or details from the original. Return ONLY the rewritten text, no preamble.
 
 Original:
-${description.trim()}`,
+${trimmedDesc}`,
       },
     ],
-  })
+  }, { timeout: 10_000 })
 
   const textBlock = message.content.find((b) => b.type === 'text')
   const rewritten = textBlock?.text ?? description
