@@ -90,7 +90,7 @@ export default async function EventPage({
 
   // ── Scheduled / In-Progress / Closed: load attendees ─────────────────────
   let attendeeList: { id: string; userId: string; bookingStatus: 'not_yet' | 'committed' | 'flights_booked' | 'all_booked' | 'out'; isHost: boolean; arrivalAirline: string | null; arrivalFlightNumber: string | null; arrivalDatetime: Date | null; departureAirline: string | null; departureFlightNumber: string | null; departureDatetime: Date | null }[] = []
-  let attendeeUsers: { id: string; name: string | null; image: string | null }[] = []
+  let attendeeUsers: { id: string; name: string | null; image: string | null; nationality: string | null }[] = []
   let myAttendee: (typeof attendeeList)[0] | null = null
 
   // In-progress / closed: also load lore, expenses, activity, awards
@@ -117,7 +117,7 @@ export default async function EventPage({
     if (rawAttendees.length > 0) {
       const userIds = Array.from(new Set(rawAttendees.map((a) => a.userId)))
       const userRows = await db
-        .select({ id: users.id, name: users.name, image: users.image })
+        .select({ id: users.id, name: users.name, image: users.image, nationality: users.nationality })
         .from(users)
         .where(inArray(users.id, userIds))
       attendeeUsers = userRows
@@ -181,7 +181,7 @@ export default async function EventPage({
       if (extraUserIds.length > 0) {
         const deduped = Array.from(new Set(extraUserIds))
         const extra = await db
-          .select({ id: users.id, name: users.name, image: users.image })
+          .select({ id: users.id, name: users.name, image: users.image, nationality: users.nationality })
           .from(users)
           .where(inArray(users.id, deduped))
         attendeeUsers = [...attendeeUsers, ...extra]

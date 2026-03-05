@@ -8,6 +8,7 @@ import {
   addEventAttendee,
   updateEventDetails,
 } from '@/lib/event-actions'
+import { getNationalityFlag } from '@/lib/flags'
 import { LoreFeed as SharedLoreFeed } from '@/components/lore/lore-feed'
 import type { LoreEntryData } from '@/components/lore/lore-post'
 import { BookingsSection, type EventBooking } from '@/components/bookings-section'
@@ -23,6 +24,7 @@ type AttendeeUser = {
   id: string
   name: string | null
   image: string | null
+  nationality: string | null
 }
 
 type AwardDef = {
@@ -430,23 +432,35 @@ function CrewTiles({
           const photoUrl = override?.photoOverride ?? user.image
           const displayName = override?.nicknameOverride ?? user.name?.split(' ')[0] ?? 'Unknown'
 
+          const flagUrl = getNationalityFlag(user.nationality)
+
           return (
             <div
               key={a.userId}
               className="flex flex-col items-center gap-1.5 p-3 rounded-xl border border-[var(--border)] bg-[var(--surface)]"
             >
-              {photoUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={photoUrl}
-                  alt={displayName}
-                  className="w-10 h-10 rounded-full object-cover"
-                />
-              ) : (
-                <div className="w-10 h-10 rounded-full bg-[var(--border)] flex items-center justify-center">
-                  <User size={16} className="text-[var(--fg-muted)]" />
-                </div>
-              )}
+              <div className="relative">
+                {photoUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={photoUrl}
+                    alt={displayName}
+                    className="w-10 h-10 rounded-full object-cover"
+                  />
+                ) : (
+                  <div className="w-10 h-10 rounded-full bg-[var(--border)] flex items-center justify-center">
+                    <User size={16} className="text-[var(--fg-muted)]" />
+                  </div>
+                )}
+                {flagUrl && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={flagUrl}
+                    alt=""
+                    className="absolute -bottom-0.5 -right-0.5 w-4 h-3 rounded-sm object-cover border border-[var(--surface)]"
+                  />
+                )}
+              </div>
               <span className="text-xs font-medium text-[var(--fg)] text-center leading-tight max-w-[72px] truncate">
                 {displayName}
               </span>

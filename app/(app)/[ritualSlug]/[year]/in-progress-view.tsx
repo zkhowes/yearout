@@ -27,6 +27,7 @@ type AttendeeUser = {
   id: string
   name: string | null
   image: string | null
+  nationality: string | null
 }
 
 type Expense = {

@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react'
 import { Trophy } from 'lucide-react'
 import { setAwardWinner } from '@/lib/event-actions'
+import { getNationalityFlag } from '@/lib/flags'
 
 type Attendee = {
   id: string
@@ -14,6 +15,7 @@ type AttendeeUser = {
   id: string
   name: string | null
   image: string | null
+  nationality: string | null
 }
 
 type AwardDef = {
@@ -97,22 +99,37 @@ export function AwardsPodium({
         >
           {winnerUser ? (
             <>
-              {winnerUser.image ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={winnerUser.image}
-                  alt={winnerUser.name ?? ''}
-                  className={`rounded-full object-cover ${size === 'hero' ? 'w-14 h-14' : 'w-10 h-10'}`}
-                />
-              ) : (
-                <div
-                  className={`rounded-full bg-[var(--border)] flex items-center justify-center font-semibold text-[var(--fg-muted)] ${
-                    size === 'hero' ? 'w-14 h-14 text-xl' : 'w-10 h-10 text-base'
-                  }`}
-                >
-                  {(winnerUser.name ?? '?').charAt(0).toUpperCase()}
-                </div>
-              )}
+              <div className="relative">
+                {winnerUser.image ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={winnerUser.image}
+                    alt={winnerUser.name ?? ''}
+                    className={`rounded-full object-cover ${size === 'hero' ? 'w-14 h-14' : 'w-10 h-10'}`}
+                  />
+                ) : (
+                  <div
+                    className={`rounded-full bg-[var(--border)] flex items-center justify-center font-semibold text-[var(--fg-muted)] ${
+                      size === 'hero' ? 'w-14 h-14 text-xl' : 'w-10 h-10 text-base'
+                    }`}
+                  >
+                    {(winnerUser.name ?? '?').charAt(0).toUpperCase()}
+                  </div>
+                )}
+                {(() => {
+                  const flagUrl = getNationalityFlag(winnerUser.nationality)
+                  return flagUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={flagUrl}
+                      alt=""
+                      className={`absolute -bottom-0.5 -right-0.5 rounded-sm object-cover border border-[var(--surface)] ${
+                        size === 'hero' ? 'w-5 h-4' : 'w-4 h-3'
+                      }`}
+                    />
+                  ) : null
+                })()}
+              </div>
               <p className={`font-semibold text-[var(--fg)] text-center ${size === 'hero' ? 'text-sm' : 'text-xs'}`}>
                 {winnerUser.name?.split(' ')[0] ?? 'Unknown'}
               </p>
