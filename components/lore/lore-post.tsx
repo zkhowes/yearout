@@ -1,6 +1,6 @@
 'use client'
 
-import { Star, Trash2, Loader2, MapPin, User, Film, Camera, Play, MessageSquare, Image as ImageIcon, Navigation } from 'lucide-react'
+import { Star, Trash2, Loader2, MapPin, User, Film, Camera, MessageSquare, Image as ImageIcon, Navigation } from 'lucide-react'
 
 export type LoreEntryData = {
   id: string
@@ -29,6 +29,14 @@ type LorePostProps = {
   onDelete: (entryId: string) => void
   isToggling: boolean
   isDeleting: boolean
+}
+
+function getEmbedUrl(url: string): string | null {
+  const ytMatch = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([\w-]+)/)
+  if (ytMatch) return `https://www.youtube.com/embed/${ytMatch[1]}`
+  const vimeoMatch = url.match(/vimeo\.com\/(\d+)(?:\/([\w]+))?/)
+  if (vimeoMatch) return `https://player.vimeo.com/video/${vimeoMatch[1]}${vimeoMatch[2] ? `?h=${vimeoMatch[2]}` : ''}`
+  return null
 }
 
 function renderContentWithMentions(
@@ -173,36 +181,33 @@ export function LorePost({
         ) : null}
       </div>
 
-      {/* Video edit - thumbnail with play link */}
-      {entry.subtype === 'video_edit' && entry.editUrl && (
-        <a
-          href={entry.editUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="relative block group"
-        >
-          {entry.mediaUrl ? (
-            <>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={entry.mediaUrl}
-                alt="Video edit thumbnail"
-                className="w-full max-h-[32rem] object-contain"
+      {/* Video edit embed */}
+      {entry.subtype === 'video_edit' && entry.editUrl && (() => {
+        const embedUrl = getEmbedUrl(entry.editUrl!)
+        if (embedUrl) {
+          return (
+            <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
+              <iframe
+                src={embedUrl}
+                className="absolute inset-0 w-full h-full"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
+                allowFullScreen
               />
-              <div className="absolute inset-0 flex items-center justify-center bg-black/30 group-hover:bg-black/40 transition-colors">
-                <div className="w-14 h-14 rounded-full bg-black/60 flex items-center justify-center">
-                  <Play size={24} className="text-white ml-1" fill="white" />
-                </div>
-              </div>
-            </>
-          ) : (
-            <div className="flex items-center gap-2 px-4 py-3 text-sm text-[var(--accent)] hover:opacity-70">
-              <Film size={14} />
-              Watch Edit
             </div>
-          )}
-        </a>
-      )}
+          )
+        }
+        return (
+          <a
+            href={entry.editUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-2 px-4 py-3 text-sm text-[var(--accent)] hover:opacity-70"
+          >
+            <Film size={14} />
+            Watch Edit
+          </a>
+        )
+      })()}
 
       {/* Group photo */}
       {entry.subtype === 'group_photo' && entry.mediaUrl && (
