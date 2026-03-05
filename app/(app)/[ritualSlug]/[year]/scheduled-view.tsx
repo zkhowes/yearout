@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { ExternalLink, Loader2, Plane, ChevronDown, ChevronUp, Settings } from 'lucide-react'
+import { ExternalLink, Loader2, Plane, ChevronDown, ChevronUp, Settings, Users, Home, Calendar } from 'lucide-react'
 import { updateBookingStatus, updateBookingStatusForUser, advanceEventStatus, updateFlightDetails, updateFlightDetailsForUser, toggleHostStatus } from '@/lib/event-actions'
 import { ItinerarySection } from './in-progress-view'
 import { ExpensesTab } from '@/components/expenses-tab'
@@ -610,22 +610,12 @@ export function ScheduledView({
       {/* Details card */}
       <EventDetailsCard event={event} canEdit={canEdit} ritualSlug={ritualSlug} />
 
-      {/* Google Flights link */}
-      {event.location && (
-        <a
-          href={flightsUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex items-center gap-2 text-sm text-[var(--accent)] hover:opacity-70 transition-opacity"
-        >
-          <ExternalLink size={14} />
-          Search flights to {event.location}
-        </a>
-      )}
-
-      {/* Commitment Board */}
-      <div className="flex flex-col gap-3">
-        <p className="text-xs uppercase tracking-widest text-[var(--fg-muted)]">Commitment Board</p>
+      {/* ── Commitment Board ── */}
+      <div className="rounded-xl border border-[var(--border)] border-l-4 border-l-amber-500 bg-[var(--surface)] p-4 flex flex-col gap-3">
+        <div className="flex items-center gap-2">
+          <Users size={14} className="text-amber-500" />
+          <p className="text-xs uppercase tracking-widest text-[var(--fg-muted)]">Commitment Board</p>
+        </div>
         {attendees.length === 0 ? (
           <p className="text-sm text-[var(--fg-muted)]">No attendees yet.</p>
         ) : (
@@ -656,100 +646,136 @@ export function ScheduledView({
         <p className="text-xs text-[var(--fg-muted)]">
           {canEdit ? 'Tap a chip to manage that member.' : 'Tap your chip to cycle through booking status.'}
         </p>
+
+        {/* Member detail panel (inline within commitment card) */}
+        {canEdit && selectedAttendee && (() => {
+          const selectedUser = userMap.get(selectedAttendee.userId)
+          return (
+            <MemberDetailPanel
+              attendee={selectedAttendee}
+              user={selectedUser!}
+              eventId={event.id}
+              ritualSlug={ritualSlug}
+              year={event.year}
+              isSponsor={isSponsor}
+              onClose={() => setSelectedMemberId(null)}
+            />
+          )
+        })()}
       </div>
 
-      {/* Member detail panel (sponsor/host managing a selected member) */}
-      {canEdit && selectedAttendee && (() => {
-        const selectedUser = userMap.get(selectedAttendee.userId)
-        return (
-          <MemberDetailPanel
-            attendee={selectedAttendee}
-            user={selectedUser!}
+      {/* ── Travel ── */}
+      <div className="rounded-xl border border-[var(--border)] border-l-4 border-l-blue-500 bg-[var(--surface)] p-4 flex flex-col gap-4">
+        <div className="flex items-center gap-2">
+          <Plane size={14} className="text-blue-500" />
+          <p className="text-xs uppercase tracking-widest text-[var(--fg-muted)]">Travel</p>
+        </div>
+
+        {/* Google Flights link */}
+        {event.location && (
+          <a
+            href={flightsUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-2 text-sm text-[var(--accent)] hover:opacity-70 transition-opacity"
+          >
+            <ExternalLink size={14} />
+            Search flights to {event.location}
+          </a>
+        )}
+
+        {/* Flight details form (current user, when flights booked) */}
+        {!selectedMemberId && myAttendee && (myAttendee.bookingStatus === 'flights_booked' || myAttendee.bookingStatus === 'all_booked') && (
+          <FlightDetailsForm
+            attendee={myAttendee}
             eventId={event.id}
             ritualSlug={ritualSlug}
             year={event.year}
-            isSponsor={isSponsor}
-            onClose={() => setSelectedMemberId(null)}
           />
-        )
-      })()}
+        )}
 
-      {/* Flight details form (current user, when flights booked) */}
-      {!selectedMemberId && myAttendee && (myAttendee.bookingStatus === 'flights_booked' || myAttendee.bookingStatus === 'all_booked') && (
-        <FlightDetailsForm
-          attendee={myAttendee}
-          eventId={event.id}
-          ritualSlug={ritualSlug}
-          year={event.year}
-        />
-      )}
-
-      {/* Arrival/Departure Board */}
-      <ArrivalDepartureBoard
-        attendees={attendees}
-        attendeeUsers={attendeeUsers}
-      />
-
-      {/* Lodging & Transportation */}
-      <BookingsSection
-        bookings={bookingList}
-        eventId={event.id}
-        canEdit={canEdit}
-        ritualSlug={ritualSlug}
-        year={event.year}
-      />
-
-      {/* Itinerary */}
-      <ItinerarySection
-        event={event}
-        itineraryList={itineraryList}
-        canEdit={canEdit}
-        ritualSlug={ritualSlug}
-      />
-
-      {/* Tab switcher */}
-      <div className="flex border-b border-[var(--border)]">
-        {tabs.map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            className={`flex-1 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px ${
-              activeTab === tab.id
-                ? 'border-[var(--accent)] text-[var(--fg)]'
-                : 'border-transparent text-[var(--fg-muted)] hover:text-[var(--fg)]'
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
-
-      {/* Tab content */}
-      {activeTab === 'lore' && (
-        <LoreFeed
-          entries={loreList}
-          userMap={new Map(attendeeUsers.map((u) => [u.id, u]))}
-          crewMembers={crewMembers}
-          currentUserId={currentUserId}
-          canEdit={canEdit}
-          ritualSlug={ritualSlug}
-          eventId={event.id}
-          year={event.year}
-          allowedTypes={['memory', 'checkin', 'image']}
-        />
-      )}
-      {activeTab === 'expenses' && (
-        <ExpensesTab
-          event={event}
-          expenseList={expenseList}
-          settlementPayments={settlementPayments}
+        {/* Arrival/Departure Board */}
+        <ArrivalDepartureBoard
           attendees={attendees}
           attendeeUsers={attendeeUsers}
-          currentUserId={currentUserId}
+        />
+      </div>
+
+      {/* ── Lodging & Transportation ── */}
+      <div className="rounded-xl border border-[var(--border)] border-l-4 border-l-green-500 bg-[var(--surface)] p-4 flex flex-col gap-3">
+        <div className="flex items-center gap-2">
+          <Home size={14} className="text-green-500" />
+          <p className="text-xs uppercase tracking-widest text-[var(--fg-muted)]">Lodging & Transportation</p>
+        </div>
+        <BookingsSection
+          bookings={bookingList}
+          eventId={event.id}
+          canEdit={canEdit}
+          ritualSlug={ritualSlug}
+          year={event.year}
+        />
+      </div>
+
+      {/* ── Itinerary ── */}
+      <div className="rounded-xl border border-[var(--border)] border-l-4 border-l-purple-500 bg-[var(--surface)] p-4 flex flex-col gap-3">
+        <div className="flex items-center gap-2">
+          <Calendar size={14} className="text-purple-500" />
+          <p className="text-xs uppercase tracking-widest text-[var(--fg-muted)]">Itinerary</p>
+        </div>
+        <ItinerarySection
+          event={event}
+          itineraryList={itineraryList}
           canEdit={canEdit}
           ritualSlug={ritualSlug}
         />
-      )}
+      </div>
+
+      {/* ── Lore / Expenses ── */}
+      <div className="rounded-xl border border-[var(--border)] border-l-4 border-l-[var(--accent)] bg-[var(--surface)] p-4 flex flex-col gap-4">
+        {/* Tab switcher */}
+        <div className="flex border-b border-[var(--border)]">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`flex-1 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px ${
+                activeTab === tab.id
+                  ? 'border-[var(--accent)] text-[var(--fg)]'
+                  : 'border-transparent text-[var(--fg-muted)] hover:text-[var(--fg)]'
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Tab content */}
+        {activeTab === 'lore' && (
+          <LoreFeed
+            entries={loreList}
+            userMap={new Map(attendeeUsers.map((u) => [u.id, u]))}
+            crewMembers={crewMembers}
+            currentUserId={currentUserId}
+            canEdit={canEdit}
+            ritualSlug={ritualSlug}
+            eventId={event.id}
+            year={event.year}
+            allowedTypes={['memory', 'checkin', 'image']}
+          />
+        )}
+        {activeTab === 'expenses' && (
+          <ExpensesTab
+            event={event}
+            expenseList={expenseList}
+            settlementPayments={settlementPayments}
+            attendees={attendees}
+            attendeeUsers={attendeeUsers}
+            currentUserId={currentUserId}
+            canEdit={canEdit}
+            ritualSlug={ritualSlug}
+          />
+        )}
+      </div>
 
       {/* Sponsor Controls */}
       {canEdit && (
