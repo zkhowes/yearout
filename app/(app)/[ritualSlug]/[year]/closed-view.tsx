@@ -57,6 +57,8 @@ type MemberOverride = {
   userId: string
   photoOverride: string | null
   nicknameOverride: string | null
+  nationalityOverride: string | null
+  customFlagSvg: string | null
 }
 
 type RitualMember = {
@@ -169,6 +171,7 @@ export function ClosedView({
           currentAwards={currentAwards}
           isSponsor={canEdit}
           ritualSlug={ritualSlug}
+          overrideMap={overrideMap}
         />
       )}
 
@@ -432,7 +435,7 @@ function CrewTiles({
           const photoUrl = override?.photoOverride ?? user.image
           const displayName = override?.nicknameOverride ?? user.name?.split(' ')[0] ?? 'Unknown'
 
-          const flagUrl = getNationalityFlag(user.nationality)
+          const flagUrl = getNationalityFlag(override?.nationalityOverride ?? user.nationality, override?.customFlagSvg)
 
           return (
             <div

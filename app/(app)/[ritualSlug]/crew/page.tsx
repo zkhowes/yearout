@@ -32,6 +32,8 @@ export default async function CrewPage({
       isCoreCrewe: ritualMembers.isCoreCrewe,
       nicknameOverride: ritualMembers.nicknameOverride,
       photoOverride: ritualMembers.photoOverride,
+      nationalityOverride: ritualMembers.nationalityOverride,
+      customFlagSvg: ritualMembers.customFlagSvg,
       userName: users.name,
       userImage: users.image,
       nationality: users.nationality,
@@ -94,7 +96,8 @@ export default async function CrewPage({
     nickname: m.nicknameOverride,
     role: m.role,
     isCoreCrewe: m.isCoreCrewe,
-    nationality: m.nationality,
+    nationality: m.nationalityOverride ?? m.nationality,
+    customFlagSvg: m.customFlagSvg,
     eventsAttended: attendanceCounts.get(m.userId) ?? 0,
     awards: userAwards.get(m.userId) ?? [],
   }))

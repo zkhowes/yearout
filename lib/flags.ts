@@ -33,7 +33,18 @@ const NATIONALITY_MAP: Record<string, string> = {
   cascadian: '/flags/cascadia.svg',
 }
 
-export function getNationalityFlag(nationality: string | null | undefined): string | null {
+export function getNationalityFlag(
+  nationality: string | null | undefined,
+  customFlagSvg?: string | null,
+): string | null {
   if (!nationality) return null
-  return NATIONALITY_MAP[nationality.toLowerCase().trim()] ?? null
+  const mapped = NATIONALITY_MAP[nationality.toLowerCase().trim()]
+  if (mapped) return mapped
+  if (customFlagSvg) return `data:image/svg+xml,${encodeURIComponent(customFlagSvg)}`
+  return null
+}
+
+export function hasKnownFlag(nationality: string | null | undefined): boolean {
+  if (!nationality) return false
+  return nationality.toLowerCase().trim() in NATIONALITY_MAP
 }

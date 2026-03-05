@@ -1,9 +1,10 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { Trophy, Shield, Star, Pencil, Check, X } from 'lucide-react'
-import { getNationalityFlag } from '@/lib/flags'
-import { updateCrewNickname } from '@/lib/ritual-actions'
+import { Trophy, Shield, Star, Pencil, Check, X, RefreshCw } from 'lucide-react'
+import { getNationalityFlag, hasKnownFlag } from '@/lib/flags'
+import { updateCrewNickname, updateCrewNationality, updateCrewCoreStatus } from '@/lib/ritual-actions'
+import { generateFlagSvg, flagSvgToDataUri } from '@/lib/generate-flag'
 
 type CrewMember = {
   userId: string
@@ -13,6 +14,7 @@ type CrewMember = {
   role: string
   isCoreCrewe: boolean
   nationality: string | null
+  customFlagSvg: string | null
   eventsAttended: number
   awards: { name: string; year: number }[]
 }
@@ -37,7 +39,49 @@ export function CrewGrid({
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [editingNicknameId, setEditingNicknameId] = useState<string | null>(null)
   const [nicknameValue, setNicknameValue] = useState('')
+  const [editingNationalityId, setEditingNationalityId] = useState<string | null>(null)
+  const [nationalityValue, setNationalityValue] = useState('')
+  const [flagSeed, setFlagSeed] = useState(1)
+  const [previewFlagSvg, setPreviewFlagSvg] = useState<string | null>(null)
   const [saving, startSave] = useTransition()
+
+  function startEditNationality(member: CrewMember) {
+    setNationalityValue(member.nationality ?? '')
+    setEditingNationalityId(member.userId)
+    // Initialize flag preview: if they already have a custom flag, show it; otherwise generate one
+    if (member.customFlagSvg) {
+      setPreviewFlagSvg(member.customFlagSvg)
+      setFlagSeed(1)
+    } else {
+      const seed = 1
+      setFlagSeed(seed)
+      setPreviewFlagSvg(generateFlagSvg(seed))
+    }
+  }
+
+  function cycleFlag() {
+    const next = flagSeed + 1
+    setFlagSeed(next)
+    setPreviewFlagSvg(generateFlagSvg(next))
+  }
+
+  function saveNationality(member: CrewMember) {
+    startSave(async () => {
+      if (ritualId && ritualSlug) {
+        // Only save custom flag if nationality doesn't match a known flag
+        const needsCustomFlag = nationalityValue.trim() && !hasKnownFlag(nationalityValue)
+        await updateCrewNationality(
+          ritualId,
+          member.userId,
+          nationalityValue,
+          needsCustomFlag ? previewFlagSvg : null,
+          ritualSlug,
+        )
+      }
+      setEditingNationalityId(null)
+      setPreviewFlagSvg(null)
+    })
+  }
 
   return (
     <div className="flex flex-col gap-2">
@@ -72,7 +116,7 @@ export function CrewGrid({
                   </div>
                 )}
                 {(() => {
-                  const flagUrl = getNationalityFlag(member.nationality)
+                  const flagUrl = getNationalityFlag(member.nationality, member.customFlagSvg)
                   return flagUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
@@ -171,20 +215,120 @@ export function CrewGrid({
                       )}
                     </div>
                   )}
-                  {member.nationality && (
-                    <div className="flex justify-between">
+
+                  {/* Nationality — editable by sponsor */}
+                  {(member.nationality || isSponsor) && (
+                    <div className="flex justify-between items-center">
                       <span className="text-[var(--fg-muted)]">Nationality</span>
-                      <span className="text-[var(--fg)]">{member.nationality}</span>
+                      {editingNationalityId === member.userId ? (
+                        <div className="flex flex-col items-end gap-1.5">
+                          <div className="flex items-center gap-1">
+                            <input
+                              value={nationalityValue}
+                              onChange={(e) => setNationalityValue(e.target.value)}
+                              className="w-28 bg-transparent border-b border-[var(--border)] focus:border-[var(--fg)] outline-none text-sm text-[var(--fg)] text-right"
+                              placeholder="e.g. German/Swiss"
+                              autoFocus
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  e.preventDefault()
+                                  saveNationality(member)
+                                }
+                                if (e.key === 'Escape') {
+                                  setEditingNationalityId(null)
+                                  setPreviewFlagSvg(null)
+                                }
+                              }}
+                            />
+                            <button
+                              onClick={() => saveNationality(member)}
+                              disabled={saving}
+                              className="p-0.5 text-green-500 hover:text-green-400"
+                            >
+                              <Check size={12} />
+                            </button>
+                            <button
+                              onClick={() => {
+                                setEditingNationalityId(null)
+                                setPreviewFlagSvg(null)
+                              }}
+                              className="p-0.5 text-[var(--fg-muted)] hover:text-[var(--fg)]"
+                            >
+                              <X size={12} />
+                            </button>
+                          </div>
+                          {/* Flag preview + cycle — only if nationality won't match a known flag */}
+                          {nationalityValue.trim() && !hasKnownFlag(nationalityValue) && previewFlagSvg && (
+                            <div className="flex items-center gap-2">
+                              <span className="text-[10px] text-[var(--fg-muted)]">Custom flag:</span>
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img
+                                src={flagSvgToDataUri(previewFlagSvg)}
+                                alt="Flag preview"
+                                className="w-8 h-5 rounded-sm border border-[var(--border)]"
+                              />
+                              <button
+                                onClick={cycleFlag}
+                                className="p-0.5 text-[var(--fg-muted)] hover:text-[var(--fg)]"
+                                title="Generate different flag"
+                              >
+                                <RefreshCw size={12} />
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="flex items-center gap-1 text-[var(--fg)]">
+                          {member.nationality ?? <span className="text-[var(--fg-muted)] italic text-xs">none</span>}
+                          {isSponsor && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                startEditNationality(member)
+                              }}
+                              className="p-0.5 text-[var(--fg-muted)] hover:text-[var(--fg)]"
+                            >
+                              <Pencil size={10} />
+                            </button>
+                          )}
+                        </span>
+                      )}
                     </div>
                   )}
+
                   <div className="flex justify-between">
                     <span className="text-[var(--fg-muted)]">Events Attended</span>
                     <span className="text-[var(--fg)] font-semibold">{member.eventsAttended}</span>
                   </div>
-                  {member.isCoreCrewe && (
-                    <div className="flex items-center gap-1.5 text-[var(--accent)]">
-                      <Star size={12} className="fill-current" />
-                      <span className="text-xs font-semibold">Core Crew</span>
+
+                  {/* Core Crew — toggleable by sponsor */}
+                  {(member.isCoreCrewe || isSponsor) && (
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1.5 text-[var(--accent)]">
+                        <Star size={12} className="fill-current" />
+                        <span className="text-xs font-semibold">Core Crew</span>
+                      </div>
+                      {isSponsor ? (
+                        <button
+                          onClick={() => {
+                            startSave(async () => {
+                              if (ritualId && ritualSlug) {
+                                await updateCrewCoreStatus(ritualId, member.userId, !member.isCoreCrewe, ritualSlug)
+                              }
+                            })
+                          }}
+                          disabled={saving}
+                          className={`relative w-8 h-4 rounded-full transition-colors ${
+                            member.isCoreCrewe ? 'bg-[var(--accent)]' : 'bg-[var(--border)]'
+                          }`}
+                        >
+                          <span
+                            className={`absolute top-0.5 w-3 h-3 rounded-full bg-white transition-transform ${
+                              member.isCoreCrewe ? 'left-4.5' : 'left-0.5'
+                            }`}
+                          />
+                        </button>
+                      ) : member.isCoreCrewe ? null : null}
                     </div>
                   )}
                 </div>

@@ -217,7 +217,7 @@ export default async function EventPage({
 
   // ── All ritual members (for @mention dropdown + closed-event crew UI) ───
   let allRitualMembers: { userId: string; userName: string | null; userImage: string | null }[] = []
-  let memberOverrides: { userId: string; photoOverride: string | null; nicknameOverride: string | null }[] = []
+  let memberOverrides: { userId: string; photoOverride: string | null; nicknameOverride: string | null; nationalityOverride: string | null; customFlagSvg: string | null }[] = []
 
   if (event.status !== 'planning') {
     allRitualMembers = await db
@@ -231,12 +231,14 @@ export default async function EventPage({
       .where(eq(ritualMembers.ritualId, ritual.id))
   }
 
-  if (event.status === 'closed') {
+  if (event.status !== 'planning') {
     const rawOverrides = await db
       .select({
         userId: ritualMembers.userId,
         photoOverride: ritualMembers.photoOverride,
         nicknameOverride: ritualMembers.nicknameOverride,
+        nationalityOverride: ritualMembers.nationalityOverride,
+        customFlagSvg: ritualMembers.customFlagSvg,
       })
       .from(ritualMembers)
       .where(eq(ritualMembers.ritualId, ritual.id))

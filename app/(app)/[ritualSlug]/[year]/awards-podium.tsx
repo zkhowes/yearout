@@ -18,6 +18,11 @@ type AttendeeUser = {
   nationality: string | null
 }
 
+type MemberOverride = {
+  nationalityOverride: string | null
+  customFlagSvg: string | null
+}
+
 type AwardDef = {
   id: string
   name: string
@@ -48,6 +53,7 @@ export function AwardsPodium({
   currentAwards,
   isSponsor,
   ritualSlug,
+  overrideMap,
 }: {
   event: Event
   attendees: Attendee[]
@@ -56,6 +62,7 @@ export function AwardsPodium({
   currentAwards: Award[]
   isSponsor: boolean
   ritualSlug: string
+  overrideMap?: Map<string, MemberOverride>
 }) {
   const [assigning, startAssign] = useTransition()
   const [pickerDefId, setPickerDefId] = useState<string | null>(null)
@@ -117,7 +124,8 @@ export function AwardsPodium({
                   </div>
                 )}
                 {(() => {
-                  const flagUrl = getNationalityFlag(winnerUser.nationality)
+                  const ov = overrideMap?.get(winner!.winnerId)
+                  const flagUrl = getNationalityFlag(ov?.nationalityOverride ?? winnerUser.nationality, ov?.customFlagSvg)
                   return flagUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img

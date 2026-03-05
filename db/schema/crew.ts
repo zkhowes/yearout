@@ -25,6 +25,8 @@ export const ritualMembers = pgTable('ritual_members', {
   // Sponsor-overridable fields (per ritual)
   nicknameOverride: text('nickname_override'),   // Sponsor sets what the group calls them
   photoOverride: text('photo_override'),         // Sponsor's funnier/more nostalgic mugshot
+  nationalityOverride: text('nationality_override'), // Sponsor sets nationality label
+  customFlagSvg: text('custom_flag_svg'),            // Generated SVG for unrecognized nationalities
   joinedAt: timestamp('joined_at', { mode: 'date' }).defaultNow().notNull(),
 }, (table) => [
   index('ritual_members_ritual_user_idx').on(table.ritualId, table.userId),

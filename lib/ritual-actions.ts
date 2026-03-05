@@ -190,3 +190,63 @@ export async function updateCrewNickname(
 
   revalidatePath(`/${ritualSlug}/crew`)
 }
+
+export async function updateCrewNationality(
+  ritualId: string,
+  targetUserId: string,
+  nationality: string,
+  customFlagSvg: string | null,
+  ritualSlug: string,
+) {
+  const session = await auth()
+  if (!session?.user?.id) redirect('/login')
+
+  const member = await db.query.ritualMembers.findFirst({
+    where: (rm, { and: a, eq: e }) =>
+      a(e(rm.ritualId, ritualId), e(rm.userId, session.user!.id!), e(rm.role, 'sponsor')),
+  })
+  if (!member) throw new Error('Only the sponsor can edit nationality')
+
+  await db
+    .update(ritualMembers)
+    .set({
+      nationalityOverride: nationality.trim() || null,
+      customFlagSvg: customFlagSvg,
+    })
+    .where(
+      and(
+        eq(ritualMembers.ritualId, ritualId),
+        eq(ritualMembers.userId, targetUserId)
+      )
+    )
+
+  revalidatePath(`/${ritualSlug}/crew`)
+}
+
+export async function updateCrewCoreStatus(
+  ritualId: string,
+  targetUserId: string,
+  isCoreCrewe: boolean,
+  ritualSlug: string,
+) {
+  const session = await auth()
+  if (!session?.user?.id) redirect('/login')
+
+  const member = await db.query.ritualMembers.findFirst({
+    where: (rm, { and: a, eq: e }) =>
+      a(e(rm.ritualId, ritualId), e(rm.userId, session.user!.id!), e(rm.role, 'sponsor')),
+  })
+  if (!member) throw new Error('Only the sponsor can edit core crew status')
+
+  await db
+    .update(ritualMembers)
+    .set({ isCoreCrewe })
+    .where(
+      and(
+        eq(ritualMembers.ritualId, ritualId),
+        eq(ritualMembers.userId, targetUserId)
+      )
+    )
+
+  revalidatePath(`/${ritualSlug}/crew`)
+}
