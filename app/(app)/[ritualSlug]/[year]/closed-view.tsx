@@ -12,6 +12,7 @@ import { getNationalityFlag } from '@/lib/flags'
 import { LoreFeed as SharedLoreFeed } from '@/components/lore/lore-feed'
 import type { LoreEntryData } from '@/components/lore/lore-post'
 import { BookingsSection, type EventBooking } from '@/components/bookings-section'
+import { InfoCarousel } from '@/components/info-carousel'
 
 type Attendee = {
   id: string
@@ -211,7 +212,7 @@ export function ClosedView({
 
 // ─── 4a. Event Details Card ──────────────────────────────────────────────────
 
-export function EventDetailsCard({ event, canEdit, ritualSlug }: { event: { id: string; location: string | null; mountains: string | null; year: number; startDate: Date | null; endDate: Date | null }; canEdit: boolean; ritualSlug: string }) {
+export function EventDetailsCard({ event, canEdit, ritualSlug, carouselProps }: { event: { id: string; location: string | null; mountains: string | null; year: number; startDate: Date | null; endDate: Date | null; status?: string }; canEdit: boolean; ritualSlug: string; carouselProps?: { activityType: string; attendees: { userId: string; bookingStatus: string }[]; attendeeUsers: { id: string; name: string | null }[]; loreCount: number; itineraryCount: number; cachedTips: string[] | null } }) {
   const [editing, setEditing] = useState(false)
   const [locationInput, setLocationInput] = useState(event.location ?? '')
   const [mountainsInput, setMountainsInput] = useState(event.mountains ?? '')
@@ -291,45 +292,63 @@ export function EventDetailsCard({ event, canEdit, ritualSlug }: { event: { id: 
 
   if (!hasContent && !canEdit) return null
 
+  const showCarousel = carouselProps && (event.status === 'scheduled' || event.status === 'in_progress')
+
   return (
-    <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5 flex flex-col gap-3">
-      {event.location && (
-        <p className="text-sm text-[var(--fg)]">{event.location}</p>
-      )}
-      {venues.length > 0 && (
-        <div className="flex flex-wrap gap-2">
-          {venues.map((venue) => (
-            <span
-              key={venue}
-              className="px-3 py-1 rounded-full text-xs font-medium bg-[var(--border)] text-[var(--fg)]"
-            >
-              {venue}
-            </span>
-          ))}
+    <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5 flex flex-col md:flex-row gap-4 md:gap-6">
+      <div className="flex-1 flex flex-col gap-3 min-w-0">
+        {event.location && (
+          <p className="text-sm text-[var(--fg)]">{event.location}</p>
+        )}
+        {venues.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {venues.map((venue) => (
+              <span
+                key={venue}
+                className="px-3 py-1 rounded-full text-xs font-medium bg-[var(--border)] text-[var(--fg)]"
+              >
+                {venue}
+              </span>
+            ))}
+          </div>
+        )}
+        {(event.startDate || event.endDate) && (
+          <p className="text-sm text-[var(--fg-muted)]">
+            {[event.startDate, event.endDate]
+              .filter(Boolean)
+              .map((d) =>
+                d!.toLocaleDateString('en-US', {
+                  month: 'short',
+                  day: 'numeric',
+                  year: 'numeric',
+                  timeZone: 'UTC',
+                })
+              )
+              .join(' \u2013 ')}
+          </p>
+        )}
+        {canEdit && (
+          <button
+            onClick={() => setEditing(true)}
+            className="self-start text-xs text-[var(--fg-muted)] hover:text-[var(--fg)] transition-colors"
+          >
+            {hasContent ? 'Edit details' : '+ Add location / venues'}
+          </button>
+        )}
+      </div>
+      {showCarousel && (
+        <div className="md:flex-1 min-w-0">
+          <InfoCarousel
+            event={{ ...event, status: event.status ?? 'scheduled' }}
+            activityType={carouselProps.activityType}
+            attendees={carouselProps.attendees}
+            attendeeUsers={carouselProps.attendeeUsers}
+            loreCount={carouselProps.loreCount}
+            itineraryCount={carouselProps.itineraryCount}
+            cachedTips={carouselProps.cachedTips}
+            ritualSlug={ritualSlug}
+          />
         </div>
-      )}
-      {(event.startDate || event.endDate) && (
-        <p className="text-sm text-[var(--fg-muted)]">
-          {[event.startDate, event.endDate]
-            .filter(Boolean)
-            .map((d) =>
-              d!.toLocaleDateString('en-US', {
-                month: 'short',
-                day: 'numeric',
-                year: 'numeric',
-                timeZone: 'UTC',
-              })
-            )
-            .join(' \u2013 ')}
-        </p>
-      )}
-      {canEdit && (
-        <button
-          onClick={() => setEditing(true)}
-          className="self-start text-xs text-[var(--fg-muted)] hover:text-[var(--fg)] transition-colors"
-        >
-          {hasContent ? 'Edit details' : '+ Add location / venues'}
-        </button>
       )}
     </div>
   )

@@ -568,6 +568,8 @@ export function ScheduledView({
   crewMembers,
   currentUserId,
   ritualSlug,
+  activityType,
+  cachedTips,
 }: {
   event: Event
   attendees: Attendee[]
@@ -583,6 +585,8 @@ export function ScheduledView({
   crewMembers: CrewMember[]
   currentUserId: string
   ritualSlug: string
+  activityType: string
+  cachedTips: string[] | null
 }) {
   const [advancing, startAdvance] = useTransition()
   const [activeTab, setActiveTab] = useState<'lore' | 'expenses'>('lore')
@@ -608,7 +612,19 @@ export function ScheduledView({
     <div className="flex flex-col gap-6">
 
       {/* Details card */}
-      <EventDetailsCard event={event} canEdit={canEdit} ritualSlug={ritualSlug} />
+      <EventDetailsCard
+        event={{ ...event, status: 'scheduled' }}
+        canEdit={canEdit}
+        ritualSlug={ritualSlug}
+        carouselProps={{
+          activityType,
+          attendees: attendees.map((a) => ({ userId: a.userId, bookingStatus: a.bookingStatus })),
+          attendeeUsers: attendeeUsers.map((u) => ({ id: u.id, name: u.name })),
+          loreCount: loreList.length,
+          itineraryCount: itineraryList.length,
+          cachedTips,
+        }}
+      />
 
       {/* ── Commitment Board ── */}
       <div className="rounded-xl border border-[var(--border)] border-l-4 border-l-amber-500 bg-[var(--surface)] p-4 flex flex-col gap-3">

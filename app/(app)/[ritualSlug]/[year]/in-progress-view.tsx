@@ -571,6 +571,8 @@ export function InProgressView({
   canEdit,
   isSponsor = canEdit,
   ritualSlug,
+  activityType,
+  cachedTips,
 }: {
   event: Event
   attendees: Attendee[]
@@ -590,6 +592,8 @@ export function InProgressView({
   canEdit: boolean
   isSponsor?: boolean
   ritualSlug: string
+  activityType: string
+  cachedTips: string[] | null
 }) {
   const [activeTab, setActiveTab] = useState<'lore' | 'stats' | 'expenses'>('lore')
   const [showCloseout, setShowCloseout] = useState(false)
@@ -603,7 +607,19 @@ export function InProgressView({
   return (
     <div className="flex flex-col gap-6">
       {/* Event Details */}
-      <EventDetailsCard event={event} canEdit={canEdit} ritualSlug={ritualSlug} />
+      <EventDetailsCard
+        event={{ ...event, status: 'in_progress' }}
+        canEdit={canEdit}
+        ritualSlug={ritualSlug}
+        carouselProps={{
+          activityType,
+          attendees: attendees.map((a) => ({ userId: a.userId, bookingStatus: a.bookingStatus })),
+          attendeeUsers: attendeeUsers.map((u) => ({ id: u.id, name: u.name })),
+          loreCount: loreList.length,
+          itineraryCount: itineraryList.length,
+          cachedTips,
+        }}
+      />
 
       {/* Awards Podium */}
       <AwardsPodium

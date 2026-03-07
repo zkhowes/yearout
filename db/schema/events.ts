@@ -30,6 +30,7 @@ export const events = pgTable('events', {
   coverPhotoUrl: text('cover_photo_url'),        // group photo for the event
   editUrl: text('edit_url'),                    // YouTube/Vimeo link for trip edit video
   editThumbnailUrl: text('edit_thumbnail_url'), // custom thumbnail (Vercel Blob)
+  aiTips: text('ai_tips'),                          // JSON array of AI-generated travel tips
   sealedAt: timestamp('sealed_at', { mode: 'date' }),
   createdAt: timestamp('created_at', { mode: 'date' }).defaultNow().notNull(),
 }, (table) => [

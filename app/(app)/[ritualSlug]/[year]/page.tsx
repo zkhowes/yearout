@@ -333,6 +333,8 @@ export default async function EventPage({
             endDate: event.endDate,
             year: event.year,
           }}
+          activityType={ritual.activityType}
+          cachedTips={event.aiTips ? (() => { try { return JSON.parse(event.aiTips) } catch { return null } })() : null}
           attendees={attendeeList}
           attendeeUsers={attendeeUsers}
           myAttendee={myAttendee}
@@ -360,6 +362,8 @@ export default async function EventPage({
             startDate: event.startDate,
             endDate: event.endDate,
           }}
+          activityType={ritual.activityType}
+          cachedTips={event.aiTips ? (() => { try { return JSON.parse(event.aiTips) } catch { return null } })() : null}
           attendees={attendeeList}
           attendeeUsers={attendeeUsers}
           myAttendee={myAttendee}
