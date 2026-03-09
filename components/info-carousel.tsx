@@ -258,7 +258,7 @@ export function InfoCarousel({
     if (cards.length > 1) {
       timerRef.current = setInterval(() => {
         setCurrent((c) => (c + 1) % cards.length)
-      }, 8000)
+      }, 10000)
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cards.length])
@@ -294,13 +294,15 @@ export function InfoCarousel({
 
       {/* Dots */}
       {cards.length > 1 && (
-        <div className="flex justify-center gap-1.5">
+        <div className="flex justify-center gap-2">
           {cards.map((card, i) => (
             <button
               key={card.id}
               onClick={() => { setCurrent(i); startTimer() }}
-              className={`w-1.5 h-1.5 rounded-full transition-colors ${
-                i === current ? 'bg-[var(--fg)]' : 'bg-[var(--fg)]/20'
+              className={`rounded-full transition-all ${
+                i === current
+                  ? 'w-5 h-2 bg-[var(--fg)]'
+                  : 'w-2 h-2 bg-[var(--fg)]/30 hover:bg-[var(--fg)]/50'
               }`}
               aria-label={`Go to ${card.label}`}
             />

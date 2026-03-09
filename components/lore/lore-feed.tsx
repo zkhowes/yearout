@@ -2,8 +2,8 @@
 
 import { useState, useTransition } from 'react'
 import { Plus } from 'lucide-react'
-import { toggleLoreHOF, deleteLoreEntry } from '@/lib/event-actions'
-import { LorePost, type LoreEntryData } from './lore-post'
+import { toggleLoreHOF, deleteLoreEntry, moveLoreEntry } from '@/lib/event-actions'
+import { LorePost, type LoreEntryData, type EventOption } from './lore-post'
 import { AddLoreForm } from './add-lore-form'
 
 type CrewMember = {
@@ -23,6 +23,7 @@ type LoreFeedProps = {
   year: number
   showEventContext?: boolean
   allowedTypes?: ('memory' | 'image' | 'checkin')[]
+  allEvents?: EventOption[]
 }
 
 export function LoreFeed({
@@ -36,11 +37,14 @@ export function LoreFeed({
   year,
   showEventContext = false,
   allowedTypes,
+  allEvents,
 }: LoreFeedProps) {
   const [showForm, setShowForm] = useState(false)
   const [toggling, startToggle] = useTransition()
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [deleting, startDelete] = useTransition()
+  const [movingId, setMovingId] = useState<string | null>(null)
+  const [moving, startMove] = useTransition()
 
   const sorted = [...entries].sort(
     (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
@@ -57,6 +61,14 @@ export function LoreFeed({
     startDelete(async () => {
       await deleteLoreEntry(entryId, ritualSlug, year)
       setDeletingId(null)
+    })
+  }
+
+  function handleMove(entryId: string, targetEventId: string) {
+    setMovingId(entryId)
+    startMove(async () => {
+      await moveLoreEntry(entryId, targetEventId, ritualSlug, year)
+      setMovingId(null)
     })
   }
 
@@ -97,8 +109,12 @@ export function LoreFeed({
             showEventContext={showEventContext}
             onToggleHOF={handleToggleHOF}
             onDelete={handleDelete}
+            onMove={allEvents ? handleMove : undefined}
             isToggling={toggling}
             isDeleting={deleting && deletingId === entry.id}
+            isMoving={moving && movingId === entry.id}
+            allEvents={allEvents}
+            currentEventId={eventId}
           />
         ))
       )}

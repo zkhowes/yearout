@@ -125,6 +125,7 @@ export function ClosedView({
   currentUserId,
   canEdit,
   ritualSlug,
+  allRitualEvents,
 }: {
   event: Event
   attendees: Attendee[]
@@ -140,6 +141,7 @@ export function ClosedView({
   currentUserId: string
   canEdit: boolean
   ritualSlug: string
+  allRitualEvents?: { id: string; name: string; year: number }[]
 }) {
   const overrideMap = new Map(memberOverrides.map((m) => [m.userId, m]))
 
@@ -205,6 +207,7 @@ export function ClosedView({
         eventId={event.id}
         year={event.year}
         allowedTypes={['memory', 'image']}
+        allEvents={allRitualEvents}
       />
     </div>
   )

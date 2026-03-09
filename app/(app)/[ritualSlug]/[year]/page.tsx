@@ -56,6 +56,17 @@ export default async function EventPage({
   })
   if (!event) redirect(`/${params.ritualSlug}`)
 
+  // All events in this ritual (for lore move feature)
+  const allRitualEvents = isSponsor
+    ? (await db.query.events.findMany({
+        where: (e, { and, eq: eqOp }) => and(eqOp(e.ritualId, ritual.id)),
+      })).filter((e) => e.status !== 'planning').map((e) => ({
+        id: e.id,
+        name: e.name,
+        year: e.year,
+      }))
+    : []
+
   let canEdit = isSponsor
 
   // ── Planning state: load proposals + votes ────────────────────────────────
@@ -348,6 +359,7 @@ export default async function EventPage({
           crewMembers={allRitualMembers.map((m) => ({ id: m.userId, name: m.userName, image: m.userImage }))}
           currentUserId={session.user!.id!}
           ritualSlug={ritual.slug}
+          allRitualEvents={allRitualEvents}
         />
       )}
 
@@ -380,6 +392,7 @@ export default async function EventPage({
           currentUserId={session.user!.id!}
           canEdit={canEdit}
           ritualSlug={ritual.slug}
+          allRitualEvents={allRitualEvents}
         />
       )}
 
@@ -410,6 +423,7 @@ export default async function EventPage({
           currentUserId={session.user!.id!}
           canEdit={canEdit}
           ritualSlug={ritual.slug}
+          allRitualEvents={allRitualEvents}
         />
       )}
     </div>

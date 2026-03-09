@@ -573,6 +573,7 @@ export function InProgressView({
   ritualSlug,
   activityType,
   cachedTips,
+  allRitualEvents,
 }: {
   event: Event
   attendees: Attendee[]
@@ -594,6 +595,7 @@ export function InProgressView({
   ritualSlug: string
   activityType: string
   cachedTips: string[] | null
+  allRitualEvents?: { id: string; name: string; year: number }[]
 }) {
   const [activeTab, setActiveTab] = useState<'lore' | 'stats' | 'expenses'>('lore')
   const [showCloseout, setShowCloseout] = useState(false)
@@ -678,6 +680,7 @@ export function InProgressView({
           eventId={event.id}
           year={event.year}
           allowedTypes={['memory', 'checkin', 'image']}
+          allEvents={allRitualEvents}
         />
       )}
       {activeTab === 'stats' && (

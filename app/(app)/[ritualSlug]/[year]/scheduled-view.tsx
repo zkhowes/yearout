@@ -570,6 +570,7 @@ export function ScheduledView({
   ritualSlug,
   activityType,
   cachedTips,
+  allRitualEvents,
 }: {
   event: Event
   attendees: Attendee[]
@@ -587,6 +588,7 @@ export function ScheduledView({
   ritualSlug: string
   activityType: string
   cachedTips: string[] | null
+  allRitualEvents?: { id: string; name: string; year: number }[]
 }) {
   const [advancing, startAdvance] = useTransition()
   const [activeTab, setActiveTab] = useState<'lore' | 'expenses'>('lore')
@@ -777,6 +779,7 @@ export function ScheduledView({
             eventId={event.id}
             year={event.year}
             allowedTypes={['memory', 'checkin', 'image']}
+            allEvents={allRitualEvents}
           />
         )}
         {activeTab === 'expenses' && (

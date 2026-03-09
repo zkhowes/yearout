@@ -826,6 +826,46 @@ export async function deleteLoreEntry(
   revalidatePath(`/${ritualSlug}/lore`)
 }
 
+export async function moveLoreEntry(
+  entryId: string,
+  targetEventId: string,
+  ritualSlug: string,
+  sourceYear: number
+) {
+  const session = await auth()
+  if (!session?.user?.id) redirect('/login')
+
+  const entry = await db.query.loreEntries.findFirst({
+    where: (le, { eq }) => eq(le.id, entryId),
+  })
+  if (!entry) throw new Error('Lore entry not found')
+
+  const sourceEvent = await db.query.events.findFirst({
+    where: (e, { eq }) => eq(e.id, entry.eventId),
+  })
+  if (!sourceEvent) throw new Error('Source event not found')
+
+  const targetEvent = await db.query.events.findFirst({
+    where: (e, { eq }) => eq(e.id, targetEventId),
+  })
+  if (!targetEvent) throw new Error('Target event not found')
+
+  // Must be same ritual
+  if (sourceEvent.ritualId !== targetEvent.ritualId) throw new Error('Events must be in the same ritual')
+
+  // Only sponsor or host can move
+  await requireSponsorOrHost(sourceEvent.id, session.user.id!)
+
+  await db
+    .update(loreEntries)
+    .set({ eventId: targetEventId })
+    .where(eq(loreEntries.id, entryId))
+
+  revalidatePath(`/${ritualSlug}/${sourceYear}`)
+  revalidatePath(`/${ritualSlug}/${targetEvent.year}`)
+  revalidatePath(`/${ritualSlug}/lore`)
+}
+
 export async function updateEventEdit(
   eventId: string,
   ritualSlug: string,

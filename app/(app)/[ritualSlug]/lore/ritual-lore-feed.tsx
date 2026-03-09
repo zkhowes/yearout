@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import { Plus, Star, Filter } from 'lucide-react'
-import { toggleLoreHOF, deleteLoreEntry } from '@/lib/event-actions'
+import { toggleLoreHOF, deleteLoreEntry, moveLoreEntry } from '@/lib/event-actions'
 import { LorePost, type LoreEntryData } from '@/components/lore/lore-post'
 import { AddLoreForm } from '@/components/lore/add-lore-form'
 
@@ -46,6 +46,8 @@ export function RitualLoreFeed({
   const [toggling, startToggle] = useTransition()
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [deleting, startDelete] = useTransition()
+  const [movingId, setMovingId] = useState<string | null>(null)
+  const [moving, startMove] = useTransition()
 
   const userMap = new Map(allMembers.map((m) => [m.id, m]))
 
@@ -107,6 +109,22 @@ export function RitualLoreFeed({
       setDeletingId(null)
     })
   }
+
+  function handleMove(entryId: string, targetEventId: string) {
+    const entry = entries.find((e) => e.id === entryId)
+    if (!entry) return
+    setMovingId(entryId)
+    startMove(async () => {
+      await moveLoreEntry(entryId, targetEventId, ritualSlug, entry.eventYear ?? 0)
+      setMovingId(null)
+    })
+  }
+
+  const moveEventOptions = allEvents.filter((e) => e.status !== 'planning').map((e) => ({
+    id: e.id,
+    name: e.name,
+    year: e.year,
+  }))
 
   function handleOpenForm() {
     setSelectedEventId(defaultEvent?.id ?? '')
@@ -259,7 +277,9 @@ export function RitualLoreFeed({
             : 'No lore yet. Be the first to add a memory.'}
         </p>
       ) : (
-        sorted.map((entry) => (
+        sorted.map((entry) => {
+          const entryEvent = allEvents.find((e) => e.year === entry.eventYear)
+          return (
           <LorePost
             key={entry.id}
             entry={entry}
@@ -269,10 +289,15 @@ export function RitualLoreFeed({
             showEventContext
             onToggleHOF={handleToggleHOF}
             onDelete={handleDelete}
+            onMove={canEdit ? handleMove : undefined}
             isToggling={toggling}
             isDeleting={deleting && deletingId === entry.id}
+            isMoving={moving && movingId === entry.id}
+            allEvents={moveEventOptions}
+            currentEventId={entryEvent?.id}
           />
-        ))
+          )
+        })
       )}
     </div>
   )

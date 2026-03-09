@@ -1,6 +1,7 @@
 'use client'
 
-import { Star, Trash2, Loader2, MapPin, User, Film, Camera, MessageSquare, Image as ImageIcon, Navigation } from 'lucide-react'
+import { useState } from 'react'
+import { Star, Trash2, Loader2, MapPin, User, Film, Camera, MessageSquare, Image as ImageIcon, Navigation, ArrowRightLeft } from 'lucide-react'
 
 export type LoreEntryData = {
   id: string
@@ -19,6 +20,12 @@ export type LoreEntryData = {
   editUrl?: string
 }
 
+export type EventOption = {
+  id: string
+  name: string
+  year: number
+}
+
 type LorePostProps = {
   entry: LoreEntryData
   userMap: Map<string, { id: string; name: string | null; image: string | null }>
@@ -27,8 +34,12 @@ type LorePostProps = {
   showEventContext?: boolean
   onToggleHOF: (entryId: string) => void
   onDelete: (entryId: string) => void
+  onMove?: (entryId: string, targetEventId: string) => void
   isToggling: boolean
   isDeleting: boolean
+  isMoving?: boolean
+  allEvents?: EventOption[]
+  currentEventId?: string
 }
 
 function getEmbedUrl(url: string): string | null {
@@ -81,13 +92,19 @@ export function LorePost({
   showEventContext,
   onToggleHOF,
   onDelete,
+  onMove,
   isToggling,
   isDeleting,
+  isMoving,
+  allEvents,
+  currentEventId,
 }: LorePostProps) {
+  const [showMoveSelect, setShowMoveSelect] = useState(false)
   const author = userMap.get(entry.authorId)
   const isSynthetic = !!entry.subtype
   const canToggleHOF = !isSynthetic && (entry.authorId === currentUserId || canEdit)
   const canDeleteEntry = !isSynthetic && (entry.authorId === currentUserId || canEdit)
+  const canMoveEntry = !isSynthetic && canEdit && allEvents && allEvents.length > 1 && onMove
 
   return (
     <div
@@ -139,6 +156,22 @@ export function LorePost({
               <Star size={14} className={entry.isHallOfFame ? 'fill-current' : ''} />
             </button>
           )}
+          {canMoveEntry && (
+            <button
+              onClick={() => setShowMoveSelect(!showMoveSelect)}
+              disabled={isMoving}
+              className={`p-1.5 transition-colors disabled:opacity-50 ${
+                showMoveSelect ? 'text-[var(--accent)]' : 'text-[var(--fg-muted)] hover:text-[var(--fg)]'
+              }`}
+              aria-label="Move to different event"
+            >
+              {isMoving ? (
+                <Loader2 size={13} className="animate-spin" />
+              ) : (
+                <ArrowRightLeft size={13} />
+              )}
+            </button>
+          )}
           {canDeleteEntry && (
             <button
               onClick={() => onDelete(entry.id)}
@@ -155,6 +188,38 @@ export function LorePost({
           )}
         </div>
       </div>
+
+      {/* Move to event selector */}
+      {showMoveSelect && canMoveEntry && (
+        <div className="flex items-center gap-2 px-4 py-2 bg-[var(--accent)]/5 border-y border-[var(--border)]">
+          <span className="text-[10px] uppercase tracking-wider text-[var(--fg-muted)] shrink-0">Move to</span>
+          <select
+            onChange={(e) => {
+              if (e.target.value) {
+                onMove(entry.id, e.target.value)
+                setShowMoveSelect(false)
+              }
+            }}
+            defaultValue=""
+            className="flex-1 bg-transparent border border-[var(--border)] rounded-lg px-2 py-1 text-xs text-[var(--fg)] outline-none"
+          >
+            <option value="" disabled>Select event...</option>
+            {allEvents
+              .filter((ev) => ev.id !== currentEventId)
+              .map((ev) => (
+                <option key={ev.id} value={ev.id}>
+                  {ev.name} ({ev.year})
+                </option>
+              ))}
+          </select>
+          <button
+            onClick={() => setShowMoveSelect(false)}
+            className="text-xs text-[var(--fg-muted)] hover:text-[var(--fg)]"
+          >
+            Cancel
+          </button>
+        </div>
+      )}
 
       {/* Type badge */}
       <div className="flex items-center gap-1.5 px-4 pb-1">
