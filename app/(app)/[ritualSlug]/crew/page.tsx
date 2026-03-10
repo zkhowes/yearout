@@ -35,6 +35,7 @@ export default async function CrewPage({
       nationalityOverride: ritualMembers.nationalityOverride,
       customFlagSvg: ritualMembers.customFlagSvg,
       userName: users.name,
+      userEmail: users.email,
       userImage: users.image,
       nationality: users.nationality,
     })
@@ -92,6 +93,7 @@ export default async function CrewPage({
   const crewData = members.map((m) => ({
     userId: m.userId,
     name: m.userName,
+    email: m.userEmail,
     image: m.photoOverride ?? m.userImage,
     nickname: m.nicknameOverride,
     role: m.role,

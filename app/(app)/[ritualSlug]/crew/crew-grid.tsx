@@ -9,6 +9,7 @@ import { generateFlagSvg, flagSvgToDataUri } from '@/lib/generate-flag'
 type CrewMember = {
   userId: string
   name: string | null
+  email: string
   image: string | null
   nickname: string | null
   role: string
@@ -151,6 +152,10 @@ export function CrewGrid({
                     <span className="text-[var(--fg-muted)]">Full Name</span>
                     <span className="text-[var(--fg)]">{fullName}</span>
                   </div>
+                  <div className="flex justify-between">
+                    <span className="text-[var(--fg-muted)]">Email</span>
+                    <span className="text-[var(--fg)] truncate ml-4">{member.email}</span>
+                  </div>
                   {(member.nickname || isSponsor) && (
                     <div className="flex justify-between items-center">
                       <span className="text-[var(--fg-muted)]">Nickname</span>
@@ -257,7 +262,17 @@ export function CrewGrid({
                               <X size={12} />
                             </button>
                           </div>
-                          {/* Flag preview + cycle — only if nationality won't match a known flag */}
+                          {/* Flag preview — show recognized flag or custom flag generator */}
+                          {nationalityValue.trim() && hasKnownFlag(nationalityValue) && (
+                            <div className="flex items-center gap-2">
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img
+                                src={getNationalityFlag(nationalityValue)!}
+                                alt="Flag preview"
+                                className="w-8 h-5 rounded-sm border border-[var(--border)]"
+                              />
+                            </div>
+                          )}
                           {nationalityValue.trim() && !hasKnownFlag(nationalityValue) && previewFlagSvg && (
                             <div className="flex items-center gap-2">
                               <span className="text-[10px] text-[var(--fg-muted)]">Custom flag:</span>
