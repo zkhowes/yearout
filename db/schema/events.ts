@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, pgEnum, integer, boolean, index } from 'drizzle-orm/pg-core'
+import { pgTable, text, timestamp, pgEnum, integer, boolean, index, uniqueIndex } from 'drizzle-orm/pg-core'
 import { users } from './users'
 import { rituals, ritualAwardDefinitions } from './rituals'
 
@@ -31,6 +31,7 @@ export const events = pgTable('events', {
   editUrl: text('edit_url'),                    // YouTube/Vimeo link for trip edit video
   editThumbnailUrl: text('edit_thumbnail_url'), // custom thumbnail (Vercel Blob)
   aiTips: text('ai_tips'),                          // JSON array of AI-generated travel tips
+  callMode: text('call_mode'),                        // 'best_fit' | 'all_or_none' — null for legacy/quick-enter
   sealedAt: timestamp('sealed_at', { mode: 'date' }),
   createdAt: timestamp('created_at', { mode: 'date' }).defaultNow().notNull(),
 }, (table) => [
@@ -173,3 +174,40 @@ export const callSends = pgTable('call_sends', {
   aiQuote: text('ai_quote'),         // Stage 1 only — stored for the archive
   sentAt: timestamp('sent_at', { mode: 'date' }).defaultNow().notNull(),
 })
+
+// The Call — date range options set by sponsor
+export const callDateOptions = pgTable('call_date_options', {
+  id: text('id').primaryKey(),
+  eventId: text('event_id').notNull().references(() => events.id, { onDelete: 'cascade' }),
+  startDate: timestamp('start_date', { mode: 'date' }).notNull(),
+  endDate: timestamp('end_date', { mode: 'date' }).notNull(),
+  sortOrder: integer('sort_order').notNull().default(0),
+  createdAt: timestamp('created_at', { mode: 'date' }).defaultNow().notNull(),
+}, (table) => [
+  index('call_date_options_event_id_idx').on(table.eventId),
+])
+
+// The Call — location options set by sponsor, with AI-generated info cards
+export const callLocationOptions = pgTable('call_location_options', {
+  id: text('id').primaryKey(),
+  eventId: text('event_id').notNull().references(() => events.id, { onDelete: 'cascade' }),
+  name: text('name').notNull(),       // e.g. "Park City, UT"
+  aiCard: text('ai_card'),            // JSON: { venues, dining, facts, pastEvents }
+  sortOrder: integer('sort_order').notNull().default(0),
+  createdAt: timestamp('created_at', { mode: 'date' }).defaultNow().notNull(),
+}, (table) => [
+  index('call_location_options_event_id_idx').on(table.eventId),
+])
+
+// The Call — crew votes (multi-select on dates + locations)
+export const callVotes = pgTable('call_votes', {
+  id: text('id').primaryKey(),
+  eventId: text('event_id').notNull().references(() => events.id, { onDelete: 'cascade' }),
+  userId: text('user_id').notNull().references(() => users.id),
+  optionType: text('option_type').notNull(), // 'date' | 'location'
+  optionId: text('option_id').notNull(),     // FK to callDateOptions or callLocationOptions
+  createdAt: timestamp('created_at', { mode: 'date' }).defaultNow().notNull(),
+}, (table) => [
+  index('call_votes_event_id_idx').on(table.eventId),
+  uniqueIndex('call_votes_unique_idx').on(table.userId, table.optionType, table.optionId),
+])

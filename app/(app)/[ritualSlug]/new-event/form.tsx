@@ -1,8 +1,9 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { ArrowRight, Loader2 } from 'lucide-react'
-import { createEvent, quickEnterEvent } from '@/lib/event-actions'
+import { ArrowRight, Loader2, Plus, X, Megaphone } from 'lucide-react'
+import { createCall, quickEnterEvent } from '@/lib/event-actions'
+import { CalendarRangePicker, type DateRange } from '@/components/calendar-range-picker'
 
 const THIS_YEAR = new Date().getFullYear()
 
@@ -40,7 +41,7 @@ export function NewEventForm({
               : 'text-[var(--fg-muted)] hover:text-[var(--fg)]'
           }`}
         >
-          Plan together
+          The Call
         </button>
         <button
           type="button"
@@ -56,7 +57,7 @@ export function NewEventForm({
       </div>
 
       {mode === 'plan' ? (
-        <PlanForm ritualId={ritualId} ritualSlug={ritualSlug} ritualName={ritualName} />
+        <CallForm ritualId={ritualId} ritualSlug={ritualSlug} ritualName={ritualName} />
       ) : (
         <QuickEnterForm
           ritualId={ritualId}
@@ -70,41 +71,54 @@ export function NewEventForm({
   )
 }
 
-// ─── Plan Together Form ───────────────────────────────────────────────────────
+// ─── The Call Form ────────────────────────────────────────────────────────────
 
-function PlanForm({
+function CallForm({
   ritualId,
   ritualSlug,
-  ritualName,
 }: {
   ritualId: string
   ritualSlug: string
   ritualName: string
 }) {
   const [year, setYear] = useState(THIS_YEAR)
-  const [location, setLocation] = useState('')
-  const [proposedDates, setProposedDates] = useState('')
-  const [name, setName] = useState(`${ritualName} ${THIS_YEAR}`)
-  const [nameEdited, setNameEdited] = useState(false)
+  const [callMode, setCallMode] = useState<'best_fit' | 'all_or_none'>('best_fit')
+  const [dateRanges, setDateRanges] = useState<DateRange[]>([])
+  const [locations, setLocations] = useState<string[]>([''])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
-  useEffect(() => {
-    if (nameEdited) return
-    const loc = location.trim()
-    setName(loc ? `${ritualName} ${loc} ${year}` : `${ritualName} ${year}`)
-  }, [year, location, ritualName, nameEdited])
+  function updateLocation(index: number, value: string) {
+    setLocations((prev) => prev.map((l, i) => (i === index ? value : l)))
+  }
+
+  function addLocation() {
+    if (locations.length < 3) setLocations([...locations, ''])
+  }
+
+  function removeLocation(index: number) {
+    if (locations.length > 1) setLocations(locations.filter((_, i) => i !== index))
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+    const validLocations = locations.map((l) => l.trim()).filter(Boolean)
+    if (dateRanges.length === 0) {
+      setError('Select at least one date range.')
+      return
+    }
+    if (validLocations.length === 0) {
+      setError('Add at least one location.')
+      return
+    }
     setLoading(true)
     setError('')
     try {
-      await createEvent(ritualId, ritualSlug, {
-        name: name.trim() || `${ritualName} ${year}`,
+      await createCall(ritualId, ritualSlug, {
         year,
-        location: location.trim() || undefined,
-        proposedDates: proposedDates.trim() || undefined,
+        callMode,
+        dateRanges: dateRanges.map((r) => ({ startDate: r.start, endDate: r.end })),
+        locations: validLocations,
       })
     } catch {
       setError('Something went wrong. Try again.')
@@ -112,8 +126,11 @@ function PlanForm({
     }
   }
 
+  const inputCls = 'w-full bg-transparent border-b-2 border-[var(--border)] focus:border-[var(--fg)] outline-none pb-2 text-[var(--fg)] placeholder-[var(--fg-muted)] transition-colors'
+
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-8">
+      {/* Year */}
       <div className="flex flex-col gap-2">
         <label className="text-xs uppercase tracking-widest text-[var(--fg-muted)]">Year</label>
         <input
@@ -126,54 +143,88 @@ function PlanForm({
         />
       </div>
 
-      <div className="flex flex-col gap-2">
-        <label className="text-xs uppercase tracking-widest text-[var(--fg-muted)]">
-          Proposed Location
-        </label>
-        <input
-          type="text"
-          value={location}
-          onChange={(e) => setLocation(e.target.value)}
-          placeholder="Whistler, BC"
-          className="w-full text-xl bg-transparent border-b-2 border-[var(--border)] focus:border-[var(--fg)] outline-none pb-2 text-[var(--fg)] placeholder-[var(--fg-muted)] transition-colors"
-        />
-        <p className="text-xs text-[var(--fg-muted)]">Crew can propose alternatives. You lock the final one.</p>
+      {/* Call Mode */}
+      <div className="flex flex-col gap-3">
+        <label className="text-xs uppercase tracking-widest text-[var(--fg-muted)]">Mode</label>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => setCallMode('best_fit')}
+            className={`flex-1 py-2.5 px-3 rounded-xl text-sm border transition-all text-left ${
+              callMode === 'best_fit'
+                ? 'bg-[var(--accent)] border-[var(--accent)] text-[var(--accent-fg)]'
+                : 'border-[var(--border)] text-[var(--fg-muted)] hover:text-[var(--fg)]'
+            }`}
+          >
+            <span className="font-semibold block">Best Fit</span>
+            <span className="text-xs opacity-75">Works for most</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setCallMode('all_or_none')}
+            className={`flex-1 py-2.5 px-3 rounded-xl text-sm border transition-all text-left ${
+              callMode === 'all_or_none'
+                ? 'bg-[var(--accent)] border-[var(--accent)] text-[var(--accent-fg)]'
+                : 'border-[var(--border)] text-[var(--fg-muted)] hover:text-[var(--fg)]'
+            }`}
+          >
+            <span className="font-semibold block">All or None</span>
+            <span className="text-xs opacity-75">Everyone or bust</span>
+          </button>
+        </div>
       </div>
 
-      <div className="flex flex-col gap-2">
-        <label className="text-xs uppercase tracking-widest text-[var(--fg-muted)]">
-          Proposed Dates
-        </label>
-        <input
-          type="text"
-          value={proposedDates}
-          onChange={(e) => setProposedDates(e.target.value)}
-          placeholder="Jan 15–20"
-          className="w-full text-xl bg-transparent border-b-2 border-[var(--border)] focus:border-[var(--fg)] outline-none pb-2 text-[var(--fg)] placeholder-[var(--fg-muted)] transition-colors"
-        />
+      {/* Date Ranges — Calendar Picker */}
+      <div className="flex flex-col gap-3">
+        <label className="text-xs uppercase tracking-widest text-[var(--fg-muted)]">Date Ranges</label>
+        <CalendarRangePicker ranges={dateRanges} onChange={setDateRanges} maxRanges={3} />
       </div>
 
-      <div className="flex flex-col gap-2">
-        <label className="text-xs uppercase tracking-widest text-[var(--fg-muted)]">Event Name</label>
-        <input
-          type="text"
-          value={name}
-          onChange={(e) => { setName(e.target.value); setNameEdited(true) }}
-          className="w-full text-xl font-semibold bg-transparent border-b-2 border-[var(--border)] focus:border-[var(--fg)] outline-none pb-2 text-[var(--fg)] transition-colors"
-        />
+      {/* Locations */}
+      <div className="flex flex-col gap-3">
+        <label className="text-xs uppercase tracking-widest text-[var(--fg-muted)]">Locations</label>
+        {locations.map((loc, i) => (
+          <div key={i} className="flex items-center gap-2">
+            <input
+              type="text"
+              value={loc}
+              onChange={(e) => updateLocation(i, e.target.value)}
+              placeholder={i === 0 ? 'Park City, UT' : i === 1 ? 'Whistler, BC' : 'Breckenridge, CO'}
+              className={`text-base ${inputCls}`}
+            />
+            {locations.length > 1 && (
+              <button
+                type="button"
+                onClick={() => removeLocation(i)}
+                className="p-1 text-[var(--fg-muted)] hover:text-red-400"
+              >
+                <X size={14} />
+              </button>
+            )}
+          </div>
+        ))}
+        {locations.length < 3 && (
+          <button
+            type="button"
+            onClick={addLocation}
+            className="flex items-center gap-1.5 text-xs text-[var(--fg-muted)] hover:text-[var(--fg)] transition-colors"
+          >
+            <Plus size={12} /> Add location
+          </button>
+        )}
       </div>
 
       {error && <p className="text-sm text-red-500">{error}</p>}
 
       <button
         type="submit"
-        disabled={loading}
+        disabled={loading || dateRanges.length === 0}
         className="flex items-center justify-center gap-2 w-full py-4 rounded-xl btn-accent text-base font-semibold disabled:opacity-50"
       >
         {loading ? (
-          <><Loader2 size={16} className="animate-spin" /> Creating…</>
+          <><Loader2 size={16} className="animate-spin" /> Issuing The Call…</>
         ) : (
-          <>Start planning <ArrowRight size={16} /></>
+          <><Megaphone size={16} /> Issue The Call</>
         )}
       </button>
     </form>

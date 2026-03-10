@@ -18,6 +18,10 @@ import {
   dailyItinerary,
   loreMentions,
   eventBookings,
+  callDateOptions,
+  callLocationOptions,
+  callVotes,
+  callSends,
 } from '@/db/schema'
 import { computeEqualSplit, validateExactSplit } from '@/lib/expense-utils'
 import { auth } from '@/auth'
@@ -1585,4 +1589,233 @@ export async function deleteEventBooking(
   await db.delete(eventBookings).where(eq(eventBookings.id, bookingId))
 
   revalidatePath(`/${ritualSlug}/${year}`)
+}
+
+// ─── The Call ─────────────────────────────────────────────────────────────────
+
+export async function createCall(
+  ritualId: string,
+  ritualSlug: string,
+  data: {
+    year: number
+    callMode: 'best_fit' | 'all_or_none'
+    dateRanges: { startDate: Date; endDate: Date }[]
+    locations: string[]
+  }
+) {
+  const session = await auth()
+  if (!session?.user?.id) redirect('/login')
+
+  const member = await db.query.ritualMembers.findFirst({
+    where: (rm, { and, eq }) =>
+      and(
+        eq(rm.ritualId, ritualId),
+        eq(rm.userId, session.user!.id!),
+        eq(rm.role, 'sponsor')
+      ),
+  })
+  if (!member) throw new Error('Only the sponsor can issue The Call')
+
+  if (data.dateRanges.length < 1 || data.dateRanges.length > 3) {
+    throw new Error('Provide 1-3 date ranges')
+  }
+  if (data.locations.length < 1 || data.locations.length > 3) {
+    throw new Error('Provide 1-3 locations')
+  }
+
+  const eventId = crypto.randomUUID()
+
+  // Placeholder name — will be replaced by AI when The Call is sent
+  const placeholderName = `${ritualSlug} ${data.year}`
+
+  await db.insert(events).values({
+    id: eventId,
+    ritualId,
+    organizerId: null,
+    name: placeholderName,
+    year: data.year,
+    location: null,
+    status: 'planning',
+    callMode: data.callMode,
+    createdAt: new Date(),
+  })
+
+  // Insert date range options
+  await db.insert(callDateOptions).values(
+    data.dateRanges.map((r, i) => ({
+      id: crypto.randomUUID(),
+      eventId,
+      startDate: r.startDate,
+      endDate: r.endDate,
+      sortOrder: i,
+      createdAt: new Date(),
+    }))
+  )
+
+  // Insert location options (AI cards generated async via API)
+  const locationIds = data.locations.map((name, i) => ({
+    id: crypto.randomUUID(),
+    eventId,
+    name: name.trim(),
+    aiCard: null,
+    sortOrder: i,
+    createdAt: new Date(),
+  }))
+  await db.insert(callLocationOptions).values(locationIds)
+
+  // Record Stage 2 (The Vote) call send
+  await db.insert(callSends).values({
+    id: crypto.randomUUID(),
+    ritualId,
+    eventId,
+    stage: 2,
+    sentAt: new Date(),
+  })
+
+  redirect(`/${ritualSlug}/${data.year}`)
+}
+
+export async function castCallVote(
+  eventId: string,
+  optionType: 'date' | 'location',
+  optionId: string,
+  ritualSlug: string,
+  year: number,
+) {
+  const session = await auth()
+  if (!session?.user?.id) redirect('/login')
+
+  // Toggle: delete if exists, insert if not
+  const existing = await db.query.callVotes.findFirst({
+    where: (cv, { and, eq }) =>
+      and(
+        eq(cv.userId, session.user!.id!),
+        eq(cv.optionType, optionType),
+        eq(cv.optionId, optionId),
+      ),
+  })
+
+  if (existing) {
+    await db.delete(callVotes).where(eq(callVotes.id, existing.id))
+  } else {
+    await db.insert(callVotes).values({
+      id: crypto.randomUUID(),
+      eventId,
+      userId: session.user.id!,
+      optionType,
+      optionId,
+      createdAt: new Date(),
+    })
+  }
+
+  revalidatePath(`/${ritualSlug}/${year}`)
+}
+
+export async function sendTheCall(
+  eventId: string,
+  ritualSlug: string,
+  winningDateOptionId: string,
+  winningLocationOptionId: string,
+  overrideName?: string,
+) {
+  const session = await auth()
+  if (!session?.user?.id) redirect('/login')
+
+  const event = await db.query.events.findFirst({
+    where: (e, { eq }) => eq(e.id, eventId),
+  })
+  if (!event) throw new Error('Event not found')
+  if (event.status !== 'planning') throw new Error('Event is not in planning state')
+
+  const member = await db.query.ritualMembers.findFirst({
+    where: (rm, { and, eq }) =>
+      and(
+        eq(rm.ritualId, event.ritualId),
+        eq(rm.userId, session.user!.id!),
+        eq(rm.role, 'sponsor')
+      ),
+  })
+  if (!member) throw new Error('Only sponsors can send The Call')
+
+  // Fetch winning options
+  const winningDate = await db.query.callDateOptions.findFirst({
+    where: (d, { eq }) => eq(d.id, winningDateOptionId),
+  })
+  const winningLocation = await db.query.callLocationOptions.findFirst({
+    where: (l, { eq }) => eq(l.id, winningLocationOptionId),
+  })
+  if (!winningDate || !winningLocation) throw new Error('Invalid winning options')
+
+  // Determine event name
+  let eventName = overrideName?.trim()
+  if (!eventName) {
+    // Try AI name generation, fall back to simple format
+    try {
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.VERCEL_URL
+        ? `https://${process.env.VERCEL_URL}`
+        : 'http://localhost:3003'
+      const res = await fetch(`${baseUrl}/api/call/generate-name`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          location: winningLocation.name,
+          year: event.year,
+          ritualName: ritualSlug,
+        }),
+      })
+      if (res.ok) {
+        const data = await res.json()
+        eventName = data.name
+      }
+    } catch {
+      // fall through to default
+    }
+    if (!eventName) {
+      eventName = `${winningLocation.name} ${event.year}`
+    }
+  }
+
+  // Update event → scheduled
+  await db
+    .update(events)
+    .set({
+      status: 'scheduled',
+      name: eventName,
+      location: winningLocation.name,
+      startDate: winningDate.startDate,
+      endDate: winningDate.endDate,
+    })
+    .where(eq(events.id, eventId))
+
+  // Seed all ritual members as attendees
+  const members = await db
+    .select()
+    .from(ritualMembers)
+    .where(eq(ritualMembers.ritualId, event.ritualId))
+
+  if (members.length > 0) {
+    await db
+      .insert(eventAttendees)
+      .values(
+        members.map((m) => ({
+          id: crypto.randomUUID(),
+          eventId: event.id,
+          userId: m.userId,
+          bookingStatus: 'not_yet' as const,
+          isHost: m.userId === session.user!.id!,
+        }))
+      )
+      .onConflictDoNothing()
+  }
+
+  // Record Stage 3 call send
+  await db.insert(callSends).values({
+    id: crypto.randomUUID(),
+    ritualId: event.ritualId,
+    eventId,
+    stage: 3,
+    sentAt: new Date(),
+  })
+
+  redirect(`/${ritualSlug}/${event.year}`)
 }

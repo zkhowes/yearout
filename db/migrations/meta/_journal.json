@@ -71,6 +71,13 @@
       "when": 1772898034290,
       "tag": "0009_third_betty_brant",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1773183720674,
+      "tag": "0010_dapper_texas_twister",
+      "breakpoints": true
     }
   ]
 }

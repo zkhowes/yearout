@@ -5,6 +5,9 @@ import { redirect } from 'next/navigation'
 import {
   eventProposals,
   proposalVotes,
+  callDateOptions,
+  callLocationOptions,
+  callVotes,
   ritualMembers,
   eventAttendees,
   loreEntries,
@@ -23,6 +26,7 @@ import {
 import { eq, inArray } from 'drizzle-orm'
 import { ArrowLeft } from 'lucide-react'
 import { Proposals } from './proposals'
+import { TheCallView } from './the-call'
 import { ScheduledView } from './scheduled-view'
 import { InProgressView } from './in-progress-view'
 import { ClosedView } from './closed-view'
@@ -98,6 +102,29 @@ export default async function EventPage({
       (v) => v.proposalId === p.id && v.userId === session.user!.id
     )?.vote ?? null,
   }))
+
+  // ── Planning state (The Call): load date/location options + votes ────────
+  let callDates: { id: string; startDate: Date; endDate: Date; sortOrder: number }[] = []
+  let callLocations: { id: string; name: string; aiCard: string | null; sortOrder: number }[] = []
+  let callVoteList: { userId: string; optionType: string; optionId: string }[] = []
+  let callCrew: { userId: string; name: string | null; image: string | null }[] = []
+
+  if (event.status === 'planning' && event.callMode) {
+    const [dates, locations, voteRows, crewRows] = await Promise.all([
+      db.select().from(callDateOptions).where(eq(callDateOptions.eventId, event.id)),
+      db.select().from(callLocationOptions).where(eq(callLocationOptions.eventId, event.id)),
+      db.select({ userId: callVotes.userId, optionType: callVotes.optionType, optionId: callVotes.optionId })
+        .from(callVotes).where(eq(callVotes.eventId, event.id)),
+      db.select({ userId: ritualMembers.userId, name: users.name, image: users.image })
+        .from(ritualMembers)
+        .innerJoin(users, eq(ritualMembers.userId, users.id))
+        .where(eq(ritualMembers.ritualId, ritual.id)),
+    ])
+    callDates = dates
+    callLocations = locations
+    callVoteList = voteRows
+    callCrew = crewRows
+  }
 
   // ── Scheduled / In-Progress / Closed: load attendees ─────────────────────
   let attendeeList: { id: string; userId: string; bookingStatus: 'not_yet' | 'committed' | 'flights_booked' | 'all_booked' | 'out'; isHost: boolean; arrivalAirline: string | null; arrivalFlightNumber: string | null; arrivalDatetime: Date | null; departureAirline: string | null; departureFlightNumber: string | null; departureDatetime: Date | null }[] = []
@@ -319,7 +346,21 @@ export default async function EventPage({
       )}
 
       {/* ── Planning state ── */}
-      {event.status === 'planning' && (
+      {event.status === 'planning' && event.callMode ? (
+        <TheCallView
+          eventId={event.id}
+          ritualId={ritual.id}
+          ritualSlug={ritual.slug}
+          year={event.year}
+          callMode={event.callMode as 'best_fit' | 'all_or_none'}
+          dateOptions={callDates}
+          locationOptions={callLocations}
+          votes={callVoteList}
+          crew={callCrew}
+          currentUserId={session.user!.id!}
+          isSponsor={isSponsor}
+        />
+      ) : event.status === 'planning' ? (
         <div className="flex flex-col gap-4">
           <p className="text-sm text-[var(--fg)]">
             Propose dates and locations. Crew votes. Sponsor locks it in.
@@ -331,7 +372,7 @@ export default async function EventPage({
             isSponsor={isSponsor}
           />
         </div>
-      )}
+      ) : null}
 
       {/* ── Scheduled state ── */}
       {event.status === 'scheduled' && (
