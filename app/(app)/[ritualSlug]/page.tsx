@@ -98,10 +98,10 @@ export default async function RitualTourPage({
     mvpAwards.map((a) => [a.eventId, userMap[a.winnerId]])
   )
 
-  // Determine hero block
-  const activeEvent = eventList.find(
-    (e) => e.status === 'planning' || e.status === 'scheduled'
-  )
+  // Determine hero block — prioritize live events
+  const activeEvent =
+    eventList.find((e) => e.status === 'in_progress') ??
+    eventList.find((e) => e.status === 'planning' || e.status === 'scheduled')
   const lastClosedEvent = eventList.find((e) => e.status === 'closed')
 
   const heroPhotos: string[] = ritual.heroPhotos
@@ -121,11 +121,25 @@ export default async function RitualTourPage({
 
       {/* ── Hero block ── */}
       {activeEvent ? (
-        <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5 flex flex-col gap-3">
+        <div className={`rounded-xl border p-5 flex flex-col gap-3 ${
+          activeEvent.status === 'in_progress'
+            ? 'border-[var(--accent)] bg-[var(--accent)]/5'
+            : 'border-[var(--border)] bg-[var(--surface)]'
+        }`}>
           <div className="flex items-center justify-between">
-            <span className="text-xs uppercase tracking-widest text-[var(--fg-muted)]">
-              Next Event
-            </span>
+            {activeEvent.status === 'in_progress' ? (
+              <span className="flex items-center gap-2 text-xs uppercase tracking-widest text-[var(--accent)] font-semibold">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[var(--accent)] opacity-75" />
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-[var(--accent)]" />
+                </span>
+                Live Now
+              </span>
+            ) : (
+              <span className="text-xs uppercase tracking-widest text-[var(--fg-muted)]">
+                Next Event
+              </span>
+            )}
             <span className="text-xs px-2 py-0.5 rounded-full bg-[var(--accent)] text-[var(--bg)] font-semibold">
               {STATUS_LABEL[activeEvent.status]}
             </span>
@@ -140,7 +154,7 @@ export default async function RitualTourPage({
             href={`/${ritual.slug}/${activeEvent.year}`}
             className="text-sm font-semibold text-[var(--accent)] hover:opacity-80 transition-opacity"
           >
-            View event →
+            {activeEvent.status === 'in_progress' ? 'Join the action →' : 'View event →'}
           </Link>
         </div>
       ) : lastClosedEvent ? (

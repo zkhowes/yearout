@@ -11,6 +11,8 @@ import {
   Mountain,
   Thermometer,
   Wind,
+  Calendar,
+  Flame,
 } from 'lucide-react'
 import type { WeatherData } from '@/app/api/event/weather/route'
 
@@ -31,6 +33,7 @@ type InfoCarouselProps = {
   itineraryCount: number
   cachedTips: string[] | null
   ritualSlug: string
+  todayItinerary?: { themeName: string | null; notes: string | null }[] | null
 }
 
 type CarouselCard = {
@@ -41,12 +44,42 @@ type CarouselCard = {
   gradient: string
 }
 
+const HYPE_QUOTES: Record<string, string[]> = {
+  ski: [
+    'No friends on a powder day.',
+    'Shred today — tomorrow you could be dead.',
+    'If you\'re not falling, you\'re not trying.',
+    'Earn your turns.',
+    'Send it or spend the rest of your life wondering.',
+    'The mountain doesn\'t care about your excuses.',
+    'Ski hard or go home.',
+  ],
+  golf: [
+    'Grip it and rip it.',
+    'Drive for show, putt for dough.',
+    'Every shot counts. Make them all count double.',
+    'The course doesn\'t play itself.',
+    'Fairways and greens, boys.',
+    'Play it as it lies.',
+  ],
+  generic: [
+    'You\'re not here to play it safe.',
+    'Make it a story worth telling.',
+    'Leave nothing in the tank.',
+    'This is what you came for.',
+    'Go big or go home.',
+    'Today is the day.',
+    'No regrets. Full send.',
+  ],
+}
+
 export function InfoCarousel({
   event,
   activityType,
   attendees,
   attendeeUsers,
   cachedTips,
+  todayItinerary,
 }: InfoCarouselProps) {
   const [current, setCurrent] = useState(0)
   const [weather, setWeather] = useState<WeatherData | null>(null)
@@ -93,6 +126,31 @@ export function InfoCarousel({
   // Build cards
   const cards: CarouselCard[] = []
 
+  // Today's Itinerary card (in_progress only, inserted first)
+  if (event.status === 'in_progress' && todayItinerary && todayItinerary.length > 0) {
+    const hasTheme = todayItinerary.some((it) => it.themeName)
+    cards.push({
+      id: 'today-itinerary',
+      icon: <Calendar size={14} />,
+      label: 'TODAY',
+      gradient: 'from-purple-500/15 to-purple-500/5',
+      content: (
+        <div className="flex flex-col gap-1">
+          {todayItinerary.map((it, i) => (
+            <div key={i}>
+              {it.themeName && (
+                <p className="text-lg font-bold text-[var(--fg)]">{it.themeName}</p>
+              )}
+              {it.notes && (
+                <p className={`text-xs text-[var(--fg-muted)] ${hasTheme ? '' : 'text-sm'}`}>{it.notes}</p>
+              )}
+            </div>
+          ))}
+        </div>
+      ),
+    })
+  }
+
   // 1. Countdown
   if (event.startDate) {
     const start = new Date(event.startDate)
@@ -102,8 +160,11 @@ export function InfoCarousel({
 
     if (event.status === 'in_progress') {
       const endDate = event.endDate ? new Date(event.endDate) : start
-      const tripDay = Math.max(1, Math.ceil((now.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1)
-      const totalDays = Math.ceil((endDate.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1
+      const nowUtc = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())
+      const startUtc = Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), start.getUTCDate())
+      const endUtc = Date.UTC(endDate.getUTCFullYear(), endDate.getUTCMonth(), endDate.getUTCDate())
+      const tripDay = Math.max(1, Math.floor((nowUtc - startUtc) / (1000 * 60 * 60 * 24)) + 1)
+      const totalDays = Math.floor((endUtc - startUtc) / (1000 * 60 * 60 * 24)) + 1
       cards.push({
         id: 'countdown',
         icon: <Timer size={14} />,
@@ -250,6 +311,28 @@ export function InfoCarousel({
         ),
       })
     }
+  }
+
+  // 5. Motivational quote (in_progress only)
+  if (event.status === 'in_progress' && event.startDate) {
+    const start = new Date(event.startDate)
+    const now = new Date()
+    const nowUtc = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())
+    const startUtc = Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), start.getUTCDate())
+    const dayNum = Math.max(0, Math.floor((nowUtc - startUtc) / (1000 * 60 * 60 * 24)))
+    const quotes = HYPE_QUOTES[activityType] ?? HYPE_QUOTES.generic
+    const quote = quotes[dayNum % quotes.length]
+    cards.push({
+      id: 'hype',
+      icon: <Flame size={14} />,
+      label: 'SEND IT',
+      gradient: 'from-red-500/15 to-orange-500/5',
+      content: (
+        <div className="flex flex-col gap-1">
+          <p className="text-sm font-medium text-[var(--fg)] italic leading-relaxed">&ldquo;{quote}&rdquo;</p>
+        </div>
+      ),
+    })
   }
 
   // Auto-rotation

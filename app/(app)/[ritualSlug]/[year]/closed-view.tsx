@@ -215,7 +215,7 @@ export function ClosedView({
 
 // ─── 4a. Event Details Card ──────────────────────────────────────────────────
 
-export function EventDetailsCard({ event, canEdit, ritualSlug, carouselProps }: { event: { id: string; location: string | null; mountains: string | null; year: number; startDate: Date | null; endDate: Date | null; status?: string }; canEdit: boolean; ritualSlug: string; carouselProps?: { activityType: string; attendees: { userId: string; bookingStatus: string }[]; attendeeUsers: { id: string; name: string | null }[]; loreCount: number; itineraryCount: number; cachedTips: string[] | null } }) {
+export function EventDetailsCard({ event, canEdit, ritualSlug, carouselProps }: { event: { id: string; location: string | null; mountains: string | null; year: number; startDate: Date | null; endDate: Date | null; status?: string }; canEdit: boolean; ritualSlug: string; carouselProps?: { activityType: string; attendees: { userId: string; bookingStatus: string }[]; attendeeUsers: { id: string; name: string | null }[]; loreCount: number; itineraryCount: number; cachedTips: string[] | null; todayItinerary?: { themeName: string | null; notes: string | null }[] | null } }) {
   const [editing, setEditing] = useState(false)
   const [locationInput, setLocationInput] = useState(event.location ?? '')
   const [mountainsInput, setMountainsInput] = useState(event.mountains ?? '')
@@ -350,6 +350,7 @@ export function EventDetailsCard({ event, canEdit, ritualSlug, carouselProps }: 
             itineraryCount={carouselProps.itineraryCount}
             cachedTips={carouselProps.cachedTips}
             ritualSlug={ritualSlug}
+            todayItinerary={carouselProps.todayItinerary}
           />
         </div>
       )}

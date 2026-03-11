@@ -21,6 +21,12 @@ type Attendee = {
   userId: string
   bookingStatus: string
   isHost: boolean
+  arrivalAirline: string | null
+  arrivalFlightNumber: string | null
+  arrivalDatetime: Date | null
+  departureAirline: string | null
+  departureFlightNumber: string | null
+  departureDatetime: Date | null
 }
 
 type AttendeeUser = {
@@ -549,6 +555,100 @@ function StatsTab({
   )
 }
 
+// ─── Arrival / Departure Board ────────────────────────────────────────────────
+
+function ArrivalDepartureBoard({
+  attendees,
+  attendeeUsers,
+}: {
+  attendees: Attendee[]
+  attendeeUsers: AttendeeUser[]
+}) {
+  const userMap = new Map(attendeeUsers.map((u) => [u.id, u]))
+
+  const arrivals = attendees
+    .filter((a) => a.arrivalFlightNumber)
+    .sort((a, b) => {
+      if (!a.arrivalDatetime) return 1
+      if (!b.arrivalDatetime) return -1
+      return new Date(a.arrivalDatetime).getTime() - new Date(b.arrivalDatetime).getTime()
+    })
+
+  const departures = attendees
+    .filter((a) => a.departureFlightNumber)
+    .sort((a, b) => {
+      if (!a.departureDatetime) return 1
+      if (!b.departureDatetime) return -1
+      return new Date(a.departureDatetime).getTime() - new Date(b.departureDatetime).getTime()
+    })
+
+  if (arrivals.length === 0 && departures.length === 0) return null
+
+  const fmtDatetime = (d: Date | null) => {
+    if (!d) return '—'
+    return new Date(d).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+    })
+  }
+
+  return (
+    <div className="flex flex-col gap-4">
+      <p className="text-xs uppercase tracking-widest text-[var(--fg-muted)]">Flight Board</p>
+
+      {arrivals.length > 0 && (
+        <div className="flex flex-col gap-1">
+          <p className="text-xs font-semibold text-green-600 uppercase tracking-wide">Arrivals</p>
+          {arrivals.map((a) => {
+            const user = userMap.get(a.userId)
+            return (
+              <div key={a.id + '-arr'} className="flex items-center justify-between py-2 border-b border-[var(--border)]">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium text-[var(--fg)]">
+                    {user?.name?.split(' ')[0] ?? 'Unknown'}
+                  </span>
+                  <span className="text-xs text-[var(--fg-muted)]">
+                    {a.arrivalAirline} {a.arrivalFlightNumber}
+                  </span>
+                </div>
+                <span className="text-xs text-[var(--fg-muted)]">
+                  {fmtDatetime(a.arrivalDatetime)}
+                </span>
+              </div>
+            )
+          })}
+        </div>
+      )}
+
+      {departures.length > 0 && (
+        <div className="flex flex-col gap-1">
+          <p className="text-xs font-semibold text-red-400 uppercase tracking-wide">Departures</p>
+          {departures.map((a) => {
+            const user = userMap.get(a.userId)
+            return (
+              <div key={a.id + '-dep'} className="flex items-center justify-between py-2 border-b border-[var(--border)]">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium text-[var(--fg)]">
+                    {user?.name?.split(' ')[0] ?? 'Unknown'}
+                  </span>
+                  <span className="text-xs text-[var(--fg-muted)]">
+                    {a.departureAirline} {a.departureFlightNumber}
+                  </span>
+                </div>
+                <span className="text-xs text-[var(--fg-muted)]">
+                  {fmtDatetime(a.departureDatetime)}
+                </span>
+              </div>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ─── Main In Progress View ────────────────────────────────────────────────────
 
 export function InProgressView({
@@ -600,6 +700,19 @@ export function InProgressView({
   const [activeTab, setActiveTab] = useState<'lore' | 'stats' | 'expenses'>('lore')
   const [showCloseout, setShowCloseout] = useState(false)
 
+  // Compute today's itinerary for carousel
+  const todayStr = (() => {
+    const now = new Date()
+    return `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, '0')}-${String(now.getUTCDate()).padStart(2, '0')}`
+  })()
+  const todayItinerary = itineraryList
+    .filter((it) => {
+      const d = new Date(it.day)
+      const ds = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`
+      return ds === todayStr
+    })
+    .map((it) => ({ themeName: it.themeName, notes: it.notes }))
+
   const tabs = [
     { id: 'lore', label: 'Lore' },
     { id: 'stats', label: 'Stats' },
@@ -620,6 +733,7 @@ export function InProgressView({
           loreCount: loreList.length,
           itineraryCount: itineraryList.length,
           cachedTips,
+          todayItinerary: todayItinerary.length > 0 ? todayItinerary : null,
         }}
       />
 
@@ -641,6 +755,12 @@ export function InProgressView({
         canEdit={canEdit}
         ritualSlug={ritualSlug}
         year={event.year}
+      />
+
+      {/* Flight Board */}
+      <ArrivalDepartureBoard
+        attendees={attendees}
+        attendeeUsers={attendeeUsers}
       />
 
       {/* Itinerary */}

@@ -55,5 +55,54 @@ Yearout is a mobile-first web app that manages the full lifecycle of recurring g
 - `types/` — TypeScript type definitions
 - `db/` — Drizzle schema and migrations
 
+## Kanban
+
+> Last updated: 2026-03-10
+
+### Backlog
+- [ ] Trip templates (pre-populated checklists, pack lists, result fields)
+- [ ] The Call — Stage 1: AI-generated summons (Claude API + Resend)
+- [ ] The Call — Stage 3: Full-screen takeover experience
+- [ ] The Call — Stage 3a: Commit reminder nudges
+- [ ] Smart Share Links with AI motivational copy
+- [ ] Pack list UI (checklist per crew member)
+- [ ] Nearest airport helper + Google Flights deep link
+- [ ] Sponsor photo/nickname override UI for members
+- [ ] Core Crew badge display throughout app
+- [ ] Email delivery integration (Resend + React Email)
+- [ ] Merch tab — Phase 2 placeholder page
+- [ ] Ritual archive export
+- [ ] Admin dashboard — stall detection
+- [ ] Admin dashboard — CSV seed import (Torture Tour history)
+
+### Up Next
+- [ ] Daily Itinerary UI — *schema exists, needs create/edit/display*
+- [ ] Crew page — roster, Core Crew badges, all-time leaderboard
+- [ ] About page — bylaws, motto, founding year, activity type
+- [ ] Cross-event Lore tab — HOF moments browser across all years
+
+### In Progress
+
+### Done
+- [x] Auth — Google OAuth (Auth.js v5)
+- [x] Ritual creation (AI-powered inference, theme, awards, invite)
+- [x] Event creation — two modes (The Call / Already Confirmed)
+- [x] The Call — Stage 2: date/location voting with AI location cards
+- [x] The Call — Stage 3: Send The Call (best fit / all or none, AI event naming)
+- [x] Planning state — structured voting + sponsor confirmation
+- [x] Scheduled state — commitment board, booking status tracking
+- [x] In Progress state — Lore, Stats, Expenses tabs
+- [x] Close Out — 3-step wizard (expenses, award voting, seal)
+- [x] Closed state — archive card with awards podium
+- [x] Theme system (Circuit, Club, Trail, Getaway)
+- [x] Tour View — event history table
+- [x] Expense splitting with settlement math
+- [x] Award voting (2 votes per award, no self-vote)
+- [x] Lore entries with Hall of Fame flagging
+- [x] Activity results logging
+- [x] Super Admin dashboard (analytics, search, data)
+- [x] Vercel deployment pipeline
+- [x] Info carousel — countdown, weather/snow, AI tips, peer pressure nudges
+
 ## PRD
 Full product requirements are in `PRD.md` at the repo root.
