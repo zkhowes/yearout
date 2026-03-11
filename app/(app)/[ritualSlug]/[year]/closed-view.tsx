@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useTransition } from 'react'
-import { Calendar, User, Plus, Loader2, Play } from 'lucide-react'
+import { Calendar, User, Plus, Loader2, Play, Home, Award, Users, BookOpen } from 'lucide-react'
 import { AwardsPodium } from './awards-podium'
 import {
   updateEventEdit,
@@ -151,64 +151,104 @@ export function ClosedView({
       <EventDetailsCard event={event} canEdit={canEdit} ritualSlug={ritualSlug} />
 
       {/* Lodging & Transportation */}
-      <BookingsSection
-        bookings={bookingList}
-        eventId={event.id}
-        canEdit={canEdit}
-        ritualSlug={ritualSlug}
-        year={event.year}
-      />
+      {(bookingList.length > 0 || canEdit) && (
+        <div className="rounded-xl border border-[var(--border)] border-l-4 border-l-green-500 bg-[var(--surface)] p-4 flex flex-col gap-3">
+          <div className="flex items-center gap-2">
+            <Home size={14} className="text-green-500" />
+            <p className="text-xs uppercase tracking-widest text-[var(--fg-muted)]">Lodging & Transportation</p>
+          </div>
+          <BookingsSection
+            bookings={bookingList}
+            eventId={event.id}
+            canEdit={canEdit}
+            ritualSlug={ritualSlug}
+            year={event.year}
+          />
+        </div>
+      )}
 
       {/* Daily Itinerary Recap */}
       {itineraryList.length > 0 && (
-        <ItineraryRecap itineraryList={itineraryList} />
+        <div className="rounded-xl border border-[var(--border)] border-l-4 border-l-purple-500 bg-[var(--surface)] p-4 flex flex-col gap-3">
+          <div className="flex items-center gap-2">
+            <Calendar size={14} className="text-purple-500" />
+            <p className="text-xs uppercase tracking-widest text-[var(--fg-muted)]">Itinerary</p>
+          </div>
+          <ItineraryRecap itineraryList={itineraryList} />
+        </div>
       )}
 
       {/* Awards Podium (exclude totem for archived events) */}
       {awardDefs.length > 0 && (
-        <AwardsPodium
-          event={event}
-          attendees={attendees}
-          attendeeUsers={attendeeUsers}
-          awardDefs={awardDefs.filter((d) => d.type !== 'totem')}
-          currentAwards={currentAwards}
-          isSponsor={canEdit}
-          ritualSlug={ritualSlug}
-          overrideMap={overrideMap}
-        />
+        <div className="rounded-xl border border-[var(--border)] border-l-4 border-l-amber-500 bg-[var(--surface)] p-4 flex flex-col gap-3">
+          <div className="flex items-center gap-2">
+            <Award size={14} className="text-amber-500" />
+            <p className="text-xs uppercase tracking-widest text-[var(--fg-muted)]">Awards</p>
+          </div>
+          <AwardsPodium
+            event={event}
+            attendees={attendees}
+            attendeeUsers={attendeeUsers}
+            awardDefs={awardDefs.filter((d) => d.type !== 'totem')}
+            currentAwards={currentAwards}
+            isSponsor={canEdit}
+            ritualSlug={ritualSlug}
+            overrideMap={overrideMap}
+          />
+        </div>
       )}
 
       {/* Crew */}
-      <CrewTiles
-        event={event}
-        attendees={attendees}
-        attendeeUsers={attendeeUsers}
-        overrideMap={overrideMap}
-        allRitualMembers={allRitualMembers}
-        canEdit={canEdit}
-        ritualSlug={ritualSlug}
-      />
+      <div className="rounded-xl border border-[var(--border)] border-l-4 border-l-blue-500 bg-[var(--surface)] p-4 flex flex-col gap-3">
+        <div className="flex items-center gap-2">
+          <Users size={14} className="text-blue-500" />
+          <p className="text-xs uppercase tracking-widest text-[var(--fg-muted)]">Crew</p>
+        </div>
+        <CrewTiles
+          event={event}
+          attendees={attendees}
+          attendeeUsers={attendeeUsers}
+          overrideMap={overrideMap}
+          allRitualMembers={allRitualMembers}
+          canEdit={canEdit}
+          ritualSlug={ritualSlug}
+        />
+      </div>
 
-      {/* 4e. Video Edit Section */}
-      <VideoEditSection
-        event={event}
-        canEdit={canEdit}
-        ritualSlug={ritualSlug}
-      />
+      {/* Video Edit Section */}
+      {(event.editUrl || canEdit) && (
+        <div className="rounded-xl border border-[var(--border)] border-l-4 border-l-[var(--accent)] bg-[var(--surface)] p-4 flex flex-col gap-3">
+          <div className="flex items-center gap-2">
+            <Play size={14} className="text-[var(--accent)]" />
+            <p className="text-xs uppercase tracking-widest text-[var(--fg-muted)]">Video Edit</p>
+          </div>
+          <VideoEditSection
+            event={event}
+            canEdit={canEdit}
+            ritualSlug={ritualSlug}
+          />
+        </div>
+      )}
 
-      {/* 4f. Lore Feed */}
-      <SharedLoreFeed
-        entries={loreList}
-        userMap={new Map(attendeeUsers.map((u) => [u.id, u]))}
-        crewMembers={crewMembers}
-        currentUserId={currentUserId}
-        canEdit={canEdit}
-        ritualSlug={ritualSlug}
-        eventId={event.id}
-        year={event.year}
-        allowedTypes={['memory', 'image']}
-        allEvents={allRitualEvents}
-      />
+      {/* Lore Feed */}
+      <div className="rounded-xl border border-[var(--border)] border-l-4 border-l-[var(--accent)] bg-[var(--surface)] p-4 flex flex-col gap-4">
+        <div className="flex items-center gap-2">
+          <BookOpen size={14} className="text-[var(--accent)]" />
+          <p className="text-xs uppercase tracking-widest text-[var(--fg-muted)]">Lore</p>
+        </div>
+        <SharedLoreFeed
+          entries={loreList}
+          userMap={new Map(attendeeUsers.map((u) => [u.id, u]))}
+          crewMembers={crewMembers}
+          currentUserId={currentUserId}
+          canEdit={canEdit}
+          ritualSlug={ritualSlug}
+          eventId={event.id}
+          year={event.year}
+          allowedTypes={['memory', 'image']}
+          allEvents={allRitualEvents}
+        />
+      </div>
     </div>
   )
 }
@@ -381,10 +421,8 @@ function ItineraryRecap({ itineraryList }: { itineraryList: ItineraryDay[] }) {
   )
 
   return (
-    <div className="flex flex-col gap-3">
-      <p className="text-xs uppercase tracking-widest text-[var(--fg-muted)]">Itinerary</p>
-      <div className="flex flex-col gap-2">
-        {sorted.map((item) => (
+    <div className="flex flex-col gap-2">
+      {sorted.map((item) => (
           <div
             key={item.id}
             className="flex items-center gap-3 p-3 rounded-xl border border-[var(--border)] bg-[var(--surface)]"
@@ -410,7 +448,6 @@ function ItineraryRecap({ itineraryList }: { itineraryList: ItineraryDay[] }) {
             </div>
           </div>
         ))}
-      </div>
     </div>
   )
 }
@@ -464,7 +501,6 @@ function CrewTiles({
 
   return (
     <div className="flex flex-col gap-3">
-      <p className="text-xs uppercase tracking-widest text-[var(--fg-muted)]">Crew</p>
       <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
         {attendees.map((a) => {
           const user = userMap.get(a.userId)
@@ -628,8 +664,6 @@ function VideoEditSection({
 
   return (
     <div className="flex flex-col gap-3">
-      <p className="text-xs uppercase tracking-widest text-[var(--fg-muted)]">Video Edit</p>
-
       {event.editUrl && (() => {
         const embedUrl = getEmbedUrl(event.editUrl)
         return embedUrl ? (

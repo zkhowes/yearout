@@ -74,8 +74,6 @@ export function LoreFeed({
 
   return (
     <div className="flex flex-col gap-4">
-      <p className="text-xs uppercase tracking-widest text-[var(--fg-muted)]">Lore</p>
-
       {showForm ? (
         <AddLoreForm
           eventId={eventId}

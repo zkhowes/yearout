@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { Plus, Loader2, Trash2, Pencil, Calendar } from 'lucide-react'
+import { Plus, Loader2, Trash2, Pencil, Calendar, Home, Plane, Award } from 'lucide-react'
 import {
   addActivityResult,
   addItineraryDay,
@@ -262,8 +262,6 @@ export function ItinerarySection({
 
   return (
     <div className="flex flex-col gap-3">
-      <p className="text-xs uppercase tracking-widest text-[var(--fg-muted)]">Itinerary</p>
-
       <div className="flex flex-col gap-2">
         {sortedDateStrs.map((dateStr) => {
           const entries = entriesByDate.get(dateStr) ?? []
@@ -596,8 +594,6 @@ function ArrivalDepartureBoard({
 
   return (
     <div className="flex flex-col gap-4">
-      <p className="text-xs uppercase tracking-widest text-[var(--fg-muted)]">Flight Board</p>
-
       {arrivals.length > 0 && (
         <div className="flex flex-col gap-1">
           <p className="text-xs font-semibold text-green-600 uppercase tracking-wide">Arrivals</p>
@@ -738,30 +734,50 @@ export function InProgressView({
       />
 
       {/* Awards Podium */}
-      <AwardsPodium
-        event={event}
-        attendees={attendees}
-        attendeeUsers={attendeeUsers}
-        awardDefs={awardDefs}
-        currentAwards={currentAwards}
-        isSponsor={isSponsor}
-        ritualSlug={ritualSlug}
-      />
+      <div className="rounded-xl border border-[var(--border)] border-l-4 border-l-amber-500 bg-[var(--surface)] p-4 flex flex-col gap-3">
+        <div className="flex items-center gap-2">
+          <Award size={14} className="text-amber-500" />
+          <p className="text-xs uppercase tracking-widest text-[var(--fg-muted)]">Awards</p>
+        </div>
+        <AwardsPodium
+          event={event}
+          attendees={attendees}
+          attendeeUsers={attendeeUsers}
+          awardDefs={awardDefs}
+          currentAwards={currentAwards}
+          isSponsor={isSponsor}
+          ritualSlug={ritualSlug}
+        />
+      </div>
 
       {/* Lodging & Transportation */}
-      <BookingsSection
-        bookings={bookingList}
-        eventId={event.id}
-        canEdit={canEdit}
-        ritualSlug={ritualSlug}
-        year={event.year}
-      />
+      <div className="rounded-xl border border-[var(--border)] border-l-4 border-l-green-500 bg-[var(--surface)] p-4 flex flex-col gap-3">
+        <div className="flex items-center gap-2">
+          <Home size={14} className="text-green-500" />
+          <p className="text-xs uppercase tracking-widest text-[var(--fg-muted)]">Lodging & Transportation</p>
+        </div>
+        <BookingsSection
+          bookings={bookingList}
+          eventId={event.id}
+          canEdit={canEdit}
+          ritualSlug={ritualSlug}
+          year={event.year}
+        />
+      </div>
 
       {/* Flight Board */}
-      <ArrivalDepartureBoard
-        attendees={attendees}
-        attendeeUsers={attendeeUsers}
-      />
+      {attendees.some(a => a.arrivalFlightNumber || a.departureFlightNumber) && (
+        <div className="rounded-xl border border-[var(--border)] border-l-4 border-l-blue-500 bg-[var(--surface)] p-4 flex flex-col gap-3">
+          <div className="flex items-center gap-2">
+            <Plane size={14} className="text-blue-500" />
+            <p className="text-xs uppercase tracking-widest text-[var(--fg-muted)]">Flight Board</p>
+          </div>
+          <ArrivalDepartureBoard
+            attendees={attendees}
+            attendeeUsers={attendeeUsers}
+          />
+        </div>
+      )}
 
       {/* Itinerary */}
       <div className="rounded-xl border border-[var(--border)] border-l-4 border-l-purple-500 bg-[var(--surface)] p-4 flex flex-col gap-3">
@@ -777,61 +793,64 @@ export function InProgressView({
         />
       </div>
 
-      {/* Tab switcher */}
-      <div className="flex border-b border-[var(--border)]">
-        {tabs.map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            className={`flex-1 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px ${
-              activeTab === tab.id
-                ? 'border-[var(--accent)] text-[var(--fg)]'
-                : 'border-transparent text-[var(--fg-muted)] hover:text-[var(--fg)]'
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
+      {/* Lore / Stats / Expenses */}
+      <div className="rounded-xl border border-[var(--border)] border-l-4 border-l-[var(--accent)] bg-[var(--surface)] p-4 flex flex-col gap-4">
+        {/* Tab switcher */}
+        <div className="flex border-b border-[var(--border)]">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`flex-1 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px ${
+                activeTab === tab.id
+                  ? 'border-[var(--accent)] text-[var(--fg)]'
+                  : 'border-transparent text-[var(--fg-muted)] hover:text-[var(--fg)]'
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
 
-      {/* Tab content */}
-      {activeTab === 'lore' && (
-        <LoreFeed
-          entries={loreList}
-          userMap={new Map(attendeeUsers.map((u) => [u.id, u]))}
-          crewMembers={crewMembers}
-          currentUserId={currentUserId}
-          canEdit={canEdit}
-          ritualSlug={ritualSlug}
-          eventId={event.id}
-          year={event.year}
-          allowedTypes={['memory', 'checkin', 'image']}
-          allEvents={allRitualEvents}
-        />
-      )}
-      {activeTab === 'stats' && (
-        <StatsTab
-          event={event}
-          activityList={activityList}
-          attendees={attendees}
-          attendeeUsers={attendeeUsers}
-          currentUserId={currentUserId}
-          isSponsor={isSponsor}
-          ritualSlug={ritualSlug}
-        />
-      )}
-      {activeTab === 'expenses' && (
-        <ExpensesTab
-          event={event}
-          expenseList={expenseList}
-          settlementPayments={settlementPayments}
-          attendees={attendees}
-          attendeeUsers={attendeeUsers}
-          currentUserId={currentUserId}
-          canEdit={canEdit}
-          ritualSlug={ritualSlug}
-        />
-      )}
+        {/* Tab content */}
+        {activeTab === 'lore' && (
+          <LoreFeed
+            entries={loreList}
+            userMap={new Map(attendeeUsers.map((u) => [u.id, u]))}
+            crewMembers={crewMembers}
+            currentUserId={currentUserId}
+            canEdit={canEdit}
+            ritualSlug={ritualSlug}
+            eventId={event.id}
+            year={event.year}
+            allowedTypes={['memory', 'checkin', 'image']}
+            allEvents={allRitualEvents}
+          />
+        )}
+        {activeTab === 'stats' && (
+          <StatsTab
+            event={event}
+            activityList={activityList}
+            attendees={attendees}
+            attendeeUsers={attendeeUsers}
+            currentUserId={currentUserId}
+            isSponsor={isSponsor}
+            ritualSlug={ritualSlug}
+          />
+        )}
+        {activeTab === 'expenses' && (
+          <ExpensesTab
+            event={event}
+            expenseList={expenseList}
+            settlementPayments={settlementPayments}
+            attendees={attendees}
+            attendeeUsers={attendeeUsers}
+            currentUserId={currentUserId}
+            canEdit={canEdit}
+            ritualSlug={ritualSlug}
+          />
+        )}
+      </div>
 
       {/* Close Out button (sponsor/organizer) */}
       {canEdit && (

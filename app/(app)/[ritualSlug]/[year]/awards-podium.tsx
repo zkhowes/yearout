@@ -172,7 +172,6 @@ export function AwardsPodium({
 
   return (
     <div className="flex flex-col gap-3">
-      <p className="text-xs uppercase tracking-widest text-[var(--fg-muted)]">Awards</p>
       <div className="flex gap-2 items-end">
         <AwardColumn def={runnerUpDef} winner={runnerUpWinner} size="normal" />
         <AwardColumn def={mvpDef} winner={mvpWinner} size="hero" />
