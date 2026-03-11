@@ -121,11 +121,14 @@ export default async function RitualTourPage({
 
       {/* ── Hero block ── */}
       {activeEvent ? (
-        <div className={`rounded-xl border p-5 flex flex-col gap-3 ${
-          activeEvent.status === 'in_progress'
-            ? 'border-[var(--accent)] bg-[var(--accent)]/5'
-            : 'border-[var(--border)] bg-[var(--surface)]'
-        }`}>
+        <div
+          className={`rounded-xl border p-5 flex flex-col gap-3 ${
+            activeEvent.status === 'in_progress'
+              ? 'border-[var(--accent)] bg-[var(--surface)]'
+              : 'border-[var(--border)] bg-[var(--surface)]'
+          }`}
+          style={activeEvent.status === 'in_progress' ? { background: 'color-mix(in srgb, var(--accent) 8%, var(--surface))' } : undefined}
+        >
           <div className="flex items-center justify-between">
             {activeEvent.status === 'in_progress' ? (
               <span className="flex items-center gap-2 text-xs uppercase tracking-widest text-[var(--accent)] font-semibold">
