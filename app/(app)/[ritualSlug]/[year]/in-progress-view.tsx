@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useTransition } from 'react'
-import { Plus, Loader2, Trash2, Pencil, Calendar, Home, Plane, Award } from 'lucide-react'
+import { useState, useTransition, useRef, useEffect } from 'react'
+import { Plus, Loader2, Trash2, Pencil, Calendar, Home, Plane, Award, X, BookOpen, BarChart3, DollarSign } from 'lucide-react'
 import {
   addActivityResult,
   addItineraryDay,
@@ -695,6 +695,30 @@ export function InProgressView({
 }) {
   const [activeTab, setActiveTab] = useState<'lore' | 'stats' | 'expenses'>('lore')
   const [showCloseout, setShowCloseout] = useState(false)
+  const [fabOpen, setFabOpen] = useState(false)
+  const tabsRef = useRef<HTMLDivElement>(null)
+  const fabRef = useRef<HTMLDivElement>(null)
+
+  // Close FAB when clicking outside
+  useEffect(() => {
+    if (!fabOpen) return
+    function handleClick(e: MouseEvent) {
+      if (fabRef.current && !fabRef.current.contains(e.target as Node)) {
+        setFabOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [fabOpen])
+
+  function handleFabAction(tab: 'lore' | 'stats' | 'expenses') {
+    setActiveTab(tab)
+    setFabOpen(false)
+    // Scroll to tabs section after a tick so the tab content renders
+    setTimeout(() => {
+      tabsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }, 50)
+  }
 
   // Compute today's itinerary for carousel
   const todayStr = (() => {
@@ -794,7 +818,7 @@ export function InProgressView({
       </div>
 
       {/* Lore / Stats / Expenses */}
-      <div className="rounded-xl border border-[var(--border)] border-l-4 border-l-[var(--accent)] bg-[var(--surface)] p-4 flex flex-col gap-4">
+      <div ref={tabsRef} className="rounded-xl border border-[var(--border)] border-l-4 border-l-[var(--accent)] bg-[var(--surface)] p-4 flex flex-col gap-4">
         {/* Tab switcher */}
         <div className="flex border-b border-[var(--border)]">
           {tabs.map((tab) => (
@@ -879,6 +903,44 @@ export function InProgressView({
           onBack={() => setShowCloseout(false)}
         />
       )}
+
+      {/* Floating Action Button */}
+      <div ref={fabRef} className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-2">
+        {/* Menu items */}
+        {fabOpen && (
+          <div className="flex flex-col items-end gap-2" style={{ animation: 'fab-menu-in 150ms ease-out' }}>
+            {([
+              { tab: 'lore' as const, label: 'Add Lore', icon: BookOpen, color: 'bg-purple-500' },
+              { tab: 'stats' as const, label: 'Add Stats', icon: BarChart3, color: 'bg-blue-500' },
+              { tab: 'expenses' as const, label: 'Add Expense', icon: DollarSign, color: 'bg-green-500' },
+            ]).map((item) => (
+              <button
+                key={item.tab}
+                onClick={() => handleFabAction(item.tab)}
+                className="flex items-center gap-2 pl-3 pr-2 py-2 rounded-full bg-[var(--surface)] border border-[var(--border)] shadow-lg hover:bg-[var(--bg)] transition-colors"
+              >
+                <span className="text-sm font-medium text-[var(--fg)] whitespace-nowrap">{item.label}</span>
+                <span className={`${item.color} rounded-full p-1.5 text-white`}>
+                  <item.icon size={16} />
+                </span>
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* FAB button */}
+        <button
+          onClick={() => setFabOpen((o) => !o)}
+          className={`w-14 h-14 rounded-full shadow-lg flex items-center justify-center transition-all duration-200 ${
+            fabOpen
+              ? 'bg-[var(--fg)] text-[var(--bg)] rotate-45'
+              : 'bg-[var(--accent)] text-white'
+          }`}
+          aria-label={fabOpen ? 'Close menu' : 'Quick add'}
+        >
+          <Plus size={24} strokeWidth={2.5} />
+        </button>
+      </div>
     </div>
   )
 }
