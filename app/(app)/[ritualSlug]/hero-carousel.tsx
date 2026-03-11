@@ -167,14 +167,14 @@ export function HeroCarousel({
             <button
               onClick={() => inputRef.current?.click()}
               disabled={uploading}
-              className="px-3 py-1.5 rounded-lg bg-black/60 text-white text-xs font-medium hover:bg-black/80 transition-colors flex items-center gap-1.5"
+              className="px-3 py-2 rounded-lg bg-black/60 text-white text-xs font-medium hover:bg-black/80 transition-colors flex items-center gap-1.5"
             >
-              {uploading ? <Loader2 size={12} className="animate-spin" /> : <ImagePlus size={12} />}
+              {uploading ? <Loader2 size={12} className="animate-spin" /> : <ImagePlus size={16} />}
               Add
             </button>
             <button
               onClick={() => setShowManage(!showManage)}
-              className="px-3 py-1.5 rounded-lg bg-black/60 text-white text-xs font-medium hover:bg-black/80 transition-colors"
+              className="px-3 py-2 rounded-lg bg-black/60 text-white text-xs font-medium hover:bg-black/80 transition-colors"
             >
               {showManage ? 'Done' : 'Manage'}
             </button>
@@ -201,7 +201,7 @@ export function HeroCarousel({
                 disabled={saving}
                 className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-red-500 text-white flex items-center justify-center hover:bg-red-600 disabled:opacity-50"
               >
-                <X size={10} />
+                <X size={16} />
               </button>
             </div>
           ))}

@@ -230,7 +230,7 @@ export default function NewRitualPage() {
                   className="flex items-center gap-2 text-lg text-[var(--fg)] text-left group"
                 >
                   {inference.tagline}
-                  <Pencil size={12} className="opacity-0 group-hover:opacity-50 transition-opacity shrink-0" />
+                  <Pencil size={16} className="opacity-0 group-hover:opacity-50 transition-opacity shrink-0" />
                 </button>
               )}
             </div>
@@ -243,7 +243,7 @@ export default function NewRitualPage() {
                   <button
                     key={key}
                     onClick={() => setInference({ ...inference, activityType: key as RitualInference['activityType'] })}
-                    className={`px-3 py-1.5 rounded-full text-sm border transition-colors ${
+                    className={`px-3 py-2 rounded-full text-sm border transition-colors ${
                       inference.activityType === key
                         ? 'border-[var(--fg)] bg-[var(--fg)] text-[var(--bg)]'
                         : 'border-[var(--border)] text-[var(--fg-muted)] hover:border-[var(--fg)] hover:text-[var(--fg)]'
@@ -304,16 +304,16 @@ export default function NewRitualPage() {
                   />
                   <button
                     onClick={() => logoInputRef.current?.click()}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[var(--border)] text-sm text-[var(--fg)] hover:border-[var(--fg-muted)] transition-colors"
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-[var(--border)] text-sm text-[var(--fg)] hover:border-[var(--fg-muted)] transition-colors"
                   >
-                    <Upload size={13} /> Upload your own
+                    <Upload size={14} /> Upload your own
                   </button>
                   <button
                     disabled
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[var(--border)] text-sm text-[var(--fg-muted)] opacity-40 cursor-not-allowed"
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-[var(--border)] text-sm text-[var(--fg-muted)] opacity-40 cursor-not-allowed"
                     title="Coming soon — needs image generation API"
                   >
-                    <Sparkles size={13} /> Generate with AI
+                    <Sparkles size={14} /> Generate with AI
                   </button>
                 </div>
               </div>
@@ -358,9 +358,9 @@ export default function NewRitualPage() {
 
                 <button
                   onClick={addAward}
-                  className="flex items-center gap-1.5 self-start px-3 py-1.5 rounded-lg border border-dashed border-[var(--border)] text-sm text-[var(--fg-muted)] hover:text-[var(--fg)] hover:border-[var(--fg-muted)] transition-colors"
+                  className="flex items-center gap-1.5 self-start px-3 py-2 rounded-lg border border-dashed border-[var(--border)] text-sm text-[var(--fg-muted)] hover:text-[var(--fg)] hover:border-[var(--fg-muted)] transition-colors"
                 >
-                  <Plus size={13} /> Add award
+                  <Plus size={16} /> Add award
                 </button>
               </div>
             </div>

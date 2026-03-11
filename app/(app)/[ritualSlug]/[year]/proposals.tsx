@@ -69,9 +69,9 @@ function VoteButtons({
 
   return (
     <div className="flex gap-2">
-      {btn('yes', <Check size={11} />, 'Yes')}
-      {btn('maybe', <Minus size={11} />, 'Maybe')}
-      {btn('no', <X size={11} />, 'No')}
+      {btn('yes', <Check size={16} />, 'Yes')}
+      {btn('maybe', <Minus size={16} />, 'Maybe')}
+      {btn('no', <X size={16} />, 'No')}
     </div>
   )
 }
@@ -106,19 +106,19 @@ function AddProposalForm({
         value={location}
         onChange={(e) => setLocation(e.target.value)}
         placeholder="Location (e.g. Breckenridge, CO)"
-        className="w-full bg-transparent border-b border-[var(--border)] focus:border-[var(--fg)] outline-none py-1 text-sm text-[var(--fg)] placeholder-[var(--fg-muted)]"
+        className="w-full bg-transparent border-b border-[var(--border)] focus:border-[var(--fg)] outline-none py-2 text-sm text-[var(--fg)] placeholder-[var(--fg-muted)]"
       />
       <input
         value={dates}
         onChange={(e) => setDates(e.target.value)}
         placeholder="Dates (e.g. Feb 8–12)"
-        className="w-full bg-transparent border-b border-[var(--border)] focus:border-[var(--fg)] outline-none py-1 text-sm text-[var(--fg)] placeholder-[var(--fg-muted)]"
+        className="w-full bg-transparent border-b border-[var(--border)] focus:border-[var(--fg)] outline-none py-2 text-sm text-[var(--fg)] placeholder-[var(--fg-muted)]"
       />
       <input
         value={notes}
         onChange={(e) => setNotes(e.target.value)}
         placeholder="Notes (optional)"
-        className="w-full bg-transparent border-b border-[var(--border)] focus:border-[var(--fg)] outline-none py-1 text-sm text-[var(--fg)] placeholder-[var(--fg-muted)]"
+        className="w-full bg-transparent border-b border-[var(--border)] focus:border-[var(--fg)] outline-none py-2 text-sm text-[var(--fg)] placeholder-[var(--fg-muted)]"
       />
       <div className="flex gap-2 pt-1">
         <button
@@ -126,7 +126,7 @@ function AddProposalForm({
           disabled={pending || (!location.trim() && !dates.trim())}
           className="px-4 py-2 rounded-lg btn-accent text-sm font-semibold disabled:opacity-50 flex items-center gap-1"
         >
-          {pending ? <Loader2 size={13} className="animate-spin" /> : <Plus size={13} />}
+          {pending ? <Loader2 size={13} className="animate-spin" /> : <Plus size={16} />}
           Add
         </button>
         <button
@@ -211,23 +211,23 @@ export function Proposals({
                 <button
                   onClick={() => handleLock(p.id)}
                   disabled={lockingId === p.id}
-                  className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-[var(--accent)] text-[var(--bg)] text-xs font-semibold hover:opacity-90 transition-opacity disabled:opacity-50"
+                  className="flex items-center gap-1 px-3 py-2 rounded-lg bg-[var(--accent)] text-[var(--bg)] text-xs font-semibold hover:opacity-90 transition-opacity disabled:opacity-50"
                 >
                   {lockingId === p.id
                     ? <Loader2 size={11} className="animate-spin" />
-                    : <Lock size={11} />}
+                    : <Lock size={16} />}
                   Lock in
                 </button>
               )}
               <button
                 onClick={() => handleDelete(p.id)}
                 disabled={deletingId === p.id}
-                className="p-1.5 rounded-lg text-[var(--fg-muted)] hover:text-red-400 transition-colors disabled:opacity-50"
+                className="p-2.5 rounded-lg text-[var(--fg-muted)] hover:text-red-400 transition-colors disabled:opacity-50"
                 aria-label="Delete proposal"
               >
                 {deletingId === p.id
                   ? <Loader2 size={13} className="animate-spin" />
-                  : <Trash2 size={13} />}
+                  : <Trash2 size={16} />}
               </button>
             </div>
           </div>
@@ -244,7 +244,7 @@ export function Proposals({
           onClick={() => setShowForm(true)}
           className="flex items-center justify-center gap-1.5 w-full py-2.5 rounded-xl border border-dashed border-[var(--border)] text-sm text-[var(--fg-muted)] hover:text-[var(--fg)] hover:border-[var(--fg-muted)] transition-colors"
         >
-          <Plus size={13} /> Add proposal
+          <Plus size={16} /> Add proposal
         </button>
       )}
     </div>

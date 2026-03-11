@@ -88,7 +88,7 @@ export function LoreFeed({
           onClick={() => setShowForm(true)}
           className="flex items-center justify-center gap-1.5 w-full py-2.5 rounded-xl border border-dashed border-[var(--border)] text-sm text-[var(--fg-muted)] hover:text-[var(--fg)] hover:border-[var(--fg-muted)] transition-colors"
         >
-          <Plus size={13} /> Add lore
+          <Plus size={16} /> Add lore
         </button>
       )}
 

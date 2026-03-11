@@ -215,12 +215,12 @@ export function InfoCarousel({
               <CloudSnow size={24} className="text-sky-400" />
               <div>
                 <p className="text-lg font-bold text-[var(--fg)]">{Math.round(weather.snow!.totalSnowCm)}cm</p>
-                <p className="text-[10px] uppercase tracking-wider text-[var(--fg-muted)]">Expected snowfall</p>
+                <p className="text-xs uppercase tracking-wider text-[var(--fg-muted)]">Expected snowfall</p>
               </div>
             </div>
             <div className="flex gap-3 text-xs text-[var(--fg-muted)]">
-              <span className="flex items-center gap-1"><Thermometer size={10} />{weather.snow!.avgTempF}°F avg</span>
-              <span className="flex items-center gap-1"><Wind size={10} />{weather.days![0].windMph}mph</span>
+              <span className="flex items-center gap-1"><Thermometer size={14} />{weather.snow!.avgTempF}°F avg</span>
+              <span className="flex items-center gap-1"><Wind size={14} />{weather.days![0].windMph}mph</span>
             </div>
           </div>
         ),
@@ -252,7 +252,7 @@ export function InfoCarousel({
             {weather.days!.length > 1 && (
               <div className="flex gap-2 overflow-hidden">
                 {weather.days!.slice(1, 4).map((d) => (
-                  <div key={d.date} className="flex flex-col items-center text-[10px] text-[var(--fg-muted)]">
+                  <div key={d.date} className="flex flex-col items-center text-xs text-[var(--fg-muted)]">
                     <span>{new Date(d.date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short' })}</span>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={d.iconUrl} alt={d.condition} className="w-6 h-6" />
@@ -368,7 +368,7 @@ export function InfoCarousel({
       <div className={`relative flex-1 rounded-lg bg-gradient-to-br ${activeCard.gradient} p-4 flex flex-col justify-between gap-3 transition-all duration-300`}>
         <div className="flex items-center gap-2 text-[var(--fg-muted)]">
           {activeCard.icon}
-          <span className="text-[10px] uppercase tracking-widest font-medium">{activeCard.label}</span>
+          <span className="text-xs uppercase tracking-widest font-medium">{activeCard.label}</span>
         </div>
         <div className="flex-1 flex items-center">
           {activeCard.content}

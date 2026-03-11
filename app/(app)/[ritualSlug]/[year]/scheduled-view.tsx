@@ -135,7 +135,7 @@ function BookingChip({
       {pending ? (
         <Loader2 size={10} className="animate-spin" />
       ) : (
-        <span className="text-[10px] font-semibold uppercase tracking-wide opacity-80">
+        <span className="text-xs font-semibold uppercase tracking-wide opacity-80">
           {STATUS_LABELS[status]}
         </span>
       )}
@@ -200,9 +200,9 @@ function FlightDetailsForm({
         onClick={() => setExpanded(!expanded)}
         className="flex items-center gap-2 text-xs text-[var(--accent)] hover:opacity-70 transition-opacity"
       >
-        <Plane size={12} />
+        <Plane size={14} />
         {hasFlightInfo ? 'Edit flight details' : 'Add flight details'}
-        {expanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+        {expanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
       </button>
 
       {expanded && (
@@ -213,20 +213,20 @@ function FlightDetailsForm({
               value={arrAirline}
               onChange={(e) => setArrAirline(e.target.value)}
               placeholder="Airline"
-              className="flex-1 bg-transparent border-b border-[var(--border)] focus:border-[var(--fg)] outline-none py-1 text-sm text-[var(--fg)] placeholder-[var(--fg-muted)]"
+              className="flex-1 bg-transparent border-b border-[var(--border)] focus:border-[var(--fg)] outline-none py-2 text-sm text-[var(--fg)] placeholder-[var(--fg-muted)]"
             />
             <input
               value={arrFlight}
               onChange={(e) => setArrFlight(e.target.value)}
               placeholder="Flight #"
-              className="w-24 bg-transparent border-b border-[var(--border)] focus:border-[var(--fg)] outline-none py-1 text-sm text-[var(--fg)] placeholder-[var(--fg-muted)]"
+              className="w-24 bg-transparent border-b border-[var(--border)] focus:border-[var(--fg)] outline-none py-2 text-sm text-[var(--fg)] placeholder-[var(--fg-muted)]"
             />
           </div>
           <input
             type="datetime-local"
             value={arrDatetime}
             onChange={(e) => setArrDatetime(e.target.value)}
-            className="w-full bg-transparent border-b border-[var(--border)] focus:border-[var(--fg)] outline-none py-1 text-sm text-[var(--fg)]"
+            className="w-full bg-transparent border-b border-[var(--border)] focus:border-[var(--fg)] outline-none py-2 text-sm text-[var(--fg)]"
           />
 
           <p className="text-xs uppercase tracking-widest text-[var(--fg-muted)] mt-2">Departure</p>
@@ -235,20 +235,20 @@ function FlightDetailsForm({
               value={depAirline}
               onChange={(e) => setDepAirline(e.target.value)}
               placeholder="Airline"
-              className="flex-1 bg-transparent border-b border-[var(--border)] focus:border-[var(--fg)] outline-none py-1 text-sm text-[var(--fg)] placeholder-[var(--fg-muted)]"
+              className="flex-1 bg-transparent border-b border-[var(--border)] focus:border-[var(--fg)] outline-none py-2 text-sm text-[var(--fg)] placeholder-[var(--fg-muted)]"
             />
             <input
               value={depFlight}
               onChange={(e) => setDepFlight(e.target.value)}
               placeholder="Flight #"
-              className="w-24 bg-transparent border-b border-[var(--border)] focus:border-[var(--fg)] outline-none py-1 text-sm text-[var(--fg)] placeholder-[var(--fg-muted)]"
+              className="w-24 bg-transparent border-b border-[var(--border)] focus:border-[var(--fg)] outline-none py-2 text-sm text-[var(--fg)] placeholder-[var(--fg-muted)]"
             />
           </div>
           <input
             type="datetime-local"
             value={depDatetime}
             onChange={(e) => setDepDatetime(e.target.value)}
-            className="w-full bg-transparent border-b border-[var(--border)] focus:border-[var(--fg)] outline-none py-1 text-sm text-[var(--fg)]"
+            className="w-full bg-transparent border-b border-[var(--border)] focus:border-[var(--fg)] outline-none py-2 text-sm text-[var(--fg)]"
           />
 
           <button
@@ -311,7 +311,7 @@ function ArrivalDepartureBoard({
           {arrivals.map((a) => {
             const user = userMap.get(a.userId)
             return (
-              <div key={a.id + '-arr'} className="flex items-center justify-between py-2 border-b border-[var(--border)]">
+              <div key={a.id + '-arr'} className="flex items-center justify-between py-3 border-b border-[var(--border)]">
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-medium text-[var(--fg)]">
                     {user?.name?.split(' ')[0] ?? 'Unknown'}
@@ -335,7 +335,7 @@ function ArrivalDepartureBoard({
           {departures.map((a) => {
             const user = userMap.get(a.userId)
             return (
-              <div key={a.id + '-dep'} className="flex items-center justify-between py-2 border-b border-[var(--border)]">
+              <div key={a.id + '-dep'} className="flex items-center justify-between py-3 border-b border-[var(--border)]">
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-medium text-[var(--fg)]">
                     {user?.name?.split(' ')[0] ?? 'Unknown'}
@@ -426,7 +426,7 @@ function HostManager({
         if (!user) return null
         const isToggling = toggling && togglingId === a.userId
         return (
-          <div key={a.userId} className="flex items-center justify-between py-1.5">
+          <div key={a.userId} className="flex items-center justify-between py-2">
             <span className="text-sm text-[var(--fg)]">{user.name?.split(' ')[0] ?? 'Unknown'}</span>
             <button
               onClick={() => handleToggle(a.userId)}
@@ -514,7 +514,7 @@ function MemberDetailPanel({
         >
           {pending ? <Loader2 size={10} className="animate-spin inline" /> : STATUS_LABELS[status]}
         </button>
-        <span className="text-[10px] text-[var(--fg-muted)]">Tap to cycle</span>
+        <span className="text-xs text-[var(--fg-muted)]">Tap to cycle</span>
       </div>
 
       {/* Host toggle */}
@@ -805,7 +805,7 @@ export function ScheduledView({
           >
             <Settings size={14} />
             Sponsor Controls
-            {showControls ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+            {showControls ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
           </button>
 
           {showControls && (

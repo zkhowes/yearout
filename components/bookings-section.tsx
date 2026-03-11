@@ -77,21 +77,21 @@ function BookingEntry({
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="Name (e.g. AirBnb, Van)"
-          className="bg-transparent border-b border-[var(--border)] focus:border-[var(--fg)] outline-none py-1 text-sm text-[var(--fg)] placeholder-[var(--fg-muted)]"
+          className="bg-transparent border-b border-[var(--border)] focus:border-[var(--fg)] outline-none py-2 text-sm text-[var(--fg)] placeholder-[var(--fg-muted)]"
         />
         {booking.type === 'lodging' ? (
           <input
             value={link}
             onChange={(e) => setLink(e.target.value)}
             placeholder="Link (optional)"
-            className="bg-transparent border-b border-[var(--border)] focus:border-[var(--fg)] outline-none py-1 text-sm text-[var(--fg)] placeholder-[var(--fg-muted)]"
+            className="bg-transparent border-b border-[var(--border)] focus:border-[var(--fg)] outline-none py-2 text-sm text-[var(--fg)] placeholder-[var(--fg-muted)]"
           />
         ) : (
           <input
             value={note}
             onChange={(e) => setNote(e.target.value)}
             placeholder="Note (optional)"
-            className="bg-transparent border-b border-[var(--border)] focus:border-[var(--fg)] outline-none py-1 text-sm text-[var(--fg)] placeholder-[var(--fg-muted)]"
+            className="bg-transparent border-b border-[var(--border)] focus:border-[var(--fg)] outline-none py-2 text-sm text-[var(--fg)] placeholder-[var(--fg-muted)]"
           />
         )}
         <div className="flex gap-2">
@@ -99,26 +99,26 @@ function BookingEntry({
             type="date"
             value={startDate}
             onChange={(e) => setStartDate(e.target.value)}
-            className="flex-1 bg-transparent border-b border-[var(--border)] focus:border-[var(--fg)] outline-none py-1 text-sm text-[var(--fg)]"
+            className="flex-1 bg-transparent border-b border-[var(--border)] focus:border-[var(--fg)] outline-none py-2 text-sm text-[var(--fg)]"
           />
           <input
             type="date"
             value={endDate}
             onChange={(e) => setEndDate(e.target.value)}
-            className="flex-1 bg-transparent border-b border-[var(--border)] focus:border-[var(--fg)] outline-none py-1 text-sm text-[var(--fg)]"
+            className="flex-1 bg-transparent border-b border-[var(--border)] focus:border-[var(--fg)] outline-none py-2 text-sm text-[var(--fg)]"
           />
         </div>
         <div className="flex items-center gap-2 mt-1">
           <button
             onClick={handleSave}
             disabled={saving || !name.trim()}
-            className="px-3 py-1.5 rounded-lg btn-accent text-xs font-semibold disabled:opacity-50 flex items-center gap-1"
+            className="px-3 py-2 rounded-lg btn-accent text-xs font-semibold disabled:opacity-50 flex items-center gap-1"
           >
             {saving ? <Loader2 size={11} className="animate-spin" /> : 'Save'}
           </button>
           <button
             onClick={() => setEditing(false)}
-            className="px-3 py-1.5 text-xs text-[var(--fg-muted)] hover:text-[var(--fg)]"
+            className="px-3 py-2 text-xs text-[var(--fg-muted)] hover:text-[var(--fg)]"
           >
             Cancel
           </button>
@@ -130,7 +130,7 @@ function BookingEntry({
   const dateRange = fmtDateRange(booking.startDate, booking.endDate)
 
   return (
-    <div className="flex items-center gap-3 py-2 border-b border-[var(--border)] last:border-0">
+    <div className="flex items-center gap-3 py-3 border-b border-[var(--border)] last:border-0">
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
           <span className="text-sm font-medium text-[var(--fg)]">{booking.name}</span>
@@ -141,7 +141,7 @@ function BookingEntry({
               rel="noopener noreferrer"
               className="text-[var(--accent)] hover:opacity-70"
             >
-              <ExternalLink size={12} />
+              <ExternalLink size={14} />
             </a>
           )}
         </div>
@@ -153,19 +153,19 @@ function BookingEntry({
         <span className="text-xs text-[var(--fg-muted)] shrink-0">{dateRange}</span>
       )}
       {canEdit && (
-        <div className="flex items-center gap-1 shrink-0">
+        <div className="flex items-center gap-2 shrink-0">
           <button
             onClick={() => setEditing(true)}
-            className="p-1 text-[var(--fg-muted)] hover:text-[var(--fg)]"
+            className="p-2 text-[var(--fg-muted)] hover:text-[var(--fg)]"
           >
-            <Pencil size={11} />
+            <Pencil size={16} />
           </button>
           <button
             onClick={handleDelete}
             disabled={deleting}
-            className="p-1 text-[var(--fg-muted)] hover:text-red-400 disabled:opacity-50"
+            className="p-2 text-[var(--fg-muted)] hover:text-red-400 disabled:opacity-50"
           >
-            {deleting ? <Loader2 size={11} className="animate-spin" /> : <Trash2 size={11} />}
+            {deleting ? <Loader2 size={11} className="animate-spin" /> : <Trash2 size={16} />}
           </button>
         </div>
       )}
@@ -223,7 +223,7 @@ function AddBookingForm({
         value={name}
         onChange={(e) => setName(e.target.value)}
         placeholder={type === 'lodging' ? 'Name (e.g. AirBnb)' : 'Name (e.g. Van, Rental Car)'}
-        className="bg-transparent border-b border-[var(--border)] focus:border-[var(--fg)] outline-none py-1 text-sm text-[var(--fg)] placeholder-[var(--fg-muted)]"
+        className="bg-transparent border-b border-[var(--border)] focus:border-[var(--fg)] outline-none py-2 text-sm text-[var(--fg)] placeholder-[var(--fg-muted)]"
         autoFocus
       />
       {type === 'lodging' ? (
@@ -231,14 +231,14 @@ function AddBookingForm({
           value={link}
           onChange={(e) => setLink(e.target.value)}
           placeholder="Link (optional)"
-          className="bg-transparent border-b border-[var(--border)] focus:border-[var(--fg)] outline-none py-1 text-sm text-[var(--fg)] placeholder-[var(--fg-muted)]"
+          className="bg-transparent border-b border-[var(--border)] focus:border-[var(--fg)] outline-none py-2 text-sm text-[var(--fg)] placeholder-[var(--fg-muted)]"
         />
       ) : (
         <input
           value={note}
           onChange={(e) => setNote(e.target.value)}
           placeholder="Note (optional)"
-          className="bg-transparent border-b border-[var(--border)] focus:border-[var(--fg)] outline-none py-1 text-sm text-[var(--fg)] placeholder-[var(--fg-muted)]"
+          className="bg-transparent border-b border-[var(--border)] focus:border-[var(--fg)] outline-none py-2 text-sm text-[var(--fg)] placeholder-[var(--fg-muted)]"
         />
       )}
       <div className="flex gap-2">
@@ -246,27 +246,27 @@ function AddBookingForm({
           type="date"
           value={startDate}
           onChange={(e) => setStartDate(e.target.value)}
-          className="flex-1 bg-transparent border-b border-[var(--border)] focus:border-[var(--fg)] outline-none py-1 text-sm text-[var(--fg)]"
+          className="flex-1 bg-transparent border-b border-[var(--border)] focus:border-[var(--fg)] outline-none py-2 text-sm text-[var(--fg)]"
         />
         <input
           type="date"
           value={endDate}
           onChange={(e) => setEndDate(e.target.value)}
-          className="flex-1 bg-transparent border-b border-[var(--border)] focus:border-[var(--fg)] outline-none py-1 text-sm text-[var(--fg)]"
+          className="flex-1 bg-transparent border-b border-[var(--border)] focus:border-[var(--fg)] outline-none py-2 text-sm text-[var(--fg)]"
         />
       </div>
       <div className="flex items-center gap-2 mt-1">
         <button
           type="submit"
           disabled={saving || !name.trim()}
-          className="px-3 py-1.5 rounded-lg btn-accent text-xs font-semibold disabled:opacity-50 flex items-center gap-1"
+          className="px-3 py-2 rounded-lg btn-accent text-xs font-semibold disabled:opacity-50 flex items-center gap-1"
         >
           {saving ? <Loader2 size={11} className="animate-spin" /> : 'Add'}
         </button>
         <button
           type="button"
           onClick={onClose}
-          className="px-3 py-1.5 text-xs text-[var(--fg-muted)] hover:text-[var(--fg)]"
+          className="px-3 py-2 text-xs text-[var(--fg-muted)] hover:text-[var(--fg)]"
         >
           Cancel
         </button>
@@ -304,7 +304,7 @@ export function BookingsSection({
           {canEdit && (
             <button
               onClick={() => setAddingType(addingType === 'lodging' ? null : 'lodging')}
-              className="p-1 text-[var(--fg-muted)] hover:text-[var(--fg)]"
+              className="p-2 text-[var(--fg-muted)] hover:text-[var(--fg)]"
             >
               <Plus size={14} />
             </button>
@@ -334,7 +334,7 @@ export function BookingsSection({
           {canEdit && (
             <button
               onClick={() => setAddingType(addingType === 'transportation' ? null : 'transportation')}
-              className="p-1 text-[var(--fg-muted)] hover:text-[var(--fg)]"
+              className="p-2 text-[var(--fg-muted)] hover:text-[var(--fg)]"
             >
               <Plus size={14} />
             </button>

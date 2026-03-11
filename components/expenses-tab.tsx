@@ -188,7 +188,7 @@ function ExpenseForm({
         value={description}
         onChange={(e) => setDescription(e.target.value)}
         placeholder="Description"
-        className="w-full bg-transparent border-b border-[var(--border)] focus:border-[var(--fg)] outline-none py-1 text-sm text-[var(--fg)] placeholder-[var(--fg-muted)]"
+        className="w-full bg-transparent border-b border-[var(--border)] focus:border-[var(--fg)] outline-none py-2 text-sm text-[var(--fg)] placeholder-[var(--fg-muted)]"
       />
 
       <input
@@ -198,7 +198,7 @@ function ExpenseForm({
         placeholder="Amount ($)"
         min="0"
         step="0.01"
-        className="w-full bg-transparent border-b border-[var(--border)] focus:border-[var(--fg)] outline-none py-1 text-sm text-[var(--fg)] placeholder-[var(--fg-muted)]"
+        className="w-full bg-transparent border-b border-[var(--border)] focus:border-[var(--fg)] outline-none py-2 text-sm text-[var(--fg)] placeholder-[var(--fg-muted)]"
       />
 
       {/* Category chips */}
@@ -226,7 +226,7 @@ function ExpenseForm({
         className="flex items-center gap-1 text-xs text-[var(--fg-muted)] hover:text-[var(--fg)] transition-colors self-start"
       >
         Split options
-        {showSplitOptions ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+        {showSplitOptions ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
       </button>
 
       {showSplitOptions && (
@@ -236,7 +236,7 @@ function ExpenseForm({
             <button
               type="button"
               onClick={() => setSplitType('equal')}
-              className={`px-3 py-1.5 rounded-lg text-xs border transition-all ${
+              className={`px-3 py-2 rounded-lg text-xs border transition-all ${
                 splitType === 'equal'
                   ? 'bg-[var(--accent)] border-[var(--accent)] text-[var(--accent-fg)]'
                   : 'border-[var(--border)] text-[var(--fg-muted)]'
@@ -247,7 +247,7 @@ function ExpenseForm({
             <button
               type="button"
               onClick={() => setSplitType('exact')}
-              className={`px-3 py-1.5 rounded-lg text-xs border transition-all ${
+              className={`px-3 py-2 rounded-lg text-xs border transition-all ${
                 splitType === 'exact'
                   ? 'bg-[var(--accent)] border-[var(--accent)] text-[var(--accent-fg)]'
                   : 'border-[var(--border)] text-[var(--fg-muted)]'
@@ -285,7 +285,7 @@ function ExpenseForm({
                       placeholder="$0.00"
                       min="0"
                       step="0.01"
-                      className="ml-auto w-20 bg-transparent border-b border-[var(--border)] focus:border-[var(--fg)] outline-none py-0.5 text-sm text-right text-[var(--fg)] placeholder-[var(--fg-muted)]"
+                      className="ml-auto w-20 bg-transparent border-b border-[var(--border)] focus:border-[var(--fg)] outline-none py-1 text-sm text-right text-[var(--fg)] placeholder-[var(--fg-muted)]"
                     />
                   )}
                 </label>
@@ -307,7 +307,7 @@ function ExpenseForm({
           disabled={pending || !description.trim() || !dollarAmount || !exactValid || selectedUsers.size === 0}
           className="px-4 py-2 rounded-lg btn-accent text-sm font-semibold disabled:opacity-50 flex items-center gap-1"
         >
-          {pending ? <Loader2 size={13} className="animate-spin" /> : <Plus size={13} />}
+          {pending ? <Loader2 size={13} className="animate-spin" /> : <Plus size={16} />}
           {existing ? 'Save' : 'Add'}
         </button>
         <button
@@ -432,7 +432,7 @@ function SettlementSection({
             const isCreditor = s.to === currentUserId
 
             return (
-              <div key={i} className="flex items-center justify-between py-2 border-b border-[var(--border)]">
+              <div key={i} className="flex items-center justify-between py-3 border-b border-[var(--border)]">
                 <div className="flex-1">
                   <p className="text-sm text-[var(--fg)]">
                     <span className="font-medium">{getName(s.from)}</span>
@@ -445,7 +445,7 @@ function SettlementSection({
                 <div className="flex items-center gap-1.5 shrink-0">
                   {payment?.status === 'confirmed' && (
                     <span className="flex items-center gap-1 text-xs text-green-600 font-medium">
-                      <Check size={12} /> Confirmed
+                      <Check size={14} /> Confirmed
                     </span>
                   )}
                   {payment?.status === 'paid' && (
@@ -484,12 +484,12 @@ function SettlementSection({
                       onClick={() => handleReset(payment.id)}
                       disabled={pending && actionId === `reset-${payment.id}`}
                       title="Reset"
-                      className="p-1 text-[var(--fg-muted)] hover:text-red-400 transition-colors disabled:opacity-50"
+                      className="p-2 text-[var(--fg-muted)] hover:text-red-400 transition-colors disabled:opacity-50"
                     >
                       {pending && actionId === `reset-${payment.id}` ? (
                         <Loader2 size={10} className="animate-spin" />
                       ) : (
-                        <RotateCcw size={12} />
+                        <RotateCcw size={16} />
                       )}
                     </button>
                   )}
@@ -589,7 +589,7 @@ export function ExpensesTab({
           onClick={() => setShowForm(true)}
           className="flex items-center justify-center gap-1.5 w-full py-2.5 rounded-xl border border-dashed border-[var(--border)] text-sm text-[var(--fg-muted)] hover:text-[var(--fg)] hover:border-[var(--fg-muted)] transition-colors"
         >
-          <Plus size={13} /> Add expense
+          <Plus size={16} /> Add expense
         </button>
       )}
 
@@ -607,13 +607,13 @@ export function ExpensesTab({
               <div key={e.id} className="flex flex-col border-b border-[var(--border)]">
                 <button
                   onClick={() => setExpandedId(isExpanded ? null : e.id)}
-                  className="flex items-center justify-between py-2 w-full text-left"
+                  className="flex items-center justify-between py-3 w-full text-left"
                 >
                   <div className="flex flex-col gap-0.5">
                     <div className="flex items-center gap-2">
                       <p className="text-sm text-[var(--fg)]">{e.description}</p>
                       {e.category && (
-                        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-[var(--surface)] border border-[var(--border)] text-[var(--fg-muted)]">
+                        <span className="text-xs px-1.5 py-1 rounded-full bg-[var(--surface)] border border-[var(--border)] text-[var(--fg-muted)]">
                           {getCategoryLabel(e.category)}
                         </span>
                       )}
@@ -628,7 +628,7 @@ export function ExpensesTab({
                     <p className="text-sm font-semibold text-[var(--fg)]">
                       ${(e.amount / 100).toFixed(2)}
                     </p>
-                    {isExpanded ? <ChevronUp size={12} className="text-[var(--fg-muted)]" /> : <ChevronDown size={12} className="text-[var(--fg-muted)]" />}
+                    {isExpanded ? <ChevronUp size={14} className="text-[var(--fg-muted)]" /> : <ChevronDown size={14} className="text-[var(--fg-muted)]" />}
                   </div>
                 </button>
 
@@ -658,7 +658,7 @@ export function ExpensesTab({
                           }}
                           className="flex items-center gap-1 text-xs text-[var(--fg-muted)] hover:text-[var(--fg)] transition-colors"
                         >
-                          <Pencil size={10} /> Edit
+                          <Pencil size={16} /> Edit
                         </button>
                         <button
                           onClick={(ev) => {
@@ -671,7 +671,7 @@ export function ExpensesTab({
                           {deleting && deletingId === e.id ? (
                             <Loader2 size={10} className="animate-spin" />
                           ) : (
-                            <><Trash2 size={10} /> Delete</>
+                            <><Trash2 size={16} /> Delete</>
                           )}
                         </button>
                       </div>

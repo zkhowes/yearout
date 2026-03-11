@@ -286,31 +286,31 @@ export function EventDetailsCard({ event, canEdit, ritualSlug, carouselProps }: 
           value={locationInput}
           onChange={(e) => setLocationInput(e.target.value)}
           placeholder="Location (e.g. South Lake Tahoe, CA)"
-          className="w-full bg-transparent border-b border-[var(--border)] focus:border-[var(--fg)] outline-none py-1 text-sm text-[var(--fg)] placeholder-[var(--fg-muted)]"
+          className="w-full bg-transparent border-b border-[var(--border)] focus:border-[var(--fg)] outline-none py-2 text-sm text-[var(--fg)] placeholder-[var(--fg-muted)]"
         />
         <input
           value={mountainsInput}
           onChange={(e) => setMountainsInput(e.target.value)}
           placeholder="Venues (comma-separated)"
-          className="w-full bg-transparent border-b border-[var(--border)] focus:border-[var(--fg)] outline-none py-1 text-sm text-[var(--fg)] placeholder-[var(--fg-muted)]"
+          className="w-full bg-transparent border-b border-[var(--border)] focus:border-[var(--fg)] outline-none py-2 text-sm text-[var(--fg)] placeholder-[var(--fg-muted)]"
         />
         <div className="flex gap-2">
           <div className="flex-1 flex flex-col gap-1">
-            <label className="text-[10px] uppercase tracking-widest text-[var(--fg-muted)]">Start Date</label>
+            <label className="text-xs uppercase tracking-widest text-[var(--fg-muted)]">Start Date</label>
             <input
               type="date"
               value={startDateInput}
               onChange={(e) => setStartDateInput(e.target.value)}
-              className="w-full bg-transparent border-b border-[var(--border)] focus:border-[var(--fg)] outline-none py-1 text-sm text-[var(--fg)]"
+              className="w-full bg-transparent border-b border-[var(--border)] focus:border-[var(--fg)] outline-none py-2 text-sm text-[var(--fg)]"
             />
           </div>
           <div className="flex-1 flex flex-col gap-1">
-            <label className="text-[10px] uppercase tracking-widest text-[var(--fg-muted)]">End Date</label>
+            <label className="text-xs uppercase tracking-widest text-[var(--fg-muted)]">End Date</label>
             <input
               type="date"
               value={endDateInput}
               onChange={(e) => setEndDateInput(e.target.value)}
-              className="w-full bg-transparent border-b border-[var(--border)] focus:border-[var(--fg)] outline-none py-1 text-sm text-[var(--fg)]"
+              className="w-full bg-transparent border-b border-[var(--border)] focus:border-[var(--fg)] outline-none py-2 text-sm text-[var(--fg)]"
             />
           </div>
         </div>
@@ -560,7 +560,7 @@ function CrewTiles({
                   key={m.userId}
                   onClick={() => toggleSelect(m.userId)}
                   disabled={adding}
-                  className={`px-3 py-1.5 rounded-lg border text-sm transition-colors disabled:opacity-50 ${
+                  className={`px-3 py-2 rounded-lg border text-sm transition-colors disabled:opacity-50 ${
                     selected.has(m.userId)
                       ? 'border-[var(--accent)] bg-[var(--accent)] text-[var(--accent-fg)]'
                       : 'border-[var(--border)] text-[var(--fg)] hover:bg-[var(--border)]'
@@ -576,7 +576,7 @@ function CrewTiles({
                 disabled={adding || selected.size === 0}
                 className="px-4 py-2 rounded-lg btn-accent text-sm font-semibold disabled:opacity-50 flex items-center gap-1"
               >
-                {adding ? <Loader2 size={13} className="animate-spin" /> : <Plus size={13} />}
+                {adding ? <Loader2 size={13} className="animate-spin" /> : <Plus size={16} />}
                 Add {selected.size > 0 ? `${selected.size} member${selected.size > 1 ? 's' : ''}` : ''}
               </button>
               <button
@@ -592,7 +592,7 @@ function CrewTiles({
             onClick={() => setShowPicker(true)}
             className="flex items-center justify-center gap-1.5 w-full py-2 rounded-xl border border-dashed border-[var(--border)] text-xs text-[var(--fg-muted)] hover:text-[var(--fg)] hover:border-[var(--fg-muted)] transition-colors"
           >
-            <Plus size={12} /> Add crew member
+            <Plus size={16} /> Add crew member
           </button>
         )
       )}
@@ -708,13 +708,13 @@ function VideoEditSection({
               value={editUrlInput}
               onChange={(e) => setEditUrlInput(e.target.value)}
               placeholder="YouTube or Vimeo URL"
-              className="w-full bg-transparent border-b border-[var(--border)] focus:border-[var(--fg)] outline-none py-1 text-sm text-[var(--fg)] placeholder-[var(--fg-muted)]"
+              className="w-full bg-transparent border-b border-[var(--border)] focus:border-[var(--fg)] outline-none py-2 text-sm text-[var(--fg)] placeholder-[var(--fg-muted)]"
             />
             <div className="flex items-center gap-2">
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                className="px-3 py-1.5 rounded-lg border border-[var(--border)] text-xs text-[var(--fg-muted)] hover:text-[var(--fg)] transition-colors"
+                className="px-3 py-2 rounded-lg border border-[var(--border)] text-xs text-[var(--fg-muted)] hover:text-[var(--fg)] transition-colors"
               >
                 {thumbnailFile ? thumbnailFile.name : 'Custom thumbnail (optional)'}
               </button>
@@ -748,7 +748,7 @@ function VideoEditSection({
             onClick={() => setShowEditForm(true)}
             className="flex items-center justify-center gap-1.5 w-full py-2 rounded-xl border border-dashed border-[var(--border)] text-xs text-[var(--fg-muted)] hover:text-[var(--fg)] hover:border-[var(--fg-muted)] transition-colors"
           >
-            <Plus size={12} /> {event.editUrl ? 'Update video' : 'Add video edit'}
+            <Plus size={16} /> {event.editUrl ? 'Update video' : 'Add video edit'}
           </button>
         )
       )}

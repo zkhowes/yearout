@@ -227,7 +227,7 @@ export default async function RitualTourPage({
                   {event.mountains && (
                     <div className="flex flex-wrap gap-1 mt-0.5">
                       {event.mountains.split(',').map((v) => v.trim()).filter(Boolean).map((venue) => (
-                        <span key={venue} className="px-1.5 py-0.5 rounded text-[10px] bg-[var(--border)] text-[var(--fg-muted)]">
+                        <span key={venue} className="px-1.5 py-0.5 rounded text-xs bg-[var(--border)] text-[var(--fg-muted)]">
                           {venue}
                         </span>
                       ))}

@@ -116,7 +116,7 @@ function ExpensesStep({
           expenses.map((e) => {
             const payer = userMap.get(e.paidBy)
             return (
-              <div key={e.id} className="flex items-center justify-between py-2 border-b border-[var(--border)]">
+              <div key={e.id} className="flex items-center justify-between py-3 border-b border-[var(--border)]">
                 <div>
                   <p className="text-sm text-[var(--fg)]">{e.description}</p>
                   <p className="text-xs text-[var(--fg-muted)]">paid by {payer?.name ?? 'Unknown'}</p>
@@ -248,7 +248,7 @@ function AwardVotingStep({
               </div>
               {winnerUser && (
                 <div className="flex items-center gap-1.5 text-sm font-medium text-[var(--accent)]">
-                  <Star size={13} className="fill-current" />
+                  <Star size={14} className="fill-current" />
                   {winnerUser.name?.split(' ')[0]}
                 </div>
               )}
@@ -271,7 +271,7 @@ function AwardVotingStep({
                         key={attendee.userId}
                         onClick={() => handleVote(def.id, attendee.userId, existingVote?.id)}
                         disabled={disabled}
-                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm border transition-all disabled:opacity-40 ${
+                        className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm border transition-all disabled:opacity-40 ${
                           isVoted
                             ? 'bg-[var(--accent)] border-[var(--accent)] text-[var(--accent-fg)]'
                             : 'border-[var(--border)] text-[var(--fg-muted)] hover:border-[var(--fg-muted)]'
@@ -293,12 +293,12 @@ function AwardVotingStep({
               <button
                 onClick={() => handleFinalize(def.id)}
                 disabled={finalizeTransition}
-                className="self-start flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[var(--border)] text-xs text-[var(--fg-muted)] hover:text-[var(--fg)] transition-colors disabled:opacity-50"
+                className="self-start flex items-center gap-1.5 px-3 py-2 rounded-lg border border-[var(--border)] text-xs text-[var(--fg-muted)] hover:text-[var(--fg)] transition-colors disabled:opacity-50"
               >
                 {finalizeTransition && finalizingId === def.id ? (
                   <Loader2 size={11} className="animate-spin" />
                 ) : (
-                  <Check size={11} />
+                  <Check size={16} />
                 )}
                 Finalize votes
               </button>

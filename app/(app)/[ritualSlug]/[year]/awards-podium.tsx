@@ -147,8 +147,8 @@ export function AwardsPodium({
                   disabled={assigning}
                   className="flex items-center gap-1 text-[var(--fg-muted)] hover:text-[var(--fg)] transition-colors disabled:opacity-50 mt-1"
                 >
-                  <Trophy size={12} />
-                  <span className="text-[10px]">Reassign</span>
+                  <Trophy size={14} />
+                  <span className="text-xs">Reassign</span>
                 </button>
               )}
             </>
@@ -159,13 +159,13 @@ export function AwardsPodium({
               className="flex flex-col items-center gap-1 text-[var(--fg-muted)] hover:text-[var(--fg)] transition-colors disabled:opacity-50"
             >
               <Trophy size={size === 'hero' ? 24 : 18} />
-              <span className="text-[10px]">Assign</span>
+              <span className="text-xs">Assign</span>
             </button>
           ) : (
             <Trophy size={size === 'hero' ? 24 : 18} className="text-[var(--border)]" />
           )}
         </div>
-        <p className="text-[10px] uppercase tracking-widest text-[var(--fg-muted)] text-center">{def.name}</p>
+        <p className="text-xs uppercase tracking-widest text-[var(--fg-muted)] text-center">{def.name}</p>
       </div>
     )
   }
@@ -208,8 +208,8 @@ export function AwardsPodium({
                         disabled={assigning}
                         className="flex items-center gap-1 text-[var(--fg-muted)] hover:text-[var(--fg)] transition-colors disabled:opacity-50"
                       >
-                        <Trophy size={12} />
-                        <span className="text-[10px]">Reassign</span>
+                        <Trophy size={14} />
+                        <span className="text-xs">Reassign</span>
                       </button>
                     )}
                   </>
@@ -247,7 +247,7 @@ export function AwardsPodium({
                   key={a.userId}
                   onClick={() => handleAssign(pickerDefId, a.userId)}
                   disabled={assigning}
-                  className="px-3 py-1.5 rounded-lg border border-[var(--border)] text-sm text-[var(--fg)] hover:bg-[var(--border)] transition-colors disabled:opacity-50"
+                  className="px-3 py-2 rounded-lg border border-[var(--border)] text-sm text-[var(--fg)] hover:bg-[var(--border)] transition-colors disabled:opacity-50"
                 >
                   {user.name?.split(' ')[0] ?? 'Unknown'}
                 </button>

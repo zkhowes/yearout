@@ -184,7 +184,7 @@ export function AddLoreForm({
               key={t}
               type="button"
               onClick={() => setType(t)}
-              className={`px-3 py-1 rounded-lg text-xs border transition-all capitalize ${
+              className={`px-3 py-2 rounded-lg text-xs border transition-all capitalize ${
                 type === t
                   ? 'bg-[var(--accent)] border-[var(--accent)] text-[var(--accent-fg)]'
                   : 'border-[var(--border)] text-[var(--fg-muted)]'
@@ -210,9 +210,9 @@ export function AddLoreForm({
           }
           rows={3}
           maxLength={200}
-          className="w-full bg-transparent border-b border-[var(--border)] focus:border-[var(--fg)] outline-none py-1 text-sm text-[var(--fg)] placeholder-[var(--fg-muted)] resize-none"
+          className="w-full bg-transparent border-b border-[var(--border)] focus:border-[var(--fg)] outline-none py-2 text-sm text-[var(--fg)] placeholder-[var(--fg-muted)] resize-none"
         />
-        <span className="absolute bottom-1 right-0 text-[10px] text-[var(--fg-muted)]">
+        <span className="absolute bottom-1 right-0 text-xs text-[var(--fg-muted)]">
           {content.length}/200
         </span>
 
@@ -242,7 +242,7 @@ export function AddLoreForm({
                   />
                 ) : (
                   <div className="w-6 h-6 rounded-full bg-[var(--border)] flex items-center justify-center shrink-0">
-                    <User size={10} className="text-[var(--fg-muted)]" />
+                    <User size={14} className="text-[var(--fg-muted)]" />
                   </div>
                 )}
                 <span>{member.name?.split(' ')[0] ?? 'Unknown'}</span>
@@ -258,7 +258,7 @@ export function AddLoreForm({
           value={location}
           onChange={(e) => setLocation(e.target.value)}
           placeholder="Location"
-          className="w-full bg-transparent border-b border-[var(--border)] focus:border-[var(--fg)] outline-none py-1 text-sm text-[var(--fg)] placeholder-[var(--fg-muted)]"
+          className="w-full bg-transparent border-b border-[var(--border)] focus:border-[var(--fg)] outline-none py-2 text-sm text-[var(--fg)] placeholder-[var(--fg-muted)]"
         />
       )}
 
@@ -268,7 +268,7 @@ export function AddLoreForm({
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            className="px-3 py-1.5 rounded-lg border border-[var(--border)] text-xs text-[var(--fg-muted)] hover:text-[var(--fg)] transition-colors"
+            className="px-3 py-2 rounded-lg border border-[var(--border)] text-xs text-[var(--fg-muted)] hover:text-[var(--fg)] transition-colors"
           >
             {photoFile ? photoFile.name : 'Choose photo'}
           </button>
@@ -290,7 +290,7 @@ export function AddLoreForm({
         type="date"
         value={day}
         onChange={(e) => setDay(e.target.value)}
-        className="w-full bg-transparent border-b border-[var(--border)] focus:border-[var(--fg)] outline-none py-1 text-sm text-[var(--fg)] placeholder-[var(--fg-muted)]"
+        className="w-full bg-transparent border-b border-[var(--border)] focus:border-[var(--fg)] outline-none py-2 text-sm text-[var(--fg)] placeholder-[var(--fg-muted)]"
       />
 
       {/* Submit / Cancel */}
@@ -300,7 +300,7 @@ export function AddLoreForm({
           disabled={pending || !content.trim()}
           className="px-4 py-2 rounded-lg btn-accent text-sm font-semibold disabled:opacity-50 flex items-center gap-1"
         >
-          {pending ? <Loader2 size={13} className="animate-spin" /> : <Plus size={13} />}
+          {pending ? <Loader2 size={13} className="animate-spin" /> : <Plus size={16} />}
           Add
         </button>
         <button

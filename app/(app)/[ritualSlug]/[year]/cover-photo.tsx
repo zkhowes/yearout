@@ -64,12 +64,12 @@ export function CoverPhoto({
               <button
                 type="button"
                 onClick={() => inputRef.current?.click()}
-                className="absolute bottom-3 right-3 px-3 py-1.5 rounded-lg bg-black/60 text-white text-xs font-medium hover:bg-black/80 transition-colors flex items-center gap-1.5"
+                className="absolute bottom-3 right-3 px-3 py-2 rounded-lg bg-black/60 text-white text-xs font-medium hover:bg-black/80 transition-colors flex items-center gap-1.5"
               >
                 {uploading ? (
                   <Loader2 size={12} className="animate-spin" />
                 ) : (
-                  <ImagePlus size={12} />
+                  <ImagePlus size={16} />
                 )}
                 Replace
               </button>

@@ -262,7 +262,7 @@ export function TheCallView({
                       <>
                         {card.venues?.length > 0 && (
                           <div>
-                            <p className="text-[10px] uppercase tracking-widest text-[var(--fg-muted)] mb-1">Venues & Activities</p>
+                            <p className="text-xs uppercase tracking-widest text-[var(--fg-muted)] mb-1">Venues & Activities</p>
                             <ul className="flex flex-col gap-0.5">
                               {card.venues.map((v, i) => (
                                 <li key={i} className="text-xs text-[var(--fg)]">{v}</li>
@@ -272,7 +272,7 @@ export function TheCallView({
                         )}
                         {card.dining?.length > 0 && (
                           <div>
-                            <p className="text-[10px] uppercase tracking-widest text-[var(--fg-muted)] mb-1">Dining</p>
+                            <p className="text-xs uppercase tracking-widest text-[var(--fg-muted)] mb-1">Dining</p>
                             <ul className="flex flex-col gap-0.5">
                               {card.dining.map((d, i) => (
                                 <li key={i} className="text-xs text-[var(--fg)]">{d}</li>
@@ -282,7 +282,7 @@ export function TheCallView({
                         )}
                         {card.facts?.length > 0 && (
                           <div>
-                            <p className="text-[10px] uppercase tracking-widest text-[var(--fg-muted)] mb-1">Cool Facts</p>
+                            <p className="text-xs uppercase tracking-widest text-[var(--fg-muted)] mb-1">Cool Facts</p>
                             <ul className="flex flex-col gap-0.5">
                               {card.facts.map((f, i) => (
                                 <li key={i} className="text-xs text-[var(--fg)]">{f}</li>
@@ -292,7 +292,7 @@ export function TheCallView({
                         )}
                         {card.pastEvents?.length > 0 && (
                           <div className="border-t border-[var(--border)] pt-2">
-                            <p className="text-[10px] uppercase tracking-widest text-[var(--accent)] mb-1">Past Lore</p>
+                            <p className="text-xs uppercase tracking-widest text-[var(--accent)] mb-1">Past Lore</p>
                             {card.pastEvents.map((pe, i) => (
                               <div key={i} className="mb-2">
                                 <p className="text-xs font-semibold text-[var(--fg)]">{pe.year}</p>
@@ -340,14 +340,14 @@ export function TheCallView({
                   <img src={c.image} alt="" className="w-6 h-6 rounded-full object-cover" />
                 ) : (
                   <div className="w-6 h-6 rounded-full bg-[var(--border)] flex items-center justify-center">
-                    <span className="text-[10px] font-bold text-[var(--fg-muted)]">{displayName[0]}</span>
+                    <span className="text-xs font-bold text-[var(--fg-muted)]">{displayName[0]}</span>
                   </div>
                 )}
                 <span className={`text-xs font-medium ${hasVoted ? 'text-green-500' : 'text-[var(--fg-muted)]'}`}>
                   {displayName}
                 </span>
                 {hasVoted && (
-                  <span className="text-[10px] font-bold text-green-500 uppercase">IN</span>
+                  <span className="text-xs font-bold text-green-500 uppercase">IN</span>
                 )}
               </div>
             )

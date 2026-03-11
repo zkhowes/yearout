@@ -209,7 +209,7 @@ function CallForm({
             onClick={addLocation}
             className="flex items-center gap-1.5 text-xs text-[var(--fg-muted)] hover:text-[var(--fg)] transition-colors"
           >
-            <Plus size={12} /> Add location
+            <Plus size={16} /> Add location
           </button>
         )}
       </div>

@@ -29,7 +29,7 @@ export function Header({ user }: { user?: HeaderUser }) {
         <button
           aria-label="Open menu"
           onClick={() => setOpen(true)}
-          className="p-1 text-[var(--fg)] hover:opacity-70 transition-opacity"
+          className="p-2 text-[var(--fg)] hover:opacity-70 transition-opacity"
         >
           <Menu size={22} />
         </button>
@@ -53,7 +53,7 @@ export function Header({ user }: { user?: HeaderUser }) {
           <button
             aria-label="Close menu"
             onClick={() => setOpen(false)}
-            className="p-1 text-[var(--fg)] hover:opacity-70 transition-opacity"
+            className="p-2 text-[var(--fg)] hover:opacity-70 transition-opacity"
           >
             <X size={22} />
           </button>

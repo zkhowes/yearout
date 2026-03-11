@@ -232,27 +232,27 @@ export function ItinerarySection({
         value={themeName}
         onChange={(e) => setThemeName(e.target.value)}
         placeholder="Activity (eg. Jersey Day, Prom Night)"
-        className="w-full bg-transparent border-b border-[var(--border)] focus:border-[var(--fg)] outline-none py-1 text-sm text-[var(--fg)] placeholder-[var(--fg-muted)]"
+        className="w-full bg-transparent border-b border-[var(--border)] focus:border-[var(--fg)] outline-none py-2 text-sm text-[var(--fg)] placeholder-[var(--fg-muted)]"
       />
       <input
         value={notes}
         onChange={(e) => setNotes(e.target.value)}
         placeholder="Notes"
-        className="w-full bg-transparent border-b border-[var(--border)] focus:border-[var(--fg)] outline-none py-1 text-sm text-[var(--fg)] placeholder-[var(--fg-muted)]"
+        className="w-full bg-transparent border-b border-[var(--border)] focus:border-[var(--fg)] outline-none py-2 text-sm text-[var(--fg)] placeholder-[var(--fg-muted)]"
       />
       <div className="flex gap-2">
         <button
           type="submit"
           disabled={pending}
-          className="px-3 py-1.5 rounded-lg btn-accent text-xs font-semibold disabled:opacity-50 flex items-center gap-1"
+          className="px-3 py-2 rounded-lg btn-accent text-xs font-semibold disabled:opacity-50 flex items-center gap-1"
         >
-          {pending ? <Loader2 size={12} className="animate-spin" /> : <Plus size={12} />}
+          {pending ? <Loader2 size={12} className="animate-spin" /> : <Plus size={16} />}
           Add Itinerary
         </button>
         <button
           type="button"
           onClick={() => setAddingForDate(null)}
-          className="px-3 py-1.5 rounded-lg border border-[var(--border)] text-xs text-[var(--fg-muted)]"
+          className="px-3 py-2 rounded-lg border border-[var(--border)] text-xs text-[var(--fg-muted)]"
         >
           Cancel
         </button>
@@ -283,7 +283,7 @@ export function ItinerarySection({
                 <Calendar size={14} className="text-[var(--fg-muted)] shrink-0" />
                 <span className="text-sm text-[var(--fg-muted)]">{fmtDay(dateObj)}</span>
                 {canEdit && (
-                  <Plus size={12} className="text-[var(--fg-muted)] ml-auto" />
+                  <Plus size={16} className="text-[var(--fg-muted)] ml-auto" />
                 )}
               </button>
             )
@@ -301,25 +301,25 @@ export function ItinerarySection({
                         value={themeName}
                         onChange={(e) => setThemeName(e.target.value)}
                         placeholder="Activity (eg. Jersey Day, Prom Night)"
-                        className="w-full bg-transparent border-b border-[var(--border)] focus:border-[var(--fg)] outline-none py-1 text-sm text-[var(--fg)] placeholder-[var(--fg-muted)]"
+                        className="w-full bg-transparent border-b border-[var(--border)] focus:border-[var(--fg)] outline-none py-2 text-sm text-[var(--fg)] placeholder-[var(--fg-muted)]"
                       />
                       <input
                         value={notes}
                         onChange={(e) => setNotes(e.target.value)}
                         placeholder="Notes"
-                        className="w-full bg-transparent border-b border-[var(--border)] focus:border-[var(--fg)] outline-none py-1 text-sm text-[var(--fg)] placeholder-[var(--fg-muted)]"
+                        className="w-full bg-transparent border-b border-[var(--border)] focus:border-[var(--fg)] outline-none py-2 text-sm text-[var(--fg)] placeholder-[var(--fg-muted)]"
                       />
                       <div className="flex gap-2">
                         <button
                           onClick={() => handleUpdate(item.id)}
                           disabled={pending}
-                          className="px-3 py-1.5 rounded-lg btn-accent text-xs font-semibold disabled:opacity-50"
+                          className="px-3 py-2 rounded-lg btn-accent text-xs font-semibold disabled:opacity-50"
                         >
                           {pending ? <Loader2 size={12} className="animate-spin" /> : 'Save'}
                         </button>
                         <button
                           onClick={() => { setEditingId(null); setThemeName(''); setNotes('') }}
-                          className="px-3 py-1.5 rounded-lg border border-[var(--border)] text-xs text-[var(--fg-muted)]"
+                          className="px-3 py-2 rounded-lg border border-[var(--border)] text-xs text-[var(--fg-muted)]"
                         >
                           Cancel
                         </button>
@@ -344,25 +344,25 @@ export function ItinerarySection({
                       )}
                     </div>
                     {canEdit && (
-                      <div className="flex items-center gap-1 shrink-0">
+                      <div className="flex items-center gap-2 shrink-0">
                         <button
                           onClick={() => handleClickAdd(dateStr)}
-                          className="p-1 text-[var(--fg-muted)] hover:text-[var(--accent)] transition-colors"
+                          className="p-2 text-[var(--fg-muted)] hover:text-[var(--accent)] transition-colors"
                         >
-                          <Plus size={12} />
+                          <Plus size={16} />
                         </button>
                         <button
                           onClick={() => startEdit(item)}
-                          className="p-1 text-[var(--fg-muted)] hover:text-[var(--fg)] transition-colors"
+                          className="p-2 text-[var(--fg-muted)] hover:text-[var(--fg)] transition-colors"
                         >
-                          <Pencil size={12} />
+                          <Pencil size={16} />
                         </button>
                         <button
                           onClick={() => handleDelete(item.id)}
                           disabled={pending}
-                          className="p-1 text-[var(--fg-muted)] hover:text-red-400 transition-colors disabled:opacity-50"
+                          className="p-2 text-[var(--fg-muted)] hover:text-red-400 transition-colors disabled:opacity-50"
                         >
-                          <Trash2 size={12} />
+                          <Trash2 size={16} />
                         </button>
                       </div>
                     )}
@@ -451,7 +451,7 @@ function StatsTab({
             <select
               value={userId}
               onChange={(e) => setUserId(e.target.value)}
-              className="w-full bg-transparent border-b border-[var(--border)] focus:border-[var(--fg)] outline-none py-1 text-sm text-[var(--fg)]"
+              className="w-full bg-transparent border-b border-[var(--border)] focus:border-[var(--fg)] outline-none py-2 text-sm text-[var(--fg)]"
             >
               {attendees.map((a) => {
                 const user = userMap.get(a.userId)
@@ -470,7 +470,7 @@ function StatsTab({
               value={metric}
               onChange={(e) => setMetric(e.target.value)}
               placeholder="Metric (e.g. fastest_speed)"
-              className="w-full bg-transparent border-b border-[var(--border)] focus:border-[var(--fg)] outline-none py-1 text-sm text-[var(--fg)] placeholder-[var(--fg-muted)]"
+              className="w-full bg-transparent border-b border-[var(--border)] focus:border-[var(--fg)] outline-none py-2 text-sm text-[var(--fg)] placeholder-[var(--fg-muted)]"
             />
             <datalist id="metric-suggestions">
               {SKI_METRICS.map((m) => <option key={m} value={m} />)}
@@ -482,13 +482,13 @@ function StatsTab({
               value={value}
               onChange={(e) => setValue(e.target.value)}
               placeholder="Value"
-              className="flex-1 bg-transparent border-b border-[var(--border)] focus:border-[var(--fg)] outline-none py-1 text-sm text-[var(--fg)] placeholder-[var(--fg-muted)]"
+              className="flex-1 bg-transparent border-b border-[var(--border)] focus:border-[var(--fg)] outline-none py-2 text-sm text-[var(--fg)] placeholder-[var(--fg-muted)]"
             />
             <input
               value={unit}
               onChange={(e) => setUnit(e.target.value)}
               placeholder="Unit"
-              className="w-24 bg-transparent border-b border-[var(--border)] focus:border-[var(--fg)] outline-none py-1 text-sm text-[var(--fg)] placeholder-[var(--fg-muted)]"
+              className="w-24 bg-transparent border-b border-[var(--border)] focus:border-[var(--fg)] outline-none py-2 text-sm text-[var(--fg)] placeholder-[var(--fg-muted)]"
             />
           </div>
 
@@ -496,7 +496,7 @@ function StatsTab({
             type="date"
             value={day}
             onChange={(e) => setDay(e.target.value)}
-            className="w-full bg-transparent border-b border-[var(--border)] focus:border-[var(--fg)] outline-none py-1 text-sm text-[var(--fg)]"
+            className="w-full bg-transparent border-b border-[var(--border)] focus:border-[var(--fg)] outline-none py-2 text-sm text-[var(--fg)]"
           />
 
           <div className="flex gap-2 pt-1">
@@ -505,7 +505,7 @@ function StatsTab({
               disabled={pending || !metric.trim() || !value.trim()}
               className="px-4 py-2 rounded-lg btn-accent text-sm font-semibold disabled:opacity-50 flex items-center gap-1"
             >
-              {pending ? <Loader2 size={13} className="animate-spin" /> : <Plus size={13} />}
+              {pending ? <Loader2 size={13} className="animate-spin" /> : <Plus size={16} />}
               Add
             </button>
             <button
@@ -522,7 +522,7 @@ function StatsTab({
           onClick={() => setShowForm(true)}
           className="flex items-center justify-center gap-1.5 w-full py-2.5 rounded-xl border border-dashed border-[var(--border)] text-sm text-[var(--fg-muted)] hover:text-[var(--fg)] hover:border-[var(--fg-muted)] transition-colors"
         >
-          <Plus size={13} /> Add result
+          <Plus size={16} /> Add result
         </button>
       )}
 
@@ -535,7 +535,7 @@ function StatsTab({
             {results.map((r) => {
               const user = userMap.get(r.userId)
               return (
-                <div key={r.id} className="flex items-center justify-between py-2 border-b border-[var(--border)]">
+                <div key={r.id} className="flex items-center justify-between py-3 border-b border-[var(--border)]">
                   <div>
                     <p className="text-sm text-[var(--fg)]">{r.metric.replace(/_/g, ' ')}</p>
                     <p className="text-xs text-[var(--fg-muted)]">{user?.name?.split(' ')[0] ?? 'Unknown'}</p>
@@ -600,7 +600,7 @@ function ArrivalDepartureBoard({
           {arrivals.map((a) => {
             const user = userMap.get(a.userId)
             return (
-              <div key={a.id + '-arr'} className="flex items-center justify-between py-2 border-b border-[var(--border)]">
+              <div key={a.id + '-arr'} className="flex items-center justify-between py-3 border-b border-[var(--border)]">
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-medium text-[var(--fg)]">
                     {user?.name?.split(' ')[0] ?? 'Unknown'}
@@ -624,7 +624,7 @@ function ArrivalDepartureBoard({
           {departures.map((a) => {
             const user = userMap.get(a.userId)
             return (
-              <div key={a.id + '-dep'} className="flex items-center justify-between py-2 border-b border-[var(--border)]">
+              <div key={a.id + '-dep'} className="flex items-center justify-between py-3 border-b border-[var(--border)]">
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-medium text-[var(--fg)]">
                     {user?.name?.split(' ')[0] ?? 'Unknown'}

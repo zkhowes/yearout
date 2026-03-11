@@ -192,13 +192,13 @@ export function CrewGrid({
                             disabled={saving}
                             className="p-0.5 text-green-500 hover:text-green-400"
                           >
-                            <Check size={12} />
+                            <Check size={16} />
                           </button>
                           <button
                             onClick={() => setEditingNicknameId(null)}
                             className="p-0.5 text-[var(--fg-muted)] hover:text-[var(--fg)]"
                           >
-                            <X size={12} />
+                            <X size={16} />
                           </button>
                         </div>
                       ) : (
@@ -213,7 +213,7 @@ export function CrewGrid({
                               }}
                               className="p-0.5 text-[var(--fg-muted)] hover:text-[var(--fg)]"
                             >
-                              <Pencil size={10} />
+                              <Pencil size={16} />
                             </button>
                           )}
                         </span>
@@ -250,7 +250,7 @@ export function CrewGrid({
                               disabled={saving}
                               className="p-0.5 text-green-500 hover:text-green-400"
                             >
-                              <Check size={12} />
+                              <Check size={16} />
                             </button>
                             <button
                               onClick={() => {
@@ -259,7 +259,7 @@ export function CrewGrid({
                               }}
                               className="p-0.5 text-[var(--fg-muted)] hover:text-[var(--fg)]"
                             >
-                              <X size={12} />
+                              <X size={16} />
                             </button>
                           </div>
                           {/* Flag preview — show recognized flag or custom flag generator */}
@@ -275,7 +275,7 @@ export function CrewGrid({
                           )}
                           {nationalityValue.trim() && !hasKnownFlag(nationalityValue) && previewFlagSvg && (
                             <div className="flex items-center gap-2">
-                              <span className="text-[10px] text-[var(--fg-muted)]">Custom flag:</span>
+                              <span className="text-xs text-[var(--fg-muted)]">Custom flag:</span>
                               {/* eslint-disable-next-line @next/next/no-img-element */}
                               <img
                                 src={flagSvgToDataUri(previewFlagSvg)}
@@ -287,7 +287,7 @@ export function CrewGrid({
                                 className="p-0.5 text-[var(--fg-muted)] hover:text-[var(--fg)]"
                                 title="Generate different flag"
                               >
-                                <RefreshCw size={12} />
+                                <RefreshCw size={14} />
                               </button>
                             </div>
                           )}
@@ -303,7 +303,7 @@ export function CrewGrid({
                               }}
                               className="p-0.5 text-[var(--fg-muted)] hover:text-[var(--fg)]"
                             >
-                              <Pencil size={10} />
+                              <Pencil size={16} />
                             </button>
                           )}
                         </span>
@@ -320,7 +320,7 @@ export function CrewGrid({
                   {(member.isCoreCrewe || isSponsor) && (
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-1.5 text-[var(--accent)]">
-                        <Star size={12} className="fill-current" />
+                        <Star size={14} className="fill-current" />
                         <span className="text-xs font-semibold">Core Crew</span>
                       </div>
                       {isSponsor ? (
@@ -351,12 +351,12 @@ export function CrewGrid({
                 {/* Awards */}
                 {member.awards.length > 0 && (
                   <div className="flex flex-col gap-1 pt-1 border-t border-[var(--border)]">
-                    <p className="text-[10px] uppercase tracking-widest text-[var(--fg-muted)]">Awards</p>
+                    <p className="text-xs uppercase tracking-widest text-[var(--fg-muted)]">Awards</p>
                     {member.awards
                       .sort((a, b) => b.year - a.year)
                       .map((award, i) => (
                         <div key={i} className="flex items-center gap-2 text-xs">
-                          <Trophy size={10} className="text-[var(--accent)] shrink-0" />
+                          <Trophy size={14} className="text-[var(--accent)] shrink-0" />
                           <span className="text-[var(--fg)]">{award.name}</span>
                           <span className="text-[var(--fg-muted)]">{award.year}</span>
                         </div>

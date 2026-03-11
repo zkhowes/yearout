@@ -145,7 +145,7 @@ export function RitualLoreFeed({
             hasActiveFilters ? 'text-[var(--accent)]' : 'text-[var(--fg-muted)] hover:text-[var(--fg)]'
           }`}
         >
-          <Filter size={12} />
+          <Filter size={14} />
           Filter
         </button>
       </div>
@@ -157,7 +157,7 @@ export function RitualLoreFeed({
           <select
             value={filterYear ?? ''}
             onChange={(e) => setFilterYear(e.target.value ? parseInt(e.target.value) : null)}
-            className="bg-transparent border border-[var(--border)] rounded-lg px-2 py-1 text-xs text-[var(--fg)] outline-none"
+            className="bg-transparent border border-[var(--border)] rounded-lg px-2 py-2 text-xs text-[var(--fg)] outline-none"
           >
             <option value="">All years</option>
             {years.map((y) => (
@@ -171,7 +171,7 @@ export function RitualLoreFeed({
           <select
             value={filterUserId ?? ''}
             onChange={(e) => setFilterUserId(e.target.value || null)}
-            className="bg-transparent border border-[var(--border)] rounded-lg px-2 py-1 text-xs text-[var(--fg)] outline-none"
+            className="bg-transparent border border-[var(--border)] rounded-lg px-2 py-2 text-xs text-[var(--fg)] outline-none"
           >
             <option value="">All crew</option>
             {filterableUsers.map((u) => (
@@ -185,7 +185,7 @@ export function RitualLoreFeed({
           <select
             value={filterType ?? ''}
             onChange={(e) => setFilterType(e.target.value || null)}
-            className="bg-transparent border border-[var(--border)] rounded-lg px-2 py-1 text-xs text-[var(--fg)] outline-none"
+            className="bg-transparent border border-[var(--border)] rounded-lg px-2 py-2 text-xs text-[var(--fg)] outline-none"
           >
             <option value="">All types</option>
             <option value="memory">Memory</option>
@@ -198,13 +198,13 @@ export function RitualLoreFeed({
           {/* HOF toggle */}
           <button
             onClick={() => setFilterHOFOnly(!filterHOFOnly)}
-            className={`flex items-center gap-1 px-2 py-1 rounded-lg border text-xs transition-all ${
+            className={`flex items-center gap-1 px-2 py-2 rounded-lg border text-xs transition-all ${
               filterHOFOnly
                 ? 'bg-[var(--accent)] border-[var(--accent)] text-[var(--accent-fg)]'
                 : 'border-[var(--border)] text-[var(--fg-muted)]'
             }`}
           >
-            <Star size={10} className={filterHOFOnly ? 'fill-current' : ''} />
+            <Star size={14} className={filterHOFOnly ? 'fill-current' : ''} />
             HOF
           </button>
 
@@ -216,7 +216,7 @@ export function RitualLoreFeed({
                 setFilterHOFOnly(false)
                 setFilterType(null)
               }}
-              className="px-2 py-1 text-xs text-[var(--fg-muted)] hover:text-[var(--fg)] transition-colors"
+              className="px-2 py-2 text-xs text-[var(--fg-muted)] hover:text-[var(--fg)] transition-colors"
             >
               Clear
             </button>
@@ -230,7 +230,7 @@ export function RitualLoreFeed({
           {/* Event selector */}
           {addableEvents.length > 1 && (
             <div className="flex flex-col gap-1">
-              <label className="text-[10px] uppercase tracking-widest text-[var(--fg-muted)]">
+              <label className="text-xs uppercase tracking-widest text-[var(--fg-muted)]">
                 Which event?
               </label>
               <select
@@ -264,7 +264,7 @@ export function RitualLoreFeed({
             onClick={handleOpenForm}
             className="flex items-center justify-center gap-1.5 w-full py-2.5 rounded-xl border border-dashed border-[var(--border)] text-sm text-[var(--fg-muted)] hover:text-[var(--fg)] hover:border-[var(--fg-muted)] transition-colors"
           >
-            <Plus size={13} /> Add lore
+            <Plus size={16} /> Add lore
           </button>
         )
       )}

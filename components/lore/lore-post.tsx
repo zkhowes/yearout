@@ -132,21 +132,21 @@ export function LorePost({
               {author?.name?.split(' ')[0] ?? 'Unknown'}
             </span>
             {entry.isHallOfFame && (
-              <Star size={12} className="text-[var(--accent)] fill-current" />
+              <Star size={14} className="text-[var(--accent)] fill-current" />
             )}
           </div>
           {showEventContext && entry.eventName && (
-            <p className="text-[10px] text-[var(--fg-muted)] leading-tight">
+            <p className="text-xs text-[var(--fg-muted)] leading-tight">
               {entry.eventName} {entry.eventYear ? `'${String(entry.eventYear).slice(2)}` : ''}
             </p>
           )}
         </div>
-        <div className="flex items-center gap-1 shrink-0">
+        <div className="flex items-center gap-2 shrink-0">
           {canToggleHOF && (
             <button
               onClick={() => onToggleHOF(entry.id)}
               disabled={isToggling}
-              className={`p-1.5 rounded transition-colors disabled:opacity-50 ${
+              className={`p-2.5 rounded transition-colors disabled:opacity-50 ${
                 entry.isHallOfFame
                   ? 'text-[var(--accent)]'
                   : 'text-[var(--border)] hover:text-[var(--fg-muted)]'
@@ -160,7 +160,7 @@ export function LorePost({
             <button
               onClick={() => setShowMoveSelect(!showMoveSelect)}
               disabled={isMoving}
-              className={`p-1.5 transition-colors disabled:opacity-50 ${
+              className={`p-2.5 transition-colors disabled:opacity-50 ${
                 showMoveSelect ? 'text-[var(--accent)]' : 'text-[var(--fg-muted)] hover:text-[var(--fg)]'
               }`}
               aria-label="Move to different event"
@@ -168,7 +168,7 @@ export function LorePost({
               {isMoving ? (
                 <Loader2 size={13} className="animate-spin" />
               ) : (
-                <ArrowRightLeft size={13} />
+                <ArrowRightLeft size={16} />
               )}
             </button>
           )}
@@ -176,13 +176,13 @@ export function LorePost({
             <button
               onClick={() => onDelete(entry.id)}
               disabled={isDeleting}
-              className="p-1.5 text-[var(--fg-muted)] hover:text-red-400 transition-colors disabled:opacity-50"
+              className="p-2.5 text-[var(--fg-muted)] hover:text-red-400 transition-colors disabled:opacity-50"
               aria-label="Delete entry"
             >
               {isDeleting ? (
                 <Loader2 size={13} className="animate-spin" />
               ) : (
-                <Trash2 size={13} />
+                <Trash2 size={16} />
               )}
             </button>
           )}
@@ -192,7 +192,7 @@ export function LorePost({
       {/* Move to event selector */}
       {showMoveSelect && canMoveEntry && (
         <div className="flex items-center gap-2 px-4 py-2 bg-[var(--accent)]/5 border-y border-[var(--border)]">
-          <span className="text-[10px] uppercase tracking-wider text-[var(--fg-muted)] shrink-0">Move to</span>
+          <span className="text-xs uppercase tracking-wider text-[var(--fg-muted)] shrink-0">Move to</span>
           <select
             onChange={(e) => {
               if (e.target.value) {
@@ -224,24 +224,24 @@ export function LorePost({
       {/* Type badge */}
       <div className="flex items-center gap-1.5 px-4 pb-1">
         {entry.subtype === 'video_edit' ? (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wide bg-purple-400/20 text-purple-600 border border-purple-400/30">
-            <Film size={10} /> Edit
+          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold uppercase tracking-wide bg-purple-400/20 text-purple-600 border border-purple-400/30">
+            <Film size={14} /> Edit
           </span>
         ) : entry.subtype === 'group_photo' ? (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wide bg-teal-400/20 text-teal-600 border border-teal-400/30">
-            <Camera size={10} /> Group Pic
+          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold uppercase tracking-wide bg-teal-400/20 text-teal-600 border border-teal-400/30">
+            <Camera size={14} /> Group Pic
           </span>
         ) : entry.type === 'memory' ? (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wide bg-blue-400/20 text-blue-500 border border-blue-400/30">
-            <MessageSquare size={10} /> Memory
+          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold uppercase tracking-wide bg-blue-400/20 text-blue-500 border border-blue-400/30">
+            <MessageSquare size={14} /> Memory
           </span>
         ) : entry.type === 'image' ? (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wide bg-amber-400/20 text-amber-500 border border-amber-400/30">
-            <ImageIcon size={10} /> Image
+          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold uppercase tracking-wide bg-amber-400/20 text-amber-500 border border-amber-400/30">
+            <ImageIcon size={14} /> Image
           </span>
         ) : entry.type === 'checkin' ? (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wide bg-green-400/20 text-green-500 border border-green-400/30">
-            <Navigation size={10} /> Checkin
+          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold uppercase tracking-wide bg-green-400/20 text-green-500 border border-green-400/30">
+            <Navigation size={14} /> Checkin
           </span>
         ) : null}
       </div>
@@ -308,7 +308,7 @@ export function LorePost({
         <div className="flex items-center gap-3 px-4 pt-2 pb-3 text-xs text-[var(--fg-muted)]">
           {entry.location && (
             <span className="flex items-center gap-1">
-              <MapPin size={10} />
+              <MapPin size={14} />
               {entry.location}
             </span>
           )}

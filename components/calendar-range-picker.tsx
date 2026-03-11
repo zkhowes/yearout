@@ -114,7 +114,7 @@ export function CalendarRangePicker({
           {ranges.map((r, i) => (
             <div
               key={i}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-sm ${RANGE_COLORS[i].border} ${RANGE_COLORS[i].bg}`}
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg border text-sm ${RANGE_COLORS[i].border} ${RANGE_COLORS[i].bg}`}
             >
               <span className={`w-2 h-2 rounded-full ${RANGE_COLORS[i].dot}`} />
               <span className={RANGE_COLORS[i].text}>{formatRange(r)}</span>
@@ -123,7 +123,7 @@ export function CalendarRangePicker({
                 onClick={() => removeRange(i)}
                 className="ml-1 p-0.5 hover:text-white"
               >
-                <X size={12} />
+                <X size={16} />
               </button>
             </div>
           ))}
@@ -141,10 +141,10 @@ export function CalendarRangePicker({
 
       {/* Navigation */}
       <div className="flex items-center justify-between">
-        <button type="button" onClick={prevMonth} className="p-1.5 rounded-lg hover:bg-[var(--border)]">
+        <button type="button" onClick={prevMonth} className="p-2.5 rounded-lg hover:bg-[var(--border)]">
           <ChevronLeft size={16} className="text-[var(--fg-muted)]" />
         </button>
-        <button type="button" onClick={nextMonth} className="p-1.5 rounded-lg hover:bg-[var(--border)]">
+        <button type="button" onClick={nextMonth} className="p-2.5 rounded-lg hover:bg-[var(--border)]">
           <ChevronRight size={16} className="text-[var(--fg-muted)]" />
         </button>
       </div>
@@ -160,7 +160,7 @@ export function CalendarRangePicker({
               <p className="text-sm font-semibold text-[var(--fg)] text-center">{label}</p>
               <div className="grid grid-cols-7 gap-0.5">
                 {DAY_NAMES.map((d, i) => (
-                  <div key={i} className="text-center text-[10px] text-[var(--fg-muted)] py-1">{d}</div>
+                  <div key={i} className="text-center text-xs text-[var(--fg-muted)] py-1">{d}</div>
                 ))}
                 {days.map((day, i) => {
                   if (!day) return <div key={`empty-${i}`} />

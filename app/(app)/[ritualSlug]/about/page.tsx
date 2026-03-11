@@ -93,7 +93,7 @@ export default async function AboutPage({
               >
                 {/* Attendance badge */}
                 {count > 0 && (
-                  <span className="absolute -top-1.5 -right-1.5 min-w-[20px] h-5 flex items-center justify-center px-1 rounded-full bg-red-500 text-white text-[10px] font-bold">
+                  <span className="absolute -top-1.5 -right-1.5 min-w-[20px] h-5 flex items-center justify-center px-1 rounded-full bg-red-500 text-white text-xs font-bold">
                     {count}
                   </span>
                 )}
