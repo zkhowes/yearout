@@ -764,12 +764,18 @@ export function InProgressView({
       />
 
       {/* Itinerary */}
-      <ItinerarySection
-        event={event}
-        itineraryList={itineraryList}
-        canEdit={canEdit}
-        ritualSlug={ritualSlug}
-      />
+      <div className="rounded-xl border border-[var(--border)] border-l-4 border-l-purple-500 bg-[var(--surface)] p-4 flex flex-col gap-3">
+        <div className="flex items-center gap-2">
+          <Calendar size={14} className="text-purple-500" />
+          <p className="text-xs uppercase tracking-widest text-[var(--fg-muted)]">Itinerary</p>
+        </div>
+        <ItinerarySection
+          event={event}
+          itineraryList={itineraryList}
+          canEdit={canEdit}
+          ritualSlug={ritualSlug}
+        />
+      </div>
 
       {/* Tab switcher */}
       <div className="flex border-b border-[var(--border)]">
