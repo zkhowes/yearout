@@ -296,10 +296,25 @@ export function EventDetailsCard({ event, canEdit, ritualSlug, carouselProps }: 
   if (!hasContent && !canEdit) return null
 
   const showCarousel = carouselProps && (event.status === 'scheduled' || event.status === 'in_progress')
+  const isLive = event.status === 'in_progress'
 
   return (
-    <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5 flex flex-col md:flex-row gap-4 md:gap-6">
+    <div
+      className={`rounded-xl border p-5 flex flex-col md:flex-row gap-4 md:gap-6 ${
+        isLive ? 'border-[var(--accent)]' : 'border-[var(--border)]'
+      } bg-[var(--surface)]`}
+      style={isLive ? { background: 'color-mix(in srgb, var(--accent) 8%, var(--surface))' } : undefined}
+    >
       <div className="flex-1 flex flex-col gap-3 min-w-0">
+        {isLive && (
+          <span className="flex items-center gap-2 text-xs uppercase tracking-widest text-[var(--accent)] font-semibold">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[var(--accent)] opacity-75" />
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-[var(--accent)]" />
+            </span>
+            Live
+          </span>
+        )}
         {event.location && (
           <p className="text-sm text-[var(--fg)]">{event.location}</p>
         )}
