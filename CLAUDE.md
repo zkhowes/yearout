@@ -57,7 +57,7 @@ Yearout is a mobile-first web app that manages the full lifecycle of recurring g
 
 ## Kanban
 
-> Last updated: 2026-03-10
+> Last updated: 2026-03-11
 
 ### Backlog
 - [ ] Trip templates (pre-populated checklists, pack lists, result fields)
@@ -103,6 +103,7 @@ Yearout is a mobile-first web app that manages the full lifecycle of recurring g
 - [x] Super Admin dashboard (analytics, search, data)
 - [x] Vercel deployment pipeline
 - [x] Info carousel — countdown, weather/snow, AI tips, peer pressure nudges
+- [x] In-progress improvements — live banner, day count fix, flight board, itinerary + hype carousel cards
 
 ## PRD
 Full product requirements are in `PRD.md` at the repo root.
