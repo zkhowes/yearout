@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useTransition, useRef, useEffect } from 'react'
-import { Plus, Loader2, Trash2, Pencil, Calendar, Home, Plane, Award, BookOpen, BarChart3, DollarSign } from 'lucide-react'
+import { useSearchParams } from 'next/navigation'
+import { Plus, Loader2, Trash2, Pencil, Calendar, Home, Plane, Award } from 'lucide-react'
 import {
   addActivityResult,
   addItineraryDay,
@@ -15,6 +16,7 @@ import { EventDetailsCard } from './closed-view'
 import { LoreFeed } from '@/components/lore/lore-feed'
 import type { LoreEntryData } from '@/components/lore/lore-post'
 import { BookingsSection, type EventBooking } from '@/components/bookings-section'
+import { QuickAddFab, type QuickAddTab } from '@/components/quick-add-fab'
 
 type Attendee = {
   id: string
@@ -693,28 +695,27 @@ export function InProgressView({
   cachedTips: string[] | null
   allRitualEvents?: { id: string; name: string; year: number }[]
 }) {
-  const [activeTab, setActiveTab] = useState<'lore' | 'stats' | 'expenses'>('lore')
+  const searchParams = useSearchParams()
+  const initialTab = (['lore', 'stats', 'expenses'] as const).includes(
+    searchParams.get('tab') as 'lore' | 'stats' | 'expenses'
+  )
+    ? (searchParams.get('tab') as 'lore' | 'stats' | 'expenses')
+    : 'lore'
+  const [activeTab, setActiveTab] = useState<'lore' | 'stats' | 'expenses'>(initialTab)
   const [showCloseout, setShowCloseout] = useState(false)
-  const [fabOpen, setFabOpen] = useState(false)
   const tabsRef = useRef<HTMLDivElement>(null)
-  const fabRef = useRef<HTMLDivElement>(null)
 
-  // Close FAB when clicking outside
+  // Auto-scroll to tabs when arriving via ?tab= param
   useEffect(() => {
-    if (!fabOpen) return
-    function handleClick(e: MouseEvent) {
-      if (fabRef.current && !fabRef.current.contains(e.target as Node)) {
-        setFabOpen(false)
-      }
+    if (searchParams.get('tab') && tabsRef.current) {
+      setTimeout(() => {
+        tabsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      }, 300)
     }
-    document.addEventListener('mousedown', handleClick)
-    return () => document.removeEventListener('mousedown', handleClick)
-  }, [fabOpen])
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  function handleFabAction(tab: 'lore' | 'stats' | 'expenses') {
+  function handleQuickAdd(tab: QuickAddTab) {
     setActiveTab(tab)
-    setFabOpen(false)
-    // Scroll to tabs section after a tick so the tab content renders
     setTimeout(() => {
       tabsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
     }, 50)
@@ -904,43 +905,7 @@ export function InProgressView({
         />
       )}
 
-      {/* Floating Action Button */}
-      <div ref={fabRef} className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-2">
-        {/* Menu items */}
-        {fabOpen && (
-          <div className="flex flex-col items-end gap-2" style={{ animation: 'fab-menu-in 150ms ease-out' }}>
-            {([
-              { tab: 'lore' as const, label: 'Add Lore', icon: BookOpen, color: 'bg-purple-500' },
-              { tab: 'stats' as const, label: 'Add Stats', icon: BarChart3, color: 'bg-blue-500' },
-              { tab: 'expenses' as const, label: 'Add Expense', icon: DollarSign, color: 'bg-green-500' },
-            ]).map((item) => (
-              <button
-                key={item.tab}
-                onClick={() => handleFabAction(item.tab)}
-                className="flex items-center gap-2 pl-3 pr-2 py-2 rounded-full bg-[var(--surface)] border border-[var(--border)] shadow-lg hover:bg-[var(--bg)] transition-colors"
-              >
-                <span className="text-sm font-medium text-[var(--fg)] whitespace-nowrap">{item.label}</span>
-                <span className={`${item.color} rounded-full p-1.5 text-white`}>
-                  <item.icon size={16} />
-                </span>
-              </button>
-            ))}
-          </div>
-        )}
-
-        {/* FAB button */}
-        <button
-          onClick={() => setFabOpen((o) => !o)}
-          className={`w-14 h-14 rounded-full shadow-lg flex items-center justify-center transition-all duration-200 ${
-            fabOpen
-              ? 'bg-[var(--fg)] text-[var(--bg)] rotate-45'
-              : 'bg-[var(--accent)] text-white'
-          }`}
-          aria-label={fabOpen ? 'Close menu' : 'Quick add'}
-        >
-          <Plus size={24} strokeWidth={2.5} />
-        </button>
-      </div>
+      <QuickAddFab onSelect={handleQuickAdd} />
     </div>
   )
 }

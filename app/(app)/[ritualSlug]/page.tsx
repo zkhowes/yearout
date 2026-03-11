@@ -12,6 +12,7 @@ import {
 import { eq, and, inArray, desc } from 'drizzle-orm'
 import { Plus } from 'lucide-react'
 import { HeroCarousel } from './hero-carousel'
+import { QuickAddNav } from './quick-add-nav'
 import { getRitual, getMembership } from '@/lib/ritual-data'
 
 const STATUS_LABEL: Record<string, string> = {
@@ -254,6 +255,11 @@ export default async function RitualTourPage({
         >
           <Plus size={14} /> Add a year
         </Link>
+      )}
+
+      {/* FAB — only during a live event */}
+      {activeEvent?.status === 'in_progress' && (
+        <QuickAddNav href={`/${ritual.slug}/${activeEvent.year}`} />
       )}
     </div>
   )
