@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useTransition, useRef, useEffect } from 'react'
-import { Plus, Loader2, Trash2, Pencil, Calendar, Home, Plane, Award, X, BookOpen, BarChart3, DollarSign } from 'lucide-react'
+import { Plus, Loader2, Trash2, Pencil, Calendar, Home, Plane, Award, BookOpen, BarChart3, DollarSign } from 'lucide-react'
 import {
   addActivityResult,
   addItineraryDay,
