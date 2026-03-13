@@ -9,11 +9,13 @@ import {
   updateItineraryDay,
   deleteItineraryDay,
 } from '@/lib/event-actions'
-import { ExpensesTab } from '@/components/expenses-tab'
+import { ExpensesTab, ExpenseForm } from '@/components/expenses-tab'
 import { CloseoutView } from './closeout-view'
 import { AwardsPodium } from './awards-podium'
 import { EventDetailsCard } from './closed-view'
 import { LoreFeed } from '@/components/lore/lore-feed'
+import { AddLoreForm } from '@/components/lore/add-lore-form'
+import { AddStatForm } from '@/components/add-stat-form'
 import type { LoreEntryData } from '@/components/lore/lore-post'
 import { BookingsSection, type EventBooking } from '@/components/bookings-section'
 import { QuickAddFab, type QuickAddTab } from '@/components/quick-add-fab'
@@ -43,6 +45,8 @@ type Expense = {
   paidBy: string
   description: string
   amount: number
+  currency: string
+  originalAmount: number | null
   splitType: string
   category: string | null
   createdAt: Date
@@ -714,11 +718,45 @@ export function InProgressView({
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  function handleQuickAdd(tab: QuickAddTab) {
-    setActiveTab(tab)
-    setTimeout(() => {
-      tabsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-    }, 50)
+  function renderFabForm(tab: QuickAddTab, onClose: () => void) {
+    if (tab === 'lore') {
+      return (
+        <AddLoreForm
+          eventId={event.id}
+          ritualSlug={ritualSlug}
+          year={event.year}
+          crewMembers={crewMembers}
+          allowedTypes={['memory', 'checkin', 'image']}
+          onClose={onClose}
+        />
+      )
+    }
+    if (tab === 'stats') {
+      return (
+        <AddStatForm
+          eventId={event.id}
+          eventYear={event.year}
+          ritualSlug={ritualSlug}
+          attendees={attendees}
+          attendeeUsers={attendeeUsers}
+          currentUserId={currentUserId}
+          isSponsor={isSponsor ?? canEdit}
+          onClose={onClose}
+        />
+      )
+    }
+    if (tab === 'expenses') {
+      return (
+        <ExpenseForm
+          event={event}
+          attendees={attendees}
+          attendeeUsers={attendeeUsers}
+          ritualSlug={ritualSlug}
+          onDone={onClose}
+        />
+      )
+    }
+    return null
   }
 
   // Compute today's itinerary for carousel
@@ -905,7 +943,7 @@ export function InProgressView({
         />
       )}
 
-      <QuickAddFab onSelect={handleQuickAdd} />
+      <QuickAddFab renderForm={renderFabForm} />
     </div>
   )
 }

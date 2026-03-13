@@ -25,6 +25,38 @@ const CATEGORIES = [
   { value: 'other', label: 'Other' },
 ] as const
 
+const CURRENCIES = [
+  { code: 'USD', symbol: '$', label: 'USD' },
+  { code: 'CAD', symbol: 'C$', label: 'CAD' },
+  { code: 'EUR', symbol: '€', label: 'EUR' },
+  { code: 'GBP', symbol: '£', label: 'GBP' },
+  { code: 'MXN', symbol: 'MX$', label: 'MXN' },
+  { code: 'JPY', symbol: '¥', label: 'JPY' },
+  { code: 'AUD', symbol: 'A$', label: 'AUD' },
+  { code: 'CHF', symbol: 'Fr', label: 'CHF' },
+] as const
+
+// Approximate exchange rates to USD (updated periodically)
+const TO_USD_RATES: Record<string, number> = {
+  USD: 1,
+  CAD: 0.72,
+  EUR: 1.08,
+  GBP: 1.27,
+  MXN: 0.058,
+  JPY: 0.0067,
+  AUD: 0.65,
+  CHF: 1.13,
+}
+
+function convertToUsd(amountCents: number, currency: string): number {
+  const rate = TO_USD_RATES[currency] ?? 1
+  return Math.round(amountCents * rate)
+}
+
+function getCurrencySymbol(code: string): string {
+  return CURRENCIES.find((c) => c.code === code)?.symbol ?? code
+}
+
 type Attendee = {
   id: string
   userId: string
@@ -43,6 +75,8 @@ type Expense = {
   paidBy: string
   description: string
   amount: number
+  currency: string
+  originalAmount: number | null
   splitType: string
   category: string | null
   createdAt: Date
@@ -69,7 +103,7 @@ type Event = {
 
 // ─── Add/Edit Expense Form ──────────────────────────────────────────────────
 
-function ExpenseForm({
+export function ExpenseForm({
   event,
   attendees,
   attendeeUsers,
@@ -85,8 +119,11 @@ function ExpenseForm({
   onDone: () => void
 }) {
   const [description, setDescription] = useState(existing?.description ?? '')
+  const [currency, setCurrency] = useState(existing?.currency ?? 'USD')
   const [dollarAmount, setDollarAmount] = useState(
-    existing ? (existing.amount / 100).toFixed(2) : ''
+    existing
+      ? ((existing.originalAmount ?? existing.amount) / 100).toFixed(2)
+      : ''
   )
   const [category, setCategory] = useState<string | null>(existing?.category ?? null)
   const [splitType, setSplitType] = useState<'equal' | 'exact'>(
@@ -130,39 +167,37 @@ function ExpenseForm({
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    const amountCents = Math.round(parseFloat(dollarAmount) * 100)
-    if (!description.trim() || isNaN(amountCents) || amountCents <= 0) return
+    const originalCents = Math.round(parseFloat(dollarAmount) * 100)
+    if (!description.trim() || isNaN(originalCents) || originalCents <= 0) return
     if (selectedUsers.size === 0) return
+
+    // Convert to USD for settlement math
+    const usdCents = currency === 'USD' ? originalCents : convertToUsd(originalCents, currency)
 
     const splitUserIds = Array.from(selectedUsers)
 
+    // For exact splits, amounts are entered in the original currency — convert to USD
+    const exactRate = currency === 'USD' ? 1 : (TO_USD_RATES[currency] ?? 1)
+
     startTransition(async () => {
+      const opts = {
+        splitType,
+        splitUserIds,
+        exactAmounts:
+          splitType === 'exact'
+            ? splitUserIds.map((uid) => ({
+                userId: uid,
+                amount: Math.round(parseFloat(exactAmounts.get(uid) ?? '0') * 100 * exactRate),
+              }))
+            : undefined,
+        category: category ?? undefined,
+        currency,
+        originalAmountCents: currency !== 'USD' ? originalCents : undefined,
+      }
       if (existing) {
-        await updateExpense(existing.id, ritualSlug, event.year, description, amountCents, {
-          splitType,
-          splitUserIds,
-          exactAmounts:
-            splitType === 'exact'
-              ? splitUserIds.map((uid) => ({
-                  userId: uid,
-                  amount: Math.round(parseFloat(exactAmounts.get(uid) ?? '0') * 100),
-                }))
-              : undefined,
-          category: category ?? undefined,
-        })
+        await updateExpense(existing.id, ritualSlug, event.year, description, usdCents, opts)
       } else {
-        await addExpense(event.id, ritualSlug, event.year, description, amountCents, {
-          splitType,
-          splitUserIds,
-          exactAmounts:
-            splitType === 'exact'
-              ? splitUserIds.map((uid) => ({
-                  userId: uid,
-                  amount: Math.round(parseFloat(exactAmounts.get(uid) ?? '0') * 100),
-                }))
-              : undefined,
-          category: category ?? undefined,
-        })
+        await addExpense(event.id, ritualSlug, event.year, description, usdCents, opts)
       }
       onDone()
     })
@@ -191,15 +226,31 @@ function ExpenseForm({
         className="w-full bg-transparent border-b border-[var(--border)] focus:border-[var(--fg)] outline-none py-2 text-sm text-[var(--fg)] placeholder-[var(--fg-muted)]"
       />
 
-      <input
-        type="number"
-        value={dollarAmount}
-        onChange={(e) => setDollarAmount(e.target.value)}
-        placeholder="Amount ($)"
-        min="0"
-        step="0.01"
-        className="w-full bg-transparent border-b border-[var(--border)] focus:border-[var(--fg)] outline-none py-2 text-sm text-[var(--fg)] placeholder-[var(--fg-muted)]"
-      />
+      <div className="flex gap-2 items-end">
+        <input
+          type="number"
+          value={dollarAmount}
+          onChange={(e) => setDollarAmount(e.target.value)}
+          placeholder={`Amount (${getCurrencySymbol(currency)})`}
+          min="0"
+          step="0.01"
+          className="flex-1 bg-transparent border-b border-[var(--border)] focus:border-[var(--fg)] outline-none py-2 text-sm text-[var(--fg)] placeholder-[var(--fg-muted)]"
+        />
+        <select
+          value={currency}
+          onChange={(e) => setCurrency(e.target.value)}
+          className="bg-transparent border-b border-[var(--border)] focus:border-[var(--fg)] outline-none py-2 text-sm text-[var(--fg)] w-20"
+        >
+          {CURRENCIES.map((c) => (
+            <option key={c.code} value={c.code}>{c.label}</option>
+          ))}
+        </select>
+      </div>
+      {currency !== 'USD' && dollarAmount && (
+        <p className="text-xs text-[var(--fg-muted)]">
+          ~${(convertToUsd(Math.round(parseFloat(dollarAmount) * 100), currency) / 100).toFixed(2)} USD
+        </p>
+      )}
 
       {/* Category chips */}
       <div className="flex flex-wrap gap-1.5">
@@ -625,9 +676,22 @@ export function ExpensesTab({
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
-                    <p className="text-sm font-semibold text-[var(--fg)]">
-                      ${(e.amount / 100).toFixed(2)}
-                    </p>
+                    <div className="text-right">
+                      {e.currency !== 'USD' && e.originalAmount ? (
+                        <>
+                          <p className="text-sm font-semibold text-[var(--fg)]">
+                            {getCurrencySymbol(e.currency)}{(e.originalAmount / 100).toFixed(2)}
+                          </p>
+                          <p className="text-xs text-[var(--fg-muted)]">
+                            ~${(e.amount / 100).toFixed(2)}
+                          </p>
+                        </>
+                      ) : (
+                        <p className="text-sm font-semibold text-[var(--fg)]">
+                          ${(e.amount / 100).toFixed(2)}
+                        </p>
+                      )}
+                    </div>
                     {isExpanded ? <ChevronUp size={14} className="text-[var(--fg-muted)]" /> : <ChevronDown size={14} className="text-[var(--fg-muted)]" />}
                   </div>
                 </button>

@@ -367,6 +367,8 @@ type Expense = {
   paidBy: string
   description: string
   amount: number
+  currency: string
+  originalAmount: number | null
   splitType: string
   category: string | null
   createdAt: Date

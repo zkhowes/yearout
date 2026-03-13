@@ -132,7 +132,7 @@ export default async function EventPage({
   let myAttendee: (typeof attendeeList)[0] | null = null
 
   // In-progress / closed: also load lore, expenses, activity, awards
-  let expenseList: { id: string; paidBy: string; description: string; amount: number; splitType: string; category: string | null; createdAt: Date; splits: { userId: string; amount: number }[] }[] = []
+  let expenseList: { id: string; paidBy: string; description: string; amount: number; currency: string; originalAmount: number | null; splitType: string; category: string | null; createdAt: Date; splits: { userId: string; amount: number }[] }[] = []
   let settlementPaymentList: { id: string; eventId: string; fromUserId: string; toUserId: string; amount: number; status: string; paidAt: Date | null; confirmedAt: Date | null; confirmedBy: string | null; createdAt: Date }[] = []
   let loreList: { id: string; authorId: string; type: 'memory' | 'checkin' | 'image'; content: string | null; mediaUrl: string | null; location: string | null; isHallOfFame: boolean; day: Date | null; createdAt: Date; mentions: { userId: string }[] }[] = []
   let activityList: { id: string; userId: string; metric: string; value: string; unit: string | null; day: Date | null; createdAt: Date }[] = []

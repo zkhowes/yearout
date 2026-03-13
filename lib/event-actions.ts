@@ -454,6 +454,8 @@ export async function addExpense(
     splitUserIds?: string[]
     exactAmounts?: { userId: string; amount: number }[]
     category?: string
+    currency?: string
+    originalAmountCents?: number
   }
 ) {
   const session = await auth()
@@ -487,12 +489,17 @@ export async function addExpense(
 
   const expenseId = crypto.randomUUID()
 
+  const currency = options?.currency ?? 'USD'
+  const originalAmountCents = options?.originalAmountCents ?? null
+
   await db.insert(expenses).values({
     id: expenseId,
     eventId,
     paidBy: session.user.id!,
     description: description.trim().slice(0, 500),
     amount: amountCents,
+    currency,
+    originalAmount: originalAmountCents,
     splitType,
     category,
     createdAt: new Date(),
@@ -523,6 +530,8 @@ export async function updateExpense(
     splitUserIds?: string[]
     exactAmounts?: { userId: string; amount: number }[]
     category?: string
+    currency?: string
+    originalAmountCents?: number
   }
 ) {
   const session = await auth()
@@ -559,11 +568,16 @@ export async function updateExpense(
     splits = Array.from(splitMap.entries()).map(([userId, amount]) => ({ userId, amount }))
   }
 
+  const updCurrency = options?.currency ?? 'USD'
+  const updOriginalAmount = options?.originalAmountCents ?? null
+
   await db
     .update(expenses)
     .set({
       description: description.trim(),
       amount: amountCents,
+      currency: updCurrency,
+      originalAmount: updOriginalAmount,
       splitType,
       category,
     })

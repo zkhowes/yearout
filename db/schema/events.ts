@@ -104,7 +104,9 @@ export const expenses = pgTable('expenses', {
   eventId: text('event_id').notNull().references(() => events.id, { onDelete: 'cascade' }),
   paidBy: text('paid_by').notNull().references(() => users.id),
   description: text('description').notNull(),
-  amount: integer('amount').notNull(), // stored in cents
+  amount: integer('amount').notNull(), // stored in USD cents (used for settlement math)
+  currency: text('currency').notNull().default('USD'), // original currency code
+  originalAmount: integer('original_amount'), // original currency cents (null = same as amount)
   splitType: text('split_type').notNull().default('equal'), // 'equal' | 'exact'
   category: text('category'), // lodging | food | transport | activity | other
   createdAt: timestamp('created_at', { mode: 'date' }).defaultNow().notNull(),

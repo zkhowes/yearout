@@ -29,7 +29,10 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const blob = await put(file.name, file, {
+    // Prefix with UUID to prevent collisions when re-uploading the same filename
+    const ext = file.name.includes('.') ? file.name.slice(file.name.lastIndexOf('.')) : ''
+    const uniqueName = `${crypto.randomUUID()}${ext}`
+    const blob = await put(uniqueName, file, {
       access: 'public',
     })
     return NextResponse.json({ url: blob.url })
