@@ -2,6 +2,7 @@
 
 import { db } from '@/db'
 import { rituals, ritualAwardDefinitions, ritualMembers } from '@/db/schema'
+import { awards, awardVotes, eventAwardLinks } from '@/db/schema/events'
 import { auth } from '@/auth'
 import { redirect } from 'next/navigation'
 import { eq, and } from 'drizzle-orm'
@@ -249,4 +250,150 @@ export async function updateCrewCoreStatus(
     )
 
   revalidatePath(`/${ritualSlug}/crew`)
+}
+
+export async function createAwardDefinition(
+  ritualId: string,
+  name: string,
+  label: string,
+  eventIds: string[],
+  ritualSlug: string,
+) {
+  const session = await auth()
+  if (!session?.user?.id) redirect('/login')
+
+  const member = await db.query.ritualMembers.findFirst({
+    where: (rm, { and, eq }) =>
+      and(eq(rm.ritualId, ritualId), eq(rm.userId, session.user!.id!), eq(rm.role, 'sponsor')),
+  })
+  if (!member) throw new Error('Only sponsors can manage awards')
+
+  const awardDefId = crypto.randomUUID()
+  await db.insert(ritualAwardDefinitions).values({
+    id: awardDefId,
+    ritualId,
+    name: name.trim().slice(0, 100),
+    label: label.trim().slice(0, 200),
+    type: 'custom',
+    createdAt: new Date(),
+  })
+
+  if (eventIds.length > 0) {
+    await db.insert(eventAwardLinks).values(
+      eventIds.map((eventId) => ({
+        id: crypto.randomUUID(),
+        eventId,
+        awardDefinitionId: awardDefId,
+        createdAt: new Date(),
+      }))
+    )
+  }
+
+  revalidatePath(`/${ritualSlug}/settings`)
+}
+
+export async function updateAwardDefinition(
+  awardDefId: string,
+  data: { name?: string; label?: string },
+  ritualSlug: string,
+) {
+  const session = await auth()
+  if (!session?.user?.id) redirect('/login')
+
+  const awardDef = await db.query.ritualAwardDefinitions.findFirst({
+    where: (rad, { eq }) => eq(rad.id, awardDefId),
+  })
+  if (!awardDef) throw new Error('Award definition not found')
+
+  const member = await db.query.ritualMembers.findFirst({
+    where: (rm, { and, eq }) =>
+      and(eq(rm.ritualId, awardDef.ritualId), eq(rm.userId, session.user!.id!), eq(rm.role, 'sponsor')),
+  })
+  if (!member) throw new Error('Only sponsors can manage awards')
+
+  await db
+    .update(ritualAwardDefinitions)
+    .set({
+      ...(data.name !== undefined && { name: data.name.trim().slice(0, 100) }),
+      ...(data.label !== undefined && { label: data.label.trim().slice(0, 200) }),
+    })
+    .where(eq(ritualAwardDefinitions.id, awardDefId))
+
+  revalidatePath(`/${ritualSlug}/settings`)
+}
+
+export async function deleteAwardDefinition(
+  awardDefId: string,
+  ritualSlug: string,
+) {
+  const session = await auth()
+  if (!session?.user?.id) redirect('/login')
+
+  const awardDef = await db.query.ritualAwardDefinitions.findFirst({
+    where: (rad, { eq }) => eq(rad.id, awardDefId),
+  })
+  if (!awardDef) throw new Error('Award definition not found')
+
+  const member = await db.query.ritualMembers.findFirst({
+    where: (rm, { and, eq }) =>
+      and(eq(rm.ritualId, awardDef.ritualId), eq(rm.userId, session.user!.id!), eq(rm.role, 'sponsor')),
+  })
+  if (!member) throw new Error('Only sponsors can manage awards')
+
+  const existingWinners = await db
+    .select({ id: awards.id })
+    .from(awards)
+    .where(eq(awards.awardDefinitionId, awardDefId))
+  if (existingWinners.length > 0) {
+    throw new Error(`Cannot delete: this award has ${existingWinners.length} finalized winner(s) across events`)
+  }
+
+  // Delete votes first (no cascade FK), then the definition (cascades to eventAwardLinks)
+  await db.delete(awardVotes).where(eq(awardVotes.awardDefinitionId, awardDefId))
+  await db.delete(ritualAwardDefinitions).where(eq(ritualAwardDefinitions.id, awardDefId))
+
+  revalidatePath(`/${ritualSlug}/settings`)
+}
+
+export async function toggleAwardEventLink(
+  awardDefId: string,
+  eventId: string,
+  linked: boolean,
+  ritualSlug: string,
+) {
+  const session = await auth()
+  if (!session?.user?.id) redirect('/login')
+
+  const awardDef = await db.query.ritualAwardDefinitions.findFirst({
+    where: (rad, { eq }) => eq(rad.id, awardDefId),
+  })
+  if (!awardDef) throw new Error('Award definition not found')
+
+  const member = await db.query.ritualMembers.findFirst({
+    where: (rm, { and, eq }) =>
+      and(eq(rm.ritualId, awardDef.ritualId), eq(rm.userId, session.user!.id!), eq(rm.role, 'sponsor')),
+  })
+  if (!member) throw new Error('Only sponsors can manage awards')
+
+  if (linked) {
+    await db.insert(eventAwardLinks).values({
+      id: crypto.randomUUID(),
+      eventId,
+      awardDefinitionId: awardDefId,
+      createdAt: new Date(),
+    }).onConflictDoNothing()
+  } else {
+    const existingWinners = await db
+      .select({ id: awards.id })
+      .from(awards)
+      .where(and(eq(awards.eventId, eventId), eq(awards.awardDefinitionId, awardDefId)))
+    if (existingWinners.length > 0) {
+      throw new Error('Cannot unlink: this award has finalized winners for this event')
+    }
+    await db.delete(eventAwardLinks).where(
+      and(eq(eventAwardLinks.eventId, eventId), eq(eventAwardLinks.awardDefinitionId, awardDefId))
+    )
+  }
+
+  revalidatePath(`/${ritualSlug}/settings`)
 }

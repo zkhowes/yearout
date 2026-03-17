@@ -22,6 +22,7 @@ import {
   callLocationOptions,
   callVotes,
   callSends,
+  eventAwardLinks,
 } from '@/db/schema'
 import { computeEqualSplit, validateExactSplit } from '@/lib/expense-utils'
 import { auth } from '@/auth'
@@ -64,6 +65,22 @@ export async function createEvent(
     status: 'planning',
     createdAt: new Date(),
   })
+
+  // Auto-link all existing award definitions to this event
+  const existingAwardDefs = await db
+    .select({ id: ritualAwardDefinitions.id })
+    .from(ritualAwardDefinitions)
+    .where(eq(ritualAwardDefinitions.ritualId, ritualId))
+  if (existingAwardDefs.length > 0) {
+    await db.insert(eventAwardLinks).values(
+      existingAwardDefs.map((d) => ({
+        id: crypto.randomUUID(),
+        eventId,
+        awardDefinitionId: d.id,
+        createdAt: new Date(),
+      }))
+    )
+  }
 
   // Create an initial proposal if location or dates were provided
   if (data.location?.trim() || data.proposedDates?.trim()) {

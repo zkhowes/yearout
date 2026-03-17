@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, pgEnum, integer, boolean, index, uniqueIndex } from 'drizzle-orm/pg-core'
+import { pgTable, text, timestamp, pgEnum, integer, boolean, index, uniqueIndex, unique } from 'drizzle-orm/pg-core'
 import { users } from './users'
 import { rituals, ritualAwardDefinitions } from './rituals'
 
@@ -213,4 +213,14 @@ export const callVotes = pgTable('call_votes', {
 }, (table) => [
   index('call_votes_event_id_idx').on(table.eventId),
   uniqueIndex('call_votes_unique_idx').on(table.userId, table.optionType, table.optionId),
+])
+
+export const eventAwardLinks = pgTable('event_award_links', {
+  id: text('id').primaryKey(),
+  eventId: text('event_id').notNull().references(() => events.id, { onDelete: 'cascade' }),
+  awardDefinitionId: text('award_definition_id').notNull().references(() => ritualAwardDefinitions.id, { onDelete: 'cascade' }),
+  createdAt: timestamp('created_at', { mode: 'date' }).defaultNow().notNull(),
+}, (table) => [
+  index('event_award_links_event_id_idx').on(table.eventId),
+  unique('event_award_links_unique').on(table.eventId, table.awardDefinitionId),
 ])

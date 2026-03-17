@@ -1,8 +1,8 @@
 'use client'
 
 import { useState, useTransition, useRef } from 'react'
-import { Check, Loader2, Upload, Sparkles } from 'lucide-react'
-import { updateRitual } from '@/lib/ritual-actions'
+import { Check, Loader2, Upload, Sparkles, Trash2, Plus, ChevronDown } from 'lucide-react'
+import { updateRitual, createAwardDefinition, updateAwardDefinition, deleteAwardDefinition, toggleAwardEventLink } from '@/lib/ritual-actions'
 
 const ACTIVITY_LABELS: Record<string, string> = {
   ski: '⛷️  Ski / Snow',
@@ -36,7 +36,39 @@ type Ritual = {
   slug: string
 }
 
-export function SettingsForm({ ritual, appUrl }: { ritual: Ritual; appUrl: string }) {
+type AwardDef = {
+  id: string
+  name: string
+  label: string
+  type: string
+  hasWinners: boolean
+}
+
+type RitualEvent = {
+  id: string
+  name: string
+  year: number
+  status: string
+}
+
+type AwardLink = {
+  awardDefinitionId: string
+  eventId: string
+}
+
+export function SettingsForm({
+  ritual,
+  appUrl,
+  awardDefs,
+  ritualEvents,
+  awardLinks,
+}: {
+  ritual: Ritual
+  appUrl: string
+  awardDefs: AwardDef[]
+  ritualEvents: RitualEvent[]
+  awardLinks: AwardLink[]
+}) {
   const [name, setName] = useState(ritual.name)
   const [tagline, setTagline] = useState(ritual.tagline ?? '')
   const [theme, setTheme] = useState(ritual.theme)
@@ -239,6 +271,15 @@ export function SettingsForm({ ritual, appUrl }: { ritual: Ritual; appUrl: strin
         </div>
       </section>
 
+      {/* ── Awards ── */}
+      <AwardsSection
+        ritualId={ritual.id}
+        ritualSlug={ritual.slug}
+        awardDefs={awardDefs}
+        ritualEvents={ritualEvents}
+        awardLinks={awardLinks}
+      />
+
       {/* ── Invite link ── */}
       <section className="flex flex-col gap-3">
         <h2 className="text-xs uppercase tracking-widest text-[var(--fg-muted)]">Invite Link</h2>
@@ -261,13 +302,324 @@ export function SettingsForm({ ritual, appUrl }: { ritual: Ritual; appUrl: strin
         className="flex items-center justify-center gap-2 w-full py-4 rounded-xl btn-accent text-base font-semibold disabled:opacity-50"
       >
         {pending ? (
-          <><Loader2 size={16} className="animate-spin" /> Saving…</>
+          <><Loader2 size={16} className="animate-spin" /> Saving...</>
         ) : saved ? (
           <><Check size={16} /> Saved</>
         ) : (
           'Save Changes'
         )}
       </button>
+    </div>
+  )
+}
+
+function AwardsSection({
+  ritualId,
+  ritualSlug,
+  awardDefs,
+  ritualEvents,
+  awardLinks,
+}: {
+  ritualId: string
+  ritualSlug: string
+  awardDefs: AwardDef[]
+  ritualEvents: RitualEvent[]
+  awardLinks: AwardLink[]
+}) {
+  const [showAddForm, setShowAddForm] = useState(false)
+  const [newName, setNewName] = useState('')
+  const [newLabel, setNewLabel] = useState('')
+  const [newEventIds, setNewEventIds] = useState<string[]>(ritualEvents.map((e) => e.id))
+  const [addPending, startAddTransition] = useTransition()
+  const [error, setError] = useState<string | null>(null)
+
+  function handleAdd() {
+    if (!newName.trim() || !newLabel.trim()) return
+    setError(null)
+    startAddTransition(async () => {
+      try {
+        await createAwardDefinition(ritualId, newName, newLabel, newEventIds, ritualSlug)
+        setNewName('')
+        setNewLabel('')
+        setNewEventIds(ritualEvents.map((e) => e.id))
+        setShowAddForm(false)
+      } catch (e: unknown) {
+        setError(e instanceof Error ? e.message : 'Failed to create award')
+      }
+    })
+  }
+
+  const sortedEvents = [...ritualEvents].sort((a, b) => b.year - a.year)
+
+  return (
+    <section className="flex flex-col gap-3">
+      <h2 className="text-xs uppercase tracking-widest text-[var(--fg-muted)]">Awards</h2>
+
+      {awardDefs.length === 0 && !showAddForm && (
+        <p className="text-sm text-[var(--fg-muted)]">No awards defined yet.</p>
+      )}
+
+      <div className="flex flex-col gap-3">
+        {awardDefs.map((def) => (
+          <AwardRow
+            key={def.id}
+            def={def}
+            ritualSlug={ritualSlug}
+            events={sortedEvents}
+            linkedEventIds={awardLinks.filter((l) => l.awardDefinitionId === def.id).map((l) => l.eventId)}
+          />
+        ))}
+      </div>
+
+      {showAddForm ? (
+        <div className="flex flex-col gap-3 p-4 rounded-lg border border-[var(--border)] bg-[var(--surface)]">
+          <div className="flex flex-col gap-2">
+            <label className="text-xs text-[var(--fg-muted)]">Award Name</label>
+            <input
+              value={newName}
+              onChange={(e) => setNewName(e.target.value)}
+              placeholder="e.g. Best Wipeout"
+              className="w-full bg-transparent border-b border-[var(--border)] focus:border-[var(--fg)] outline-none pb-1 text-sm text-[var(--fg)] placeholder-[var(--fg-muted)] transition-colors"
+            />
+          </div>
+          <div className="flex flex-col gap-2">
+            <label className="text-xs text-[var(--fg-muted)]">Label</label>
+            <input
+              value={newLabel}
+              onChange={(e) => setNewLabel(e.target.value)}
+              placeholder="e.g. Most Spectacular Fall"
+              className="w-full bg-transparent border-b border-[var(--border)] focus:border-[var(--fg)] outline-none pb-1 text-sm text-[var(--fg)] placeholder-[var(--fg-muted)] transition-colors"
+            />
+          </div>
+          <EventMultiSelect
+            events={sortedEvents}
+            selectedIds={newEventIds}
+            onChange={setNewEventIds}
+          />
+          {error && <p className="text-xs text-red-500">{error}</p>}
+          <div className="flex gap-2">
+            <button
+              onClick={handleAdd}
+              disabled={addPending || !newName.trim() || !newLabel.trim()}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg btn-accent text-sm font-medium disabled:opacity-50"
+            >
+              {addPending ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
+              Add Award
+            </button>
+            <button
+              onClick={() => { setShowAddForm(false); setError(null) }}
+              className="px-3 py-1.5 rounded-lg text-sm text-[var(--fg-muted)] hover:text-[var(--fg)] transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      ) : (
+        <button
+          onClick={() => setShowAddForm(true)}
+          className="flex items-center gap-1.5 text-sm text-[var(--fg-muted)] hover:text-[var(--fg)] transition-colors w-fit"
+        >
+          <Plus size={14} />
+          Add Award
+        </button>
+      )}
+    </section>
+  )
+}
+
+function AwardRow({
+  def,
+  ritualSlug,
+  events,
+  linkedEventIds,
+}: {
+  def: AwardDef
+  ritualSlug: string
+  events: RitualEvent[]
+  linkedEventIds: string[]
+}) {
+  const [editName, setEditName] = useState(def.name)
+  const [editLabel, setEditLabel] = useState(def.label)
+  const [showEvents, setShowEvents] = useState(false)
+  const [updatePending, startUpdateTransition] = useTransition()
+  const [deletePending, startDeleteTransition] = useTransition()
+  const [error, setError] = useState<string | null>(null)
+  const nameChanged = editName !== def.name
+  const labelChanged = editLabel !== def.label
+
+  function handleSave() {
+    setError(null)
+    startUpdateTransition(async () => {
+      try {
+        await updateAwardDefinition(def.id, {
+          ...(nameChanged && { name: editName }),
+          ...(labelChanged && { label: editLabel }),
+        }, ritualSlug)
+      } catch (e: unknown) {
+        setError(e instanceof Error ? e.message : 'Failed to update')
+      }
+    })
+  }
+
+  function handleDelete() {
+    setError(null)
+    startDeleteTransition(async () => {
+      try {
+        await deleteAwardDefinition(def.id, ritualSlug)
+      } catch (e: unknown) {
+        setError(e instanceof Error ? e.message : 'Failed to delete')
+      }
+    })
+  }
+
+  return (
+    <div className="flex flex-col gap-2 p-3 rounded-lg border border-[var(--border)]">
+      <div className="flex items-start gap-2">
+        <div className="flex-1 flex flex-col gap-2">
+          <input
+            value={editName}
+            onChange={(e) => setEditName(e.target.value)}
+            className="w-full bg-transparent border-b border-transparent focus:border-[var(--border)] outline-none text-sm font-semibold text-[var(--fg)] transition-colors"
+          />
+          <input
+            value={editLabel}
+            onChange={(e) => setEditLabel(e.target.value)}
+            className="w-full bg-transparent border-b border-transparent focus:border-[var(--border)] outline-none text-xs text-[var(--fg-muted)] transition-colors"
+          />
+        </div>
+        <div className="flex items-center gap-1 shrink-0 pt-0.5">
+          {(nameChanged || labelChanged) && (
+            <button
+              onClick={handleSave}
+              disabled={updatePending}
+              className="p-1.5 rounded text-[var(--fg-muted)] hover:text-green-500 transition-colors"
+              title="Save changes"
+            >
+              {updatePending ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
+            </button>
+          )}
+          <button
+            onClick={handleDelete}
+            disabled={deletePending || def.hasWinners}
+            className="p-1.5 rounded text-[var(--fg-muted)] hover:text-red-500 transition-colors disabled:opacity-30 disabled:hover:text-[var(--fg-muted)]"
+            title={def.hasWinners ? 'Cannot delete: has finalized winners' : 'Delete award'}
+          >
+            {deletePending ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+          </button>
+        </div>
+      </div>
+
+      <div className="flex items-center gap-2">
+        <span className="text-[10px] uppercase tracking-wider text-[var(--fg-muted)]">{def.type}</span>
+        <button
+          onClick={() => setShowEvents(!showEvents)}
+          className="flex items-center gap-1 text-xs text-[var(--fg-muted)] hover:text-[var(--fg)] transition-colors"
+        >
+          {linkedEventIds.length}/{events.length} events
+          <ChevronDown size={12} className={`transition-transform ${showEvents ? 'rotate-180' : ''}`} />
+        </button>
+      </div>
+
+      {showEvents && (
+        <EventLinkToggles
+          awardDefId={def.id}
+          ritualSlug={ritualSlug}
+          events={events}
+          linkedEventIds={linkedEventIds}
+          hasWinnersForEvent={def.hasWinners}
+        />
+      )}
+
+      {error && <p className="text-xs text-red-500">{error}</p>}
+    </div>
+  )
+}
+
+function EventLinkToggles({
+  awardDefId,
+  ritualSlug,
+  events,
+  linkedEventIds,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  hasWinnersForEvent,
+}: {
+  awardDefId: string
+  ritualSlug: string
+  events: RitualEvent[]
+  linkedEventIds: string[]
+  hasWinnersForEvent: boolean
+}) {
+  const [toggling, setToggling] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
+
+  async function handleToggle(eventId: string, currentlyLinked: boolean) {
+    setToggling(eventId)
+    setError(null)
+    try {
+      await toggleAwardEventLink(awardDefId, eventId, !currentlyLinked, ritualSlug)
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Failed to toggle')
+    } finally {
+      setToggling(null)
+    }
+  }
+
+  return (
+    <div className="flex flex-col gap-1 pl-1">
+      {events.map((evt) => {
+        const isLinked = linkedEventIds.includes(evt.id)
+        const isToggling = toggling === evt.id
+        return (
+          <label key={evt.id} className="flex items-center gap-2 text-xs text-[var(--fg)] cursor-pointer py-0.5">
+            <input
+              type="checkbox"
+              checked={isLinked}
+              disabled={isToggling}
+              onChange={() => handleToggle(evt.id, isLinked)}
+              className="accent-[var(--accent)]"
+            />
+            {isToggling && <Loader2 size={10} className="animate-spin" />}
+            <span>{evt.name} ({evt.year})</span>
+            <span className="text-[10px] text-[var(--fg-muted)]">{evt.status}</span>
+          </label>
+        )
+      })}
+      {error && <p className="text-xs text-red-500 mt-1">{error}</p>}
+    </div>
+  )
+}
+
+function EventMultiSelect({
+  events,
+  selectedIds,
+  onChange,
+}: {
+  events: RitualEvent[]
+  selectedIds: string[]
+  onChange: (ids: string[]) => void
+}) {
+  return (
+    <div className="flex flex-col gap-1">
+      <label className="text-xs text-[var(--fg-muted)]">Link to Events</label>
+      <div className="flex flex-col gap-1 max-h-32 overflow-y-auto">
+        {events.map((evt) => (
+          <label key={evt.id} className="flex items-center gap-2 text-xs text-[var(--fg)] cursor-pointer py-0.5">
+            <input
+              type="checkbox"
+              checked={selectedIds.includes(evt.id)}
+              onChange={(e) => {
+                if (e.target.checked) {
+                  onChange([...selectedIds, evt.id])
+                } else {
+                  onChange(selectedIds.filter((id) => id !== evt.id))
+                }
+              }}
+              className="accent-[var(--accent)]"
+            />
+            <span>{evt.name} ({evt.year})</span>
+          </label>
+        ))}
+      </div>
     </div>
   )
 }
