@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { Plus, Loader2, Trash2, Pencil, ChevronDown, ChevronUp, Check, RotateCcw } from 'lucide-react'
+import { Plus, Loader2, Trash2, Pencil, ChevronDown, ChevronUp, Check, RotateCcw, DollarSign, CircleCheck, Circle } from 'lucide-react'
 import {
   addExpense,
   deleteExpense,
@@ -373,6 +373,194 @@ export function ExpenseForm({
   )
 }
 
+// ─── Crew Status Strip ──────────────────────────────────────────────────────
+
+type CrewMemberStatus = 'none' | 'has_expenses' | 'settled'
+
+function getCrewStatus(
+  userId: string,
+  expenses: Expense[],
+  balances: Map<string, number>,
+  settlements: { from: string; to: string; amountCents: number }[],
+  settlementPayments: SettlementPayment[]
+): CrewMemberStatus {
+  // Check if user has any expenses (paid or is in splits)
+  const hasExpenses = expenses.some(
+    (e) => e.paidBy === userId || e.splits.some((s) => s.userId === userId)
+  )
+  if (!hasExpenses) return 'none'
+
+  // Check if settled: balance is 0, OR all their settlements are confirmed
+  const balance = balances.get(userId) ?? 0
+  if (balance === 0) {
+    // Also check all their settlements are confirmed
+    const mySettlements = settlements.filter((s) => s.from === userId || s.to === userId)
+    if (mySettlements.length === 0) return 'settled'
+    const allConfirmed = mySettlements.every((s) => {
+      const payment = settlementPayments.find(
+        (p) => p.fromUserId === s.from && p.toUserId === s.to
+      )
+      return payment?.status === 'confirmed'
+    })
+    return allConfirmed ? 'settled' : 'has_expenses'
+  }
+
+  // Check if all their settlements are confirmed (even if balance shows residual rounding)
+  const mySettlements = settlements.filter((s) => s.from === userId || s.to === userId)
+  if (mySettlements.length > 0) {
+    const allConfirmed = mySettlements.every((s) => {
+      const payment = settlementPayments.find(
+        (p) => p.fromUserId === s.from && p.toUserId === s.to
+      )
+      return payment?.status === 'confirmed'
+    })
+    if (allConfirmed) return 'settled'
+  }
+
+  return 'has_expenses'
+}
+
+function CrewStatusStrip({
+  attendees,
+  attendeeUsers,
+  expenses,
+  balances,
+  settlements,
+  settlementPayments,
+}: {
+  attendees: Attendee[]
+  attendeeUsers: AttendeeUser[]
+  expenses: Expense[]
+  balances: Map<string, number>
+  settlements: { from: string; to: string; amountCents: number }[]
+  settlementPayments: SettlementPayment[]
+}) {
+  const userMap = new Map(attendeeUsers.map((u) => [u.id, u]))
+  const activeAttendees = attendees.filter((a) => a.bookingStatus !== 'out')
+
+  return (
+    <div className="flex gap-3 overflow-x-auto pb-1">
+      {activeAttendees.map((a) => {
+        const user = userMap.get(a.userId)
+        const status = getCrewStatus(a.userId, expenses, balances, settlements, settlementPayments)
+        const firstName = user?.name?.split(' ')[0] ?? '?'
+        const initials = firstName[0]?.toUpperCase() ?? '?'
+
+        return (
+          <div key={a.userId} className="flex flex-col items-center gap-1 shrink-0">
+            <div className="relative">
+              {user?.image ? (
+                <img
+                  src={user.image}
+                  alt={firstName}
+                  className={`w-10 h-10 rounded-full object-cover border-2 ${
+                    status === 'settled'
+                      ? 'border-green-500'
+                      : status === 'has_expenses'
+                        ? 'border-[var(--accent)]'
+                        : 'border-[var(--border)]'
+                  }`}
+                />
+              ) : (
+                <div
+                  className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-semibold border-2 ${
+                    status === 'settled'
+                      ? 'border-green-500 bg-green-500/10 text-green-600'
+                      : status === 'has_expenses'
+                        ? 'border-[var(--accent)] bg-[var(--accent)]/10 text-[var(--accent)]'
+                        : 'border-[var(--border)] bg-[var(--surface)] text-[var(--fg-muted)]'
+                  }`}
+                >
+                  {initials}
+                </div>
+              )}
+              {/* Status badge */}
+              <div className="absolute -bottom-0.5 -right-0.5">
+                {status === 'settled' ? (
+                  <CircleCheck size={16} className="text-green-500 bg-[var(--bg)] rounded-full" />
+                ) : status === 'has_expenses' ? (
+                  <DollarSign size={16} className="text-[var(--accent)] bg-[var(--bg)] rounded-full" />
+                ) : (
+                  <Circle size={16} className="text-[var(--fg-muted)] bg-[var(--bg)] rounded-full opacity-40" />
+                )}
+              </div>
+            </div>
+            <span className="text-[10px] text-[var(--fg-muted)] leading-tight">{firstName}</span>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+// ─── Balance Bar Chart ──────────────────────────────────────────────────────
+
+function BalanceBarChart({
+  balances,
+  attendeeUsers,
+  expenses,
+}: {
+  balances: Map<string, number>
+  attendeeUsers: AttendeeUser[]
+  expenses: Expense[]
+}) {
+  const userMap = new Map(attendeeUsers.map((u) => [u.id, u]))
+
+  // Compute per-person total spent (what they fronted)
+  const spent = new Map<string, number>()
+  for (const e of expenses) {
+    spent.set(e.paidBy, (spent.get(e.paidBy) ?? 0) + e.amount)
+  }
+
+  // Build entries sorted by balance descending
+  const entries = Array.from(balances.entries())
+    .filter(([, bal]) => bal !== 0)
+    .sort((a, b) => b[1] - a[1])
+
+  if (entries.length === 0) return null
+
+  const maxAbs = Math.max(...entries.map(([, bal]) => Math.abs(bal)))
+
+  return (
+    <div className="flex flex-col gap-2">
+      <p className="text-xs uppercase tracking-widest text-[var(--fg-muted)]">Balances</p>
+      <div className="flex flex-col gap-1.5">
+        {entries.map(([userId, balance]) => {
+          const user = userMap.get(userId)
+          const firstName = user?.name?.split(' ')[0] ?? 'Unknown'
+          const isPositive = balance > 0
+          const pct = maxAbs > 0 ? (Math.abs(balance) / maxAbs) * 100 : 0
+          const userSpent = spent.get(userId) ?? 0
+
+          return (
+            <div key={userId} className="flex items-center gap-2">
+              <span className="text-xs text-[var(--fg-muted)] w-16 shrink-0 truncate">{firstName}</span>
+              <div className="flex-1 h-6 relative bg-[var(--surface)] rounded overflow-hidden">
+                <div
+                  className={`absolute top-0 h-full rounded transition-all ${
+                    isPositive ? 'bg-green-500/30 left-0' : 'bg-red-400/30 right-0'
+                  }`}
+                  style={{ width: `${Math.max(pct, 4)}%` }}
+                />
+                <div className="absolute inset-0 flex items-center px-2">
+                  <span className={`text-xs font-medium ${isPositive ? 'text-green-600' : 'text-red-500'}`}>
+                    {isPositive ? '+' : '-'}${(Math.abs(balance) / 100).toFixed(2)}
+                  </span>
+                  {userSpent > 0 && (
+                    <span className="text-[10px] text-[var(--fg-muted)] ml-auto">
+                      paid ${(userSpent / 100).toFixed(2)}
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
 // ─── Settlement Section ──────────────────────────────────────────────────────
 
 function SettlementSection({
@@ -458,16 +646,61 @@ function SettlementSection({
             ? `You are owed $${(myBalance / 100).toFixed(2)}`
             : `You owe $${(Math.abs(myBalance) / 100).toFixed(2)}`}
         </p>
-        {/* Personalized actions */}
+        {/* Personalized actions with inline Mark Paid */}
         {settlements
           .filter((s) => s.from === currentUserId || s.to === currentUserId)
-          .map((s, i) => (
-            <p key={i} className="text-sm text-[var(--fg-muted)] mt-1">
-              {s.from === currentUserId
-                ? `Venmo @${getName(s.to)} $${(s.amountCents / 100).toFixed(2)}`
-                : `Collect $${(s.amountCents / 100).toFixed(2)} from @${getName(s.from)}`}
-            </p>
-          ))}
+          .map((s, i) => {
+            const payment = settlementPayments.find(
+              (p) => p.fromUserId === s.from && p.toUserId === s.to
+            )
+            const isDebtor = s.from === currentUserId
+            const isCreditor = s.to === currentUserId
+
+            return (
+              <div key={i} className="flex items-center justify-between mt-2 gap-2">
+                <p className="text-sm text-[var(--fg-muted)]">
+                  {isDebtor
+                    ? `Venmo @${getName(s.to)} $${(s.amountCents / 100).toFixed(2)}`
+                    : `Collect $${(s.amountCents / 100).toFixed(2)} from @${getName(s.from)}`}
+                </p>
+                <div className="shrink-0">
+                  {payment?.status === 'confirmed' ? (
+                    <span className="flex items-center gap-1 text-xs text-green-600 font-medium">
+                      <Check size={14} /> Done
+                    </span>
+                  ) : payment?.status === 'paid' ? (
+                    isCreditor || canEdit ? (
+                      <button
+                        onClick={() => handleConfirm(payment.id)}
+                        disabled={pending && actionId === `confirm-${payment.id}`}
+                        className="px-3 py-1.5 rounded-lg text-xs bg-green-500/20 text-green-600 font-semibold hover:bg-green-500/30 transition-colors disabled:opacity-50"
+                      >
+                        {pending && actionId === `confirm-${payment.id}` ? (
+                          <Loader2 size={10} className="animate-spin" />
+                        ) : (
+                          'Confirm Receipt'
+                        )}
+                      </button>
+                    ) : (
+                      <span className="text-xs text-amber-600 font-medium">Pending confirm</span>
+                    )
+                  ) : isDebtor ? (
+                    <button
+                      onClick={() => handleMarkPaid(s.to, s.amountCents)}
+                      disabled={pending && actionId === `pay-${s.to}`}
+                      className="px-3 py-1.5 rounded-lg text-xs bg-[var(--accent)] text-[var(--accent-fg)] font-semibold hover:opacity-80 transition-colors disabled:opacity-50"
+                    >
+                      {pending && actionId === `pay-${s.to}` ? (
+                        <Loader2 size={10} className="animate-spin" />
+                      ) : (
+                        'Mark Paid'
+                      )}
+                    </button>
+                  ) : null}
+                </div>
+              </div>
+            )
+          })}
       </div>
 
       {/* All settlements */}
@@ -585,6 +818,23 @@ export function ExpensesTab({
 
   const totalCents = expenseList.reduce((s, e) => s + e.amount, 0)
 
+  // Compute balances and settlements for status strip and bar chart
+  const expenseInputs: ExpenseInput[] = expenseList.map((e) => ({
+    id: e.id,
+    paidBy: e.paidBy,
+    amount: e.amount,
+    splits: e.splits,
+  }))
+  const paymentInputs: PaymentInput[] = settlementPayments.map((p) => ({
+    id: p.id,
+    fromUserId: p.fromUserId,
+    toUserId: p.toUserId,
+    amount: p.amount,
+    status: p.status as 'pending' | 'paid' | 'confirmed',
+  }))
+  const balances = computeBalances(expenseInputs, paymentInputs, attendeeIds)
+  const settlements = computeSettlements(expenseInputs, paymentInputs, attendeeIds)
+
   function handleDelete(expenseId: string) {
     setDeletingId(expenseId)
     startDelete(async () => {
@@ -608,6 +858,25 @@ export function ExpensesTab({
 
   return (
     <div className="flex flex-col gap-4">
+      {/* Crew status strip */}
+      <CrewStatusStrip
+        attendees={attendees}
+        attendeeUsers={attendeeUsers}
+        expenses={expenseList}
+        balances={balances}
+        settlements={settlements}
+        settlementPayments={settlementPayments}
+      />
+
+      {/* Balance bar chart */}
+      {expenseList.length > 0 && (
+        <BalanceBarChart
+          balances={balances}
+          attendeeUsers={attendeeUsers}
+          expenses={expenseList}
+        />
+      )}
+
       {/* Balance summary + settlements */}
       {expenseList.length > 0 && (
         <SettlementSection
