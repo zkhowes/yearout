@@ -71,12 +71,9 @@ export function AwardsPodium({
   const mvpDef = awardDefs.find((d) => d.type === 'mvp')
   const lupDef = awardDefs.find((d) => d.type === 'lup')
   const runnerUpDef = awardDefs.find((d) => d.type === 'runner_up')
-  const totemDef = awardDefs.find((d) => d.type === 'totem')
-
   const mvpWinner = mvpDef ? currentAwards.find((a) => a.awardDefinitionId === mvpDef.id) : null
   const lupWinner = lupDef ? currentAwards.find((a) => a.awardDefinitionId === lupDef.id) : null
   const runnerUpWinner = runnerUpDef ? currentAwards.find((a) => a.awardDefinitionId === runnerUpDef.id) : null
-  const totemWinner = totemDef ? currentAwards.find((a) => a.awardDefinitionId === totemDef.id) : null
 
   function handleAssign(defId: string, winnerId: string) {
     setPickerDefId(null)
@@ -178,61 +175,6 @@ export function AwardsPodium({
         <AwardColumn def={lupDef} winner={lupWinner} size="normal" />
       </div>
 
-      {/* Totem award */}
-      {totemDef && (
-        <div className="flex gap-3 items-center p-3 rounded-xl border border-[var(--border)] bg-[var(--surface)]">
-          {(() => {
-            const winnerUser = totemWinner ? userMap.get(totemWinner.winnerId) : null
-            return (
-              <>
-                {winnerUser ? (
-                  <>
-                    {winnerUser.image ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={winnerUser.image}
-                        alt={winnerUser.name ?? ''}
-                        className="w-10 h-10 rounded-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-10 h-10 rounded-full bg-[var(--border)] flex items-center justify-center font-semibold text-[var(--fg-muted)]">
-                        {(winnerUser.name ?? '?').charAt(0).toUpperCase()}
-                      </div>
-                    )}
-                    <div className="flex-1">
-                      <p className="text-sm font-semibold text-[var(--fg)]">{winnerUser.name?.split(' ')[0] ?? 'Unknown'}</p>
-                    </div>
-                    {isSponsor && (
-                      <button
-                        onClick={() => setPickerDefId(totemDef.id)}
-                        disabled={assigning}
-                        className="flex items-center gap-1 text-[var(--fg-muted)] hover:text-[var(--fg)] transition-colors disabled:opacity-50"
-                      >
-                        <Trophy size={14} />
-                        <span className="text-xs">Reassign</span>
-                      </button>
-                    )}
-                  </>
-                ) : (
-                  <>
-                    <div className="flex-1" />
-                    {isSponsor && (
-                      <button
-                        onClick={() => setPickerDefId(totemDef.id)}
-                        disabled={assigning}
-                        className="flex items-center gap-1 text-[var(--fg-muted)] hover:text-[var(--fg)] transition-colors disabled:opacity-50"
-                      >
-                        <Trophy size={14} />
-                        <span className="text-xs">Assign</span>
-                      </button>
-                    )}
-                  </>
-                )}
-              </>
-            )
-          })()}
-        </div>
-      )}
 
       {/* Inline attendee picker */}
       {pickerDefId && (

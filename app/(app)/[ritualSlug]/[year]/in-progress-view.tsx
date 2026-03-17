@@ -2,7 +2,7 @@
 
 import { useState, useTransition, useRef, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { Plus, Loader2, Trash2, Pencil, Calendar, Home, Plane, Award, Users } from 'lucide-react'
+import { Plus, Loader2, Trash2, Pencil, Calendar, Home, Plane, Award, Users, ChevronDown, Play } from 'lucide-react'
 import {
   addActivityResult,
   addItineraryDay,
@@ -12,7 +12,7 @@ import {
 import { ExpensesTab, ExpenseForm } from '@/components/expenses-tab'
 import { CloseoutView } from './closeout-view'
 import { AwardsPodium } from './awards-podium'
-import { EventDetailsCard } from './closed-view'
+import { EventDetailsCard, VideoEditSection } from './closed-view'
 import { LoreFeed } from '@/components/lore/lore-feed'
 import { AddLoreForm } from '@/components/lore/add-lore-form'
 import { AddStatForm } from '@/components/add-stat-form'
@@ -111,11 +111,14 @@ type ItineraryDay = {
 
 type Event = {
   id: string
+  name?: string
   location: string | null
   mountains: string | null
   year: number
   startDate: Date | null
   endDate: Date | null
+  editUrl?: string | null
+  editThumbnailUrl?: string | null
 }
 
 // ─── Itinerary Section ───────────────────────────────────────────────────────
@@ -651,6 +654,39 @@ function ArrivalDepartureBoard({
   )
 }
 
+// ─── Collapsible Section ──────────────────────────────────────────────────────
+
+function CollapsibleSection({
+  icon,
+  label,
+  borderColor,
+  children,
+}: {
+  icon: React.ReactNode
+  label: string
+  borderColor: string
+  children: React.ReactNode
+}) {
+  const [open, setOpen] = useState(false)
+
+  return (
+    <div className={`rounded-xl border border-[var(--border)] border-l-4 ${borderColor} bg-[var(--surface)] p-4 flex flex-col gap-3`}>
+      <button
+        onClick={() => setOpen(!open)}
+        className="flex items-center gap-2 w-full"
+      >
+        {icon}
+        <p className="text-xs uppercase tracking-widest text-[var(--fg-muted)] flex-1 text-left">{label}</p>
+        <ChevronDown
+          size={16}
+          className={`text-[var(--fg-muted)] transition-transform ${open ? 'rotate-180' : ''}`}
+        />
+      </button>
+      {open && children}
+    </div>
+  )
+}
+
 // ─── Main In Progress View ────────────────────────────────────────────────────
 
 export function InProgressView({
@@ -785,22 +821,27 @@ export function InProgressView({
     { id: 'expenses', label: 'Expenses' },
   ] as const
 
-  return (
-    <div className="flex flex-col gap-6">
-      {/* Event Details */}
-      <EventDetailsCard
-        event={{ ...event, status: isConcluded ? 'concluded' : 'in_progress' }}
-        canEdit={canEdit}
-        ritualSlug={ritualSlug}
-        carouselProps={{
-          activityType,
-          attendees: attendees.map((a) => ({ userId: a.userId, bookingStatus: a.bookingStatus })),
-          attendeeUsers: attendeeUsers.map((u) => ({ id: u.id, name: u.name })),
-          loreCount: loreList.length,
-          itineraryCount: itineraryList.length,
-          cachedTips,
-          todayItinerary: !isConcluded && todayItinerary.length > 0 ? todayItinerary : null,
-          ...(isConcluded && {
+  // For concluded state, filter to only attendees who didn't drop out
+  const concludedAttendees = isConcluded
+    ? attendees.filter((a) => a.bookingStatus !== 'out')
+    : attendees
+
+  if (isConcluded) {
+    return (
+      <div className="flex flex-col gap-6">
+        {/* Event Details */}
+        <EventDetailsCard
+          event={{ ...event, status: 'concluded' }}
+          canEdit={canEdit}
+          ritualSlug={ritualSlug}
+          carouselProps={{
+            activityType,
+            attendees: concludedAttendees.map((a) => ({ userId: a.userId, bookingStatus: a.bookingStatus })),
+            attendeeUsers: attendeeUsers.map((u) => ({ id: u.id, name: u.name })),
+            loreCount: loreList.length,
+            itineraryCount: itineraryList.length,
+            cachedTips,
+            todayItinerary: null,
             awardWinners: currentAwards.map((a) => {
               const def = awardDefs.find((d) => d.id === a.awardDefinitionId)
               const user = attendeeUsers.find((u) => u.id === a.winnerId)
@@ -828,8 +869,237 @@ export function InProgressView({
                 return { metric, bestValue: best.value, bestUser: user?.name?.split(' ')[0] ?? 'Unknown', unit: best.unit }
               })
             })(),
-            crewCount: attendees.filter((a) => a.bookingStatus !== 'out').length,
-          }),
+            crewCount: concludedAttendees.length,
+          }}
+        />
+
+        {/* Awards Podium */}
+        <div className="rounded-xl border border-[var(--border)] border-l-4 border-l-amber-500 bg-[var(--surface)] p-4 flex flex-col gap-3">
+          <div className="flex items-center gap-2">
+            <Award size={14} className="text-amber-500" />
+            <p className="text-xs uppercase tracking-widest text-[var(--fg-muted)]">Awards</p>
+          </div>
+          <AwardsPodium
+            event={event}
+            attendees={concludedAttendees}
+            attendeeUsers={attendeeUsers}
+            awardDefs={awardDefs.filter((d) => d.type !== 'totem')}
+            currentAwards={currentAwards}
+            isSponsor={isSponsor}
+            ritualSlug={ritualSlug}
+          />
+        </div>
+
+        {/* Crew tiles (attended only) */}
+        {concludedAttendees.length > 0 && (
+          <div className="rounded-xl border border-[var(--border)] border-l-4 border-l-indigo-500 bg-[var(--surface)] p-4 flex flex-col gap-3">
+            <div className="flex items-center gap-2">
+              <Users size={14} className="text-indigo-500" />
+              <p className="text-xs uppercase tracking-widest text-[var(--fg-muted)]">Crew</p>
+            </div>
+            <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+              {concludedAttendees.map((a) => {
+                const user = attendeeUsers.find((u) => u.id === a.userId)
+                if (!user) return null
+                const override = memberOverrides?.find((o) => o.userId === a.userId)
+                const photoUrl = override?.photoOverride ?? user.image
+                const displayName = override?.nicknameOverride ?? user.name?.split(' ')[0] ?? 'Unknown'
+                return (
+                  <div
+                    key={a.userId}
+                    className="flex flex-col items-center gap-1.5 p-3 rounded-xl border border-[var(--border)] bg-[var(--surface)]"
+                  >
+                    {photoUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={photoUrl} alt={displayName} className="w-10 h-10 rounded-full object-cover" />
+                    ) : (
+                      <div className="w-10 h-10 rounded-full bg-[var(--border)]" />
+                    )}
+                    <span className="text-xs font-medium text-[var(--fg)] text-center leading-tight max-w-[72px] truncate">
+                      {displayName}
+                    </span>
+                    {a.isHost && (
+                      <span className="text-[9px] font-bold uppercase tracking-wider text-[var(--accent)] opacity-80">Host</span>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Lore / Stats / Expenses */}
+        <div ref={tabsRef} className="rounded-xl border border-[var(--border)] border-l-4 border-l-[var(--accent)] bg-[var(--surface)] p-4 flex flex-col gap-4">
+          <div className="flex border-b border-[var(--border)]">
+            {tabs.map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`flex-1 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px ${
+                  activeTab === tab.id
+                    ? 'border-[var(--accent)] text-[var(--fg)]'
+                    : 'border-transparent text-[var(--fg-muted)] hover:text-[var(--fg)]'
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+          {activeTab === 'lore' && (
+            <LoreFeed
+              entries={loreList}
+              userMap={new Map(attendeeUsers.map((u) => [u.id, u]))}
+              crewMembers={crewMembers}
+              currentUserId={currentUserId}
+              canEdit={canEdit}
+              ritualSlug={ritualSlug}
+              eventId={event.id}
+              year={event.year}
+              allowedTypes={['memory', 'checkin', 'image']}
+              allEvents={allRitualEvents}
+            />
+          )}
+          {activeTab === 'stats' && (
+            <StatsTab
+              event={event}
+              activityList={activityList}
+              attendees={concludedAttendees}
+              attendeeUsers={attendeeUsers}
+              currentUserId={currentUserId}
+              isSponsor={isSponsor}
+              ritualSlug={ritualSlug}
+            />
+          )}
+          {activeTab === 'expenses' && (
+            <ExpensesTab
+              event={event}
+              expenseList={expenseList}
+              settlementPayments={settlementPayments}
+              attendees={concludedAttendees}
+              attendeeUsers={attendeeUsers}
+              currentUserId={currentUserId}
+              canEdit={canEdit}
+              ritualSlug={ritualSlug}
+            />
+          )}
+        </div>
+
+        {/* Video Edit Section */}
+        {(event.editUrl || canEdit) && (
+          <div className="rounded-xl border border-[var(--border)] border-l-4 border-l-[var(--accent)] bg-[var(--surface)] p-4 flex flex-col gap-3">
+            <div className="flex items-center gap-2">
+              <Play size={14} className="text-[var(--accent)]" />
+              <p className="text-xs uppercase tracking-widest text-[var(--fg-muted)]">Video Edit</p>
+            </div>
+            <VideoEditSection
+              event={{
+                id: event.id,
+                name: event.name ?? '',
+                location: event.location,
+                mountains: event.mountains,
+                year: event.year,
+                startDate: event.startDate,
+                endDate: event.endDate,
+                editUrl: event.editUrl ?? null,
+                editThumbnailUrl: event.editThumbnailUrl ?? null,
+              }}
+              canEdit={canEdit}
+              ritualSlug={ritualSlug}
+            />
+          </div>
+        )}
+
+        {/* Collapsible: Lodging & Transportation */}
+        <CollapsibleSection
+          icon={<Home size={14} className="text-green-500" />}
+          label="Lodging & Transportation"
+          borderColor="border-l-green-500"
+        >
+          <BookingsSection
+            bookings={bookingList}
+            eventId={event.id}
+            canEdit={canEdit}
+            ritualSlug={ritualSlug}
+            year={event.year}
+          />
+        </CollapsibleSection>
+
+        {/* Collapsible: Flight Board */}
+        {attendees.some(a => a.arrivalFlightNumber || a.departureFlightNumber) && (
+          <CollapsibleSection
+            icon={<Plane size={14} className="text-blue-500" />}
+            label="Flight Board"
+            borderColor="border-l-blue-500"
+          >
+            <ArrivalDepartureBoard
+              attendees={attendees}
+              attendeeUsers={attendeeUsers}
+            />
+          </CollapsibleSection>
+        )}
+
+        {/* Collapsible: Itinerary */}
+        <CollapsibleSection
+          icon={<Calendar size={14} className="text-purple-500" />}
+          label="Itinerary"
+          borderColor="border-l-purple-500"
+        >
+          <ItinerarySection
+            event={event}
+            itineraryList={itineraryList}
+            canEdit={canEdit}
+            ritualSlug={ritualSlug}
+          />
+        </CollapsibleSection>
+
+        {/* Close Out button (sponsor/organizer) */}
+        {canEdit && (
+          <button
+            onClick={() => setShowCloseout(true)}
+            className="flex items-center justify-center gap-2 w-full py-4 rounded-xl border border-[var(--border)] text-base font-semibold text-[var(--fg)] hover:bg-[var(--surface)] transition-colors"
+          >
+            Review & Close Out
+          </button>
+        )}
+
+        {/* Closeout overlay */}
+        {showCloseout && (
+          <CloseoutView
+            event={event}
+            attendees={attendees}
+            attendeeUsers={attendeeUsers}
+            expenseList={expenseList}
+            settlementPayments={settlementPayments}
+            awardDefs={awardDefs}
+            currentAwards={currentAwards}
+            awardVoteList={awardVoteList}
+            currentUserId={currentUserId}
+            isSponsor={isSponsor}
+            ritualSlug={ritualSlug}
+            onBack={() => setShowCloseout(false)}
+          />
+        )}
+
+        <QuickAddFab renderForm={renderFabForm} />
+      </div>
+    )
+  }
+
+  return (
+    <div className="flex flex-col gap-6">
+      {/* Event Details */}
+      <EventDetailsCard
+        event={{ ...event, status: 'in_progress' }}
+        canEdit={canEdit}
+        ritualSlug={ritualSlug}
+        carouselProps={{
+          activityType,
+          attendees: attendees.map((a) => ({ userId: a.userId, bookingStatus: a.bookingStatus })),
+          attendeeUsers: attendeeUsers.map((u) => ({ id: u.id, name: u.name })),
+          loreCount: loreList.length,
+          itineraryCount: itineraryList.length,
+          cachedTips,
+          todayItinerary: todayItinerary.length > 0 ? todayItinerary : null,
         }}
       />
 
@@ -996,7 +1266,7 @@ export function InProgressView({
           onClick={() => setShowCloseout(true)}
           className="flex items-center justify-center gap-2 w-full py-4 rounded-xl border border-[var(--border)] text-base font-semibold text-[var(--fg)] hover:bg-[var(--surface)] transition-colors"
         >
-          {isConcluded ? 'Review & Close Out' : 'Close Out'}
+          Close Out
         </button>
       )}
 

@@ -21,6 +21,7 @@ import {
   ritualAwardDefinitions,
   dailyItinerary,
   eventBookings,
+  eventAwardLinks,
   users,
 } from '@/db/schema'
 import { eq, inArray } from 'drizzle-orm'
@@ -167,7 +168,15 @@ export default async function EventPage({
           db.select().from(expenses).where(eq(expenses.eventId, event.id)),
           db.select().from(loreEntries).where(eq(loreEntries.eventId, event.id)),
           db.select().from(activityResults).where(eq(activityResults.eventId, event.id)),
-          db.select().from(ritualAwardDefinitions).where(eq(ritualAwardDefinitions.ritualId, ritual.id)),
+          db.select({
+              id: ritualAwardDefinitions.id,
+              name: ritualAwardDefinitions.name,
+              label: ritualAwardDefinitions.label,
+              type: ritualAwardDefinitions.type,
+            })
+            .from(eventAwardLinks)
+            .innerJoin(ritualAwardDefinitions, eq(eventAwardLinks.awardDefinitionId, ritualAwardDefinitions.id))
+            .where(eq(eventAwardLinks.eventId, event.id)),
           db.select().from(awards).where(eq(awards.eventId, event.id)),
           db.select().from(awardVotes).where(eq(awardVotes.eventId, event.id)),
           db.select().from(dailyItinerary).where(eq(dailyItinerary.eventId, event.id)),
@@ -236,20 +245,34 @@ export default async function EventPage({
     const existingTypes = new Set(awardDefs.map((d) => d.type))
     const missing = defaultTypes.filter((d) => !existingTypes.has(d.type))
     if (missing.length > 0) {
-      await db.insert(ritualAwardDefinitions).values(
-        missing.map((d) => ({
+      const newDefs = missing.map((d) => ({
+        id: crypto.randomUUID(),
+        ritualId: ritual.id,
+        name: d.name,
+        label: d.label,
+        type: d.type,
+        createdAt: new Date(),
+      }))
+      await db.insert(ritualAwardDefinitions).values(newDefs)
+      // Also create event_award_links for this event
+      await db.insert(eventAwardLinks).values(
+        newDefs.map((d) => ({
           id: crypto.randomUUID(),
-          ritualId: ritual.id,
-          name: d.name,
-          label: d.label,
-          type: d.type,
+          eventId: event.id,
+          awardDefinitionId: d.id,
           createdAt: new Date(),
         }))
-      )
+      ).onConflictDoNothing()
       awardDefs = await db
-        .select()
-        .from(ritualAwardDefinitions)
-        .where(eq(ritualAwardDefinitions.ritualId, ritual.id))
+        .select({
+          id: ritualAwardDefinitions.id,
+          name: ritualAwardDefinitions.name,
+          label: ritualAwardDefinitions.label,
+          type: ritualAwardDefinitions.type,
+        })
+        .from(eventAwardLinks)
+        .innerJoin(ritualAwardDefinitions, eq(eventAwardLinks.awardDefinitionId, ritualAwardDefinitions.id))
+        .where(eq(eventAwardLinks.eventId, event.id))
     }
   }
 
@@ -413,11 +436,14 @@ export default async function EventPage({
         <InProgressView
           event={{
             id: event.id,
+            name: event.name,
             location: event.location,
             mountains: event.mountains,
             year: event.year,
             startDate: event.startDate,
             endDate: event.endDate,
+            editUrl: event.editUrl,
+            editThumbnailUrl: event.editThumbnailUrl,
           }}
           isConcluded={event.status === 'concluded'}
           activityType={ritual.activityType}

@@ -437,7 +437,7 @@ function CrewStatusStrip({
   const activeAttendees = attendees.filter((a) => a.bookingStatus !== 'out')
 
   return (
-    <div className="flex gap-3 overflow-x-auto pb-1">
+    <div className="flex flex-wrap gap-3">
       {activeAttendees.map((a) => {
         const user = userMap.get(a.userId)
         const status = getCrewStatus(a.userId, expenses, balances, settlements, settlementPayments)
@@ -445,7 +445,7 @@ function CrewStatusStrip({
         const initials = firstName[0]?.toUpperCase() ?? '?'
 
         return (
-          <div key={a.userId} className="flex flex-col items-center gap-1 shrink-0">
+          <div key={a.userId} className="flex flex-col items-center gap-1">
             <div className="relative">
               {user?.image ? (
                 <img

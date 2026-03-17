@@ -607,7 +607,7 @@ function CrewTiles({
 
 // ─── 4e. Video Edit Section ──────────────────────────────────────────────────
 
-function VideoEditSection({
+export function VideoEditSection({
   event,
   canEdit,
   ritualSlug,
