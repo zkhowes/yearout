@@ -68,12 +68,8 @@ export function AwardsPodium({
   const [pickerDefId, setPickerDefId] = useState<string | null>(null)
   const userMap = new Map(attendeeUsers.map((u) => [u.id, u]))
 
-  const mvpDef = awardDefs.find((d) => d.type === 'mvp')
-  const lupDef = awardDefs.find((d) => d.type === 'lup')
-  const runnerUpDef = awardDefs.find((d) => d.type === 'runner_up')
-  const mvpWinner = mvpDef ? currentAwards.find((a) => a.awardDefinitionId === mvpDef.id) : null
-  const lupWinner = lupDef ? currentAwards.find((a) => a.awardDefinitionId === lupDef.id) : null
-  const runnerUpWinner = runnerUpDef ? currentAwards.find((a) => a.awardDefinitionId === runnerUpDef.id) : null
+  // Show up to 3 awards — first is hero (center), rest are normal (sides)
+  const displayDefs = awardDefs.slice(0, 3)
 
   function handleAssign(defId: string, winnerId: string) {
     setPickerDefId(null)
@@ -87,15 +83,14 @@ export function AwardsPodium({
     winner,
     size = 'normal',
   }: {
-    def: AwardDef | undefined
+    def: AwardDef
     winner: Award | null | undefined
     size?: 'normal' | 'hero'
   }) {
-    if (!def) return null
     const winnerUser = winner ? userMap.get(winner.winnerId) : null
 
     return (
-      <div className={`flex flex-col items-center gap-2 ${size === 'hero' ? 'flex-1' : 'flex-1'}`}>
+      <div className="flex flex-col items-center gap-2 flex-1">
         <div
           className={`flex flex-col items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--surface)] w-full gap-2 ${
             size === 'hero' ? 'p-4 min-h-[120px]' : 'p-3 min-h-[100px]'
@@ -167,14 +162,31 @@ export function AwardsPodium({
     )
   }
 
+  if (displayDefs.length === 0) return null
+
+  // Layout: 1 award = centered hero, 2 = side by side, 3 = podium (second flanks first as hero)
+  const getWinner = (def: AwardDef) => currentAwards.find((a) => a.awardDefinitionId === def.id) ?? null
+
   return (
     <div className="flex flex-col gap-3">
       <div className="flex gap-2 items-end">
-        <AwardColumn def={runnerUpDef} winner={runnerUpWinner} size="normal" />
-        <AwardColumn def={mvpDef} winner={mvpWinner} size="hero" />
-        <AwardColumn def={lupDef} winner={lupWinner} size="normal" />
+        {displayDefs.length === 1 && (
+          <AwardColumn def={displayDefs[0]} winner={getWinner(displayDefs[0])} size="hero" />
+        )}
+        {displayDefs.length === 2 && (
+          <>
+            <AwardColumn def={displayDefs[0]} winner={getWinner(displayDefs[0])} size="hero" />
+            <AwardColumn def={displayDefs[1]} winner={getWinner(displayDefs[1])} size="normal" />
+          </>
+        )}
+        {displayDefs.length === 3 && (
+          <>
+            <AwardColumn def={displayDefs[1]} winner={getWinner(displayDefs[1])} size="normal" />
+            <AwardColumn def={displayDefs[0]} winner={getWinner(displayDefs[0])} size="hero" />
+            <AwardColumn def={displayDefs[2]} winner={getWinner(displayDefs[2])} size="normal" />
+          </>
+        )}
       </div>
-
 
       {/* Inline attendee picker */}
       {pickerDefId && (

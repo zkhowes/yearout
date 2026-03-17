@@ -5,7 +5,7 @@ import { rituals, ritualAwardDefinitions, ritualMembers } from '@/db/schema'
 import { awards, awardVotes, eventAwardLinks } from '@/db/schema/events'
 import { auth } from '@/auth'
 import { redirect } from 'next/navigation'
-import { eq, and } from 'drizzle-orm'
+import { eq, and, inArray } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
 import type { RitualInference } from '@/app/api/ritual/infer/route'
 
@@ -279,14 +279,32 @@ export async function createAwardDefinition(
   })
 
   if (eventIds.length > 0) {
-    await db.insert(eventAwardLinks).values(
-      eventIds.map((eventId) => ({
-        id: crypto.randomUUID(),
-        eventId,
-        awardDefinitionId: awardDefId,
-        createdAt: new Date(),
-      }))
-    )
+    // Filter to only events that have room (max 3 awards per event)
+    const existingCounts = await db
+      .select({ eventId: eventAwardLinks.eventId })
+      .from(eventAwardLinks)
+      .where(inArray(eventAwardLinks.eventId, eventIds))
+    const countByEvent = new Map<string, number>()
+    for (const row of existingCounts) {
+      countByEvent.set(row.eventId, (countByEvent.get(row.eventId) ?? 0) + 1)
+    }
+    const eligibleEventIds = eventIds.filter((id) => (countByEvent.get(id) ?? 0) < 3)
+
+    if (eligibleEventIds.length > 0) {
+      await db.insert(eventAwardLinks).values(
+        eligibleEventIds.map((eventId) => ({
+          id: crypto.randomUUID(),
+          eventId,
+          awardDefinitionId: awardDefId,
+          createdAt: new Date(),
+        }))
+      )
+    }
+
+    const skipped = eventIds.length - eligibleEventIds.length
+    if (skipped > 0) {
+      // Still create the award def, just not linked to full events
+    }
   }
 
   revalidatePath(`/${ritualSlug}/settings`)
@@ -376,6 +394,14 @@ export async function toggleAwardEventLink(
   if (!member) throw new Error('Only sponsors can manage awards')
 
   if (linked) {
+    // Enforce max 3 awards per event
+    const currentLinks = await db
+      .select({ id: eventAwardLinks.id })
+      .from(eventAwardLinks)
+      .where(eq(eventAwardLinks.eventId, eventId))
+    if (currentLinks.length >= 3) {
+      throw new Error('Max 3 awards per event. Remove one before adding another.')
+    }
     await db.insert(eventAwardLinks).values({
       id: crypto.randomUUID(),
       eventId,

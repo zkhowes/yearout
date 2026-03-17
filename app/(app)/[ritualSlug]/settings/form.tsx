@@ -367,6 +367,7 @@ function AwardsSection({
             ritualSlug={ritualSlug}
             events={sortedEvents}
             linkedEventIds={awardLinks.filter((l) => l.awardDefinitionId === def.id).map((l) => l.eventId)}
+            allAwardLinks={awardLinks}
           />
         ))}
       </div>
@@ -395,6 +396,7 @@ function AwardsSection({
             events={sortedEvents}
             selectedIds={newEventIds}
             onChange={setNewEventIds}
+            awardLinks={awardLinks}
           />
           {error && <p className="text-xs text-red-500">{error}</p>}
           <div className="flex gap-2">
@@ -432,11 +434,13 @@ function AwardRow({
   ritualSlug,
   events,
   linkedEventIds,
+  allAwardLinks,
 }: {
   def: AwardDef
   ritualSlug: string
   events: RitualEvent[]
   linkedEventIds: string[]
+  allAwardLinks: AwardLink[]
 }) {
   const [editName, setEditName] = useState(def.name)
   const [editLabel, setEditLabel] = useState(def.label)
@@ -526,7 +530,7 @@ function AwardRow({
           ritualSlug={ritualSlug}
           events={events}
           linkedEventIds={linkedEventIds}
-          hasWinnersForEvent={def.hasWinners}
+          allAwardLinks={allAwardLinks}
         />
       )}
 
@@ -540,17 +544,22 @@ function EventLinkToggles({
   ritualSlug,
   events,
   linkedEventIds,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  hasWinnersForEvent,
+  allAwardLinks,
 }: {
   awardDefId: string
   ritualSlug: string
   events: RitualEvent[]
   linkedEventIds: string[]
-  hasWinnersForEvent: boolean
+  allAwardLinks: AwardLink[]
 }) {
   const [toggling, setToggling] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+
+  // Count awards per event (across all award defs)
+  const countByEvent = new Map<string, number>()
+  for (const link of allAwardLinks) {
+    countByEvent.set(link.eventId, (countByEvent.get(link.eventId) ?? 0) + 1)
+  }
 
   async function handleToggle(eventId: string, currentlyLinked: boolean) {
     setToggling(eventId)
@@ -569,18 +578,20 @@ function EventLinkToggles({
       {events.map((evt) => {
         const isLinked = linkedEventIds.includes(evt.id)
         const isToggling = toggling === evt.id
+        const eventCount = countByEvent.get(evt.id) ?? 0
+        const atLimit = eventCount >= 3 && !isLinked
         return (
-          <label key={evt.id} className="flex items-center gap-2 text-xs text-[var(--fg)] cursor-pointer py-0.5">
+          <label key={evt.id} className={`flex items-center gap-2 text-xs py-0.5 ${atLimit ? 'text-[var(--fg-muted)] opacity-50' : 'text-[var(--fg)] cursor-pointer'}`}>
             <input
               type="checkbox"
               checked={isLinked}
-              disabled={isToggling}
+              disabled={isToggling || atLimit}
               onChange={() => handleToggle(evt.id, isLinked)}
               className="accent-[var(--accent)]"
             />
             {isToggling && <Loader2 size={10} className="animate-spin" />}
             <span>{evt.name} ({evt.year})</span>
-            <span className="text-[10px] text-[var(--fg-muted)]">{evt.status}</span>
+            <span className="text-[10px] text-[var(--fg-muted)]">{eventCount}/3</span>
           </label>
         )
       })}
@@ -593,32 +604,45 @@ function EventMultiSelect({
   events,
   selectedIds,
   onChange,
+  awardLinks,
 }: {
   events: RitualEvent[]
   selectedIds: string[]
   onChange: (ids: string[]) => void
+  awardLinks: AwardLink[]
 }) {
+  const countByEvent = new Map<string, number>()
+  for (const link of awardLinks) {
+    countByEvent.set(link.eventId, (countByEvent.get(link.eventId) ?? 0) + 1)
+  }
+
   return (
     <div className="flex flex-col gap-1">
-      <label className="text-xs text-[var(--fg-muted)]">Link to Events</label>
+      <label className="text-xs text-[var(--fg-muted)]">Link to Events (max 3 awards per event)</label>
       <div className="flex flex-col gap-1 max-h-32 overflow-y-auto">
-        {events.map((evt) => (
-          <label key={evt.id} className="flex items-center gap-2 text-xs text-[var(--fg)] cursor-pointer py-0.5">
-            <input
-              type="checkbox"
-              checked={selectedIds.includes(evt.id)}
-              onChange={(e) => {
-                if (e.target.checked) {
-                  onChange([...selectedIds, evt.id])
-                } else {
-                  onChange(selectedIds.filter((id) => id !== evt.id))
-                }
-              }}
-              className="accent-[var(--accent)]"
-            />
-            <span>{evt.name} ({evt.year})</span>
-          </label>
-        ))}
+        {events.map((evt) => {
+          const eventCount = countByEvent.get(evt.id) ?? 0
+          const atLimit = eventCount >= 3 && !selectedIds.includes(evt.id)
+          return (
+            <label key={evt.id} className={`flex items-center gap-2 text-xs py-0.5 ${atLimit ? 'text-[var(--fg-muted)] opacity-50' : 'text-[var(--fg)] cursor-pointer'}`}>
+              <input
+                type="checkbox"
+                checked={selectedIds.includes(evt.id)}
+                disabled={atLimit}
+                onChange={(e) => {
+                  if (e.target.checked) {
+                    onChange([...selectedIds, evt.id])
+                  } else {
+                    onChange(selectedIds.filter((id) => id !== evt.id))
+                  }
+                }}
+                className="accent-[var(--accent)]"
+              />
+              <span>{evt.name} ({evt.year})</span>
+              <span className="text-[10px] text-[var(--fg-muted)]">{eventCount}/3</span>
+            </label>
+          )
+        })}
       </div>
     </div>
   )

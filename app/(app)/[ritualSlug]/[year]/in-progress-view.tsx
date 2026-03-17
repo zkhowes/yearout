@@ -883,7 +883,7 @@ export function InProgressView({
             event={event}
             attendees={concludedAttendees}
             attendeeUsers={attendeeUsers}
-            awardDefs={awardDefs.filter((d) => d.type !== 'totem')}
+            awardDefs={awardDefs}
             currentAwards={currentAwards}
             isSponsor={isSponsor}
             ritualSlug={ritualSlug}

@@ -189,7 +189,7 @@ export function ClosedView({
             event={event}
             attendees={attendees}
             attendeeUsers={attendeeUsers}
-            awardDefs={awardDefs.filter((d) => d.type !== 'totem')}
+            awardDefs={awardDefs}
             currentAwards={currentAwards}
             isSponsor={canEdit}
             ritualSlug={ritualSlug}

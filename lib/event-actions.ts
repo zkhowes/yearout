@@ -66,14 +66,15 @@ export async function createEvent(
     createdAt: new Date(),
   })
 
-  // Auto-link all existing award definitions to this event
+  // Auto-link first 3 existing award definitions to this event
   const existingAwardDefs = await db
     .select({ id: ritualAwardDefinitions.id })
     .from(ritualAwardDefinitions)
     .where(eq(ritualAwardDefinitions.ritualId, ritualId))
-  if (existingAwardDefs.length > 0) {
+  const toLink = existingAwardDefs.slice(0, 3)
+  if (toLink.length > 0) {
     await db.insert(eventAwardLinks).values(
-      existingAwardDefs.map((d) => ({
+      toLink.map((d) => ({
         id: crypto.randomUUID(),
         eventId,
         awardDefinitionId: d.id,

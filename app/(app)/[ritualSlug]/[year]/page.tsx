@@ -236,45 +236,8 @@ export default async function EventPage({
     }
   }
 
-  // ── Ensure default award definitions exist for non-planning events ───
-  if (event.status !== 'planning') {
-    const defaultTypes = [
-      { type: 'runner_up', name: 'Runner Up', label: '2nd Place MVP' },
-      { type: 'totem', name: 'Totem', label: 'Totem Holder' },
-    ]
-    const existingTypes = new Set(awardDefs.map((d) => d.type))
-    const missing = defaultTypes.filter((d) => !existingTypes.has(d.type))
-    if (missing.length > 0) {
-      const newDefs = missing.map((d) => ({
-        id: crypto.randomUUID(),
-        ritualId: ritual.id,
-        name: d.name,
-        label: d.label,
-        type: d.type,
-        createdAt: new Date(),
-      }))
-      await db.insert(ritualAwardDefinitions).values(newDefs)
-      // Also create event_award_links for this event
-      await db.insert(eventAwardLinks).values(
-        newDefs.map((d) => ({
-          id: crypto.randomUUID(),
-          eventId: event.id,
-          awardDefinitionId: d.id,
-          createdAt: new Date(),
-        }))
-      ).onConflictDoNothing()
-      awardDefs = await db
-        .select({
-          id: ritualAwardDefinitions.id,
-          name: ritualAwardDefinitions.name,
-          label: ritualAwardDefinitions.label,
-          type: ritualAwardDefinitions.type,
-        })
-        .from(eventAwardLinks)
-        .innerJoin(ritualAwardDefinitions, eq(eventAwardLinks.awardDefinitionId, ritualAwardDefinitions.id))
-        .where(eq(eventAwardLinks.eventId, event.id))
-    }
-  }
+  // Award defs are now fully managed via settings + eventAwardLinks join table.
+  // No auto-creation of defaults — sponsors control which awards appear per event.
 
   // ── All ritual members (for @mention dropdown + closed-event crew UI) ───
   let allRitualMembers: { userId: string; userName: string | null; userImage: string | null }[] = []
