@@ -2,7 +2,7 @@
 
 import { useState, useTransition, useRef, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { Plus, Loader2, Trash2, Pencil, Calendar, Home, Plane, Award } from 'lucide-react'
+import { Plus, Loader2, Trash2, Pencil, Calendar, Home, Plane, Award, Users } from 'lucide-react'
 import {
   addActivityResult,
   addItineraryDay,
@@ -672,10 +672,14 @@ export function InProgressView({
   currentUserId,
   canEdit,
   isSponsor = canEdit,
+  isConcluded = false,
   ritualSlug,
   activityType,
   cachedTips,
   allRitualEvents,
+  memberOverrides,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  allRitualMembers,
 }: {
   event: Event
   attendees: Attendee[]
@@ -694,10 +698,13 @@ export function InProgressView({
   currentUserId: string
   canEdit: boolean
   isSponsor?: boolean
+  isConcluded?: boolean
   ritualSlug: string
   activityType: string
   cachedTips: string[] | null
   allRitualEvents?: { id: string; name: string; year: number }[]
+  memberOverrides?: { userId: string; photoOverride: string | null; nicknameOverride: string | null }[]
+  allRitualMembers?: { userId: string; userName: string | null; userImage: string | null }[]
 }) {
   const searchParams = useSearchParams()
   const initialTab = (['lore', 'stats', 'expenses'] as const).includes(
@@ -782,10 +789,10 @@ export function InProgressView({
     <div className="flex flex-col gap-6">
       {/* Event Details */}
       <EventDetailsCard
-        event={{ ...event, status: 'in_progress' }}
+        event={{ ...event, status: isConcluded ? 'concluded' : 'in_progress' }}
         canEdit={canEdit}
         ritualSlug={ritualSlug}
-        carouselProps={{
+        carouselProps={isConcluded ? undefined : {
           activityType,
           attendees: attendees.map((a) => ({ userId: a.userId, bookingStatus: a.bookingStatus })),
           attendeeUsers: attendeeUsers.map((u) => ({ id: u.id, name: u.name })),
@@ -915,13 +922,51 @@ export function InProgressView({
         )}
       </div>
 
+      {/* Crew tiles */}
+      {attendees.length > 0 && (
+        <div className="rounded-xl border border-[var(--border)] border-l-4 border-l-indigo-500 bg-[var(--surface)] p-4 flex flex-col gap-3">
+          <div className="flex items-center gap-2">
+            <Users size={14} className="text-indigo-500" />
+            <p className="text-xs uppercase tracking-widest text-[var(--fg-muted)]">Crew</p>
+          </div>
+          <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+            {attendees.map((a) => {
+              const user = attendeeUsers.find((u) => u.id === a.userId)
+              if (!user) return null
+              const override = memberOverrides?.find((o) => o.userId === a.userId)
+              const photoUrl = override?.photoOverride ?? user.image
+              const displayName = override?.nicknameOverride ?? user.name?.split(' ')[0] ?? 'Unknown'
+              return (
+                <div
+                  key={a.userId}
+                  className="flex flex-col items-center gap-1.5 p-3 rounded-xl border border-[var(--border)] bg-[var(--surface)]"
+                >
+                  {photoUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={photoUrl} alt={displayName} className="w-10 h-10 rounded-full object-cover" />
+                  ) : (
+                    <div className="w-10 h-10 rounded-full bg-[var(--border)]" />
+                  )}
+                  <span className="text-xs font-medium text-[var(--fg)] text-center leading-tight max-w-[72px] truncate">
+                    {displayName}
+                  </span>
+                  {a.isHost && (
+                    <span className="text-[9px] font-bold uppercase tracking-wider text-[var(--accent)] opacity-80">Host</span>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
       {/* Close Out button (sponsor/organizer) */}
       {canEdit && (
         <button
           onClick={() => setShowCloseout(true)}
           className="flex items-center justify-center gap-2 w-full py-4 rounded-xl border border-[var(--border)] text-base font-semibold text-[var(--fg)] hover:bg-[var(--surface)] transition-colors"
         >
-          Close Out
+          {isConcluded ? 'Review & Close Out' : 'Close Out'}
         </button>
       )}
 

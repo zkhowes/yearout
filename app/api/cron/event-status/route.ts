@@ -24,8 +24,21 @@ export async function GET(request: Request) {
     )
     .returning({ id: events.id, name: events.name })
 
+  // Auto-conclude: in_progress → concluded when endDate has passed
+  const concluded = await db
+    .update(events)
+    .set({ status: 'concluded' })
+    .where(
+      and(
+        eq(events.status, 'in_progress'),
+        lte(events.endDate, today)
+      )
+    )
+    .returning({ id: events.id, name: events.name })
+
   return NextResponse.json({
     started: started.length,
-    events: started,
+    concluded: concluded.length,
+    events: { started, concluded },
   })
 }

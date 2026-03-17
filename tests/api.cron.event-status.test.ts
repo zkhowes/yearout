@@ -16,6 +16,7 @@ vi.mock('@/db/schema', () => ({
   events: {
     status: 'status',
     startDate: 'start_date',
+    endDate: 'end_date',
     id: 'id',
     name: 'name',
   },
@@ -63,12 +64,14 @@ describe('GET /api/cron/event-status', () => {
   })
 
   it('returns 200 with started count when token is correct', async () => {
-    mockReturning.mockResolvedValue([{ id: 'e1', name: 'TT 2025' }])
+    mockReturning
+      .mockResolvedValueOnce([{ id: 'e1', name: 'TT 2025' }]) // started
+      .mockResolvedValueOnce([]) // concluded
     const res = await GET(makeReq('test-secret'))
     expect(res.status).toBe(200)
     const data = await res.json()
     expect(data.started).toBe(1)
-    expect(data.events).toHaveLength(1)
+    expect(data.events.started).toHaveLength(1)
   })
 
   it('returns 0 started when no events match', async () => {
@@ -77,7 +80,9 @@ describe('GET /api/cron/event-status', () => {
     expect(res.status).toBe(200)
     const data = await res.json()
     expect(data.started).toBe(0)
-    expect(data.events).toHaveLength(0)
+    expect(data.concluded).toBe(0)
+    expect(data.events.started).toHaveLength(0)
+    expect(data.events.concluded).toHaveLength(0)
   })
 
   it('calls db.update with in_progress status', async () => {

@@ -77,12 +77,14 @@ function ExpensesStep({
   attendees,
   attendeeUsers,
   onNext,
+  stepLabel = 'Step 1 of 3',
 }: {
   expenses: Expense[]
   settlementPayments: SettlementPayment[]
   attendees: Attendee[]
   attendeeUsers: AttendeeUser[]
   onNext: () => void
+  stepLabel?: string
 }) {
   const userMap = new Map(attendeeUsers.map((u) => [u.id, u]))
   const attendeeIds = attendees.map((a) => a.userId)
@@ -106,7 +108,7 @@ function ExpensesStep({
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <p className="text-xs uppercase tracking-widest text-[var(--fg-muted)]">Step 1 of 3</p>
+        <p className="text-xs uppercase tracking-widest text-[var(--fg-muted)]">{stepLabel}</p>
         <h2 className="text-xl font-bold text-[var(--fg)] mt-1">Expenses</h2>
       </div>
 
@@ -181,6 +183,7 @@ function AwardVotingStep({
   isSponsor,
   ritualSlug,
   onNext,
+  stepLabel = 'Step 2 of 3',
 }: {
   event: { id: string; year: number }
   attendees: Attendee[]
@@ -192,6 +195,7 @@ function AwardVotingStep({
   isSponsor: boolean
   ritualSlug: string
   onNext: () => void
+  stepLabel?: string
 }) {
   const userMap = new Map(attendeeUsers.map((u) => [u.id, u]))
   const [votingId, startVote] = useTransition()
@@ -224,7 +228,7 @@ function AwardVotingStep({
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <p className="text-xs uppercase tracking-widest text-[var(--fg-muted)]">Step 2 of 3</p>
+        <p className="text-xs uppercase tracking-widest text-[var(--fg-muted)]">{stepLabel}</p>
         <h2 className="text-xl font-bold text-[var(--fg)] mt-1">Award Voting</h2>
         <p className="text-sm text-[var(--fg-muted)] mt-1">Cast up to 2 votes per award. No self-votes.</p>
       </div>
@@ -331,6 +335,7 @@ function SealStep({
   awardDefs,
   isSponsor,
   ritualSlug,
+  stepLabel = 'Step 3 of 3',
 }: {
   event: { id: string; location: string | null; year: number }
   attendees: Attendee[]
@@ -339,6 +344,7 @@ function SealStep({
   awardDefs: AwardDef[]
   isSponsor: boolean
   ritualSlug: string
+  stepLabel?: string
 }) {
   const [sealing, startSeal] = useTransition()
   const userMap = new Map(attendeeUsers.map((u) => [u.id, u]))
@@ -352,7 +358,7 @@ function SealStep({
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <p className="text-xs uppercase tracking-widest text-[var(--fg-muted)]">Step 3 of 3</p>
+        <p className="text-xs uppercase tracking-widest text-[var(--fg-muted)]">{stepLabel}</p>
         <h2 className="text-xl font-bold text-[var(--fg)] mt-1">Seal this Chapter</h2>
       </div>
 
@@ -441,7 +447,16 @@ export function CloseoutView({
   ritualSlug: string
   onBack: () => void
 }) {
+  // Check if all awards are already finalized — skip Step 2 if so
+  const allAwardsFinalized = awardDefs.every((def) =>
+    currentAwards.some((a) => a.awardDefinitionId === def.id)
+  )
+  const totalSteps = allAwardsFinalized ? 2 : 3
+
   const [step, setStep] = useState<1 | 2 | 3>(1)
+
+  // Map logical step to actual step when awards are skipped
+  const effectiveStep = allAwardsFinalized && step >= 2 ? step + 1 : step
 
   return (
     <div className="fixed inset-0 z-50 bg-[var(--bg)] overflow-y-auto">
@@ -458,16 +473,17 @@ export function CloseoutView({
         </div>
 
         {/* Steps */}
-        {step === 1 && (
+        {effectiveStep === 1 && (
           <ExpensesStep
             expenses={expenseList}
             settlementPayments={settlementPayments}
             attendees={attendees}
             attendeeUsers={attendeeUsers}
             onNext={() => setStep(2)}
+            stepLabel={`Step 1 of ${totalSteps}`}
           />
         )}
-        {step === 2 && (
+        {effectiveStep === 2 && (
           <AwardVotingStep
             event={event}
             attendees={attendees}
@@ -479,9 +495,10 @@ export function CloseoutView({
             isSponsor={isSponsor}
             ritualSlug={ritualSlug}
             onNext={() => setStep(3)}
+            stepLabel={`Step 2 of ${totalSteps}`}
           />
         )}
-        {step === 3 && (
+        {effectiveStep === 3 && (
           <SealStep
             event={event}
             attendees={attendees}
@@ -490,6 +507,7 @@ export function CloseoutView({
             awardDefs={awardDefs}
             isSponsor={isSponsor}
             ritualSlug={ritualSlug}
+            stepLabel={`Step ${totalSteps} of ${totalSteps}`}
           />
         )}
       </div>

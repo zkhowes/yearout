@@ -11,6 +11,7 @@ const stageRows = [
   { stage: 'planning', count: '—', note: 'Awaiting proposals / voting' },
   { stage: 'scheduled', count: '—', note: 'Confirmed, booking in progress' },
   { stage: 'in_progress', count: '—', note: 'Trip is active' },
+  { stage: 'concluded', count: '—', note: 'Trip ended, wrap-up in progress' },
   { stage: 'closed', count: '—', note: 'Sealed and archived' },
 ]
 

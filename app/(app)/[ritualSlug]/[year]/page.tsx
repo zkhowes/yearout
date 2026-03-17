@@ -161,7 +161,7 @@ export default async function EventPage({
       attendeeUsers = userRows
     }
 
-    if (event.status === 'scheduled' || event.status === 'in_progress' || event.status === 'closed') {
+    if (event.status === 'scheduled' || event.status === 'in_progress' || event.status === 'concluded' || event.status === 'closed') {
       const [rawExpenses, rawLore, rawActivity, rawAwardDefs, rawAwards, rawVotes, rawItinerary, rawSettlementPayments, rawBookings] =
         await Promise.all([
           db.select().from(expenses).where(eq(expenses.eventId, event.id)),
@@ -288,6 +288,7 @@ export default async function EventPage({
     planning: <span className="text-xs px-2 py-1 rounded-full bg-yellow-400/20 text-yellow-600 font-medium border border-yellow-400/30">Planning</span>,
     scheduled: <span className="text-xs px-2 py-1 rounded-full bg-green-400/20 text-green-600 font-medium border border-green-400/30">Confirmed</span>,
     in_progress: <span className="text-xs px-2 py-1 rounded-full bg-blue-400/20 text-blue-600 font-medium border border-blue-400/30">Live</span>,
+    concluded: <span className="text-xs px-2 py-1 rounded-full bg-amber-400/20 text-amber-600 font-medium border border-amber-400/30">Concluded</span>,
     closed: <span className="text-xs px-2 py-1 rounded-full bg-[var(--border)] text-[var(--fg-muted)] font-medium">Closed</span>,
   }[event.status]
 
@@ -404,8 +405,8 @@ export default async function EventPage({
         />
       )}
 
-      {/* ── In-progress state ── */}
-      {event.status === 'in_progress' && (
+      {/* ── In-progress / concluded state ── */}
+      {(event.status === 'in_progress' || event.status === 'concluded') && (
         <InProgressView
           event={{
             id: event.id,
@@ -415,6 +416,7 @@ export default async function EventPage({
             startDate: event.startDate,
             endDate: event.endDate,
           }}
+          isConcluded={event.status === 'concluded'}
           activityType={ritual.activityType}
           cachedTips={event.aiTips ? (() => { try { return JSON.parse(event.aiTips) } catch { return null } })() : null}
           attendees={attendeeList}
@@ -434,6 +436,8 @@ export default async function EventPage({
           canEdit={canEdit}
           ritualSlug={ritual.slug}
           allRitualEvents={allRitualEvents}
+          memberOverrides={memberOverrides}
+          allRitualMembers={allRitualMembers}
         />
       )}
 

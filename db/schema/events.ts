@@ -6,6 +6,7 @@ export const eventStatusEnum = pgEnum('event_status', [
   'planning',
   'scheduled',
   'in_progress',
+  'concluded',
   'closed',
 ])
 

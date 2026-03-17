@@ -19,6 +19,7 @@ const STATUS_LABEL: Record<string, string> = {
   planning: 'Planning',
   scheduled: 'Scheduled',
   in_progress: 'In Progress',
+  concluded: 'Concluded',
   closed: 'Closed',
 }
 
@@ -102,6 +103,7 @@ export default async function RitualTourPage({
   // Determine hero block — prioritize live events
   const activeEvent =
     eventList.find((e) => e.status === 'in_progress') ??
+    eventList.find((e) => e.status === 'concluded') ??
     eventList.find((e) => e.status === 'planning' || e.status === 'scheduled')
   const lastClosedEvent = eventList.find((e) => e.status === 'closed')
 
@@ -126,9 +128,17 @@ export default async function RitualTourPage({
           className={`rounded-xl border p-5 flex flex-col gap-3 ${
             activeEvent.status === 'in_progress'
               ? 'border-[var(--accent)] bg-[var(--surface)]'
+              : activeEvent.status === 'concluded'
+              ? 'border-amber-500/50 bg-[var(--surface)]'
               : 'border-[var(--border)] bg-[var(--surface)]'
           }`}
-          style={activeEvent.status === 'in_progress' ? { background: 'color-mix(in srgb, var(--accent) 8%, var(--surface))' } : undefined}
+          style={
+            activeEvent.status === 'in_progress'
+              ? { background: 'color-mix(in srgb, var(--accent) 8%, var(--surface))' }
+              : activeEvent.status === 'concluded'
+              ? { background: 'color-mix(in srgb, #f59e0b 6%, var(--surface))' }
+              : undefined
+          }
         >
           <div className="flex items-center justify-between">
             {activeEvent.status === 'in_progress' ? (
@@ -139,12 +149,20 @@ export default async function RitualTourPage({
                 </span>
                 Live Now
               </span>
+            ) : activeEvent.status === 'concluded' ? (
+              <span className="text-xs uppercase tracking-widest text-amber-600 font-semibold">
+                Recently Wrapped
+              </span>
             ) : (
               <span className="text-xs uppercase tracking-widest text-[var(--fg-muted)]">
                 Next Event
               </span>
             )}
-            <span className="text-xs px-2 py-0.5 rounded-full bg-[var(--accent)] text-[var(--bg)] font-semibold">
+            <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${
+              activeEvent.status === 'concluded'
+                ? 'bg-amber-400/20 text-amber-600'
+                : 'bg-[var(--accent)] text-[var(--bg)]'
+            }`}>
               {STATUS_LABEL[activeEvent.status]}
             </span>
           </div>
@@ -158,7 +176,11 @@ export default async function RitualTourPage({
             href={`/${ritual.slug}/${activeEvent.year}`}
             className="text-sm font-semibold text-[var(--accent)] hover:opacity-80 transition-opacity"
           >
-            {activeEvent.status === 'in_progress' ? 'Join the action →' : 'View event →'}
+            {activeEvent.status === 'in_progress'
+              ? 'Join the action →'
+              : activeEvent.status === 'concluded'
+              ? 'Review & close →'
+              : 'View event →'}
           </Link>
         </div>
       ) : lastClosedEvent ? (
@@ -257,8 +279,8 @@ export default async function RitualTourPage({
         </Link>
       )}
 
-      {/* FAB — only during a live event */}
-      {activeEvent?.status === 'in_progress' && (
+      {/* FAB — during live or concluded events */}
+      {(activeEvent?.status === 'in_progress' || activeEvent?.status === 'concluded') && (
         <QuickAddNav href={`/${ritual.slug}/${activeEvent.year}`} />
       )}
     </div>

@@ -252,7 +252,7 @@ function QuickEnterForm({
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
   const [hostIds, setHostIds] = useState<string[]>([currentUserId])
-  const [status, setStatus] = useState<'scheduled' | 'in_progress' | 'closed'>('scheduled')
+  const [status, setStatus] = useState<'scheduled' | 'in_progress' | 'concluded' | 'closed'>('scheduled')
   const [mvpWinnerId, setMvpWinnerId] = useState('')
   const [lupWinnerId, setLupWinnerId] = useState('')
   const [name, setName] = useState(`${ritualName} ${THIS_YEAR}`)
@@ -393,7 +393,7 @@ function QuickEnterForm({
       <div className="flex flex-col gap-3">
         <label className="text-xs uppercase tracking-widest text-[var(--fg-muted)]">Status</label>
         <div className="flex gap-2">
-          {(['scheduled', 'in_progress', 'closed'] as const).map((s) => (
+          {(['scheduled', 'in_progress', 'concluded', 'closed'] as const).map((s) => (
             <button
               key={s}
               type="button"

@@ -212,7 +212,7 @@ export async function quickEnterEvent(
     startDate?: Date
     endDate?: Date
     hostIds: string[]
-    status: 'scheduled' | 'in_progress' | 'closed'
+    status: 'scheduled' | 'in_progress' | 'concluded' | 'closed'
     mvpWinnerId?: string
     lupWinnerId?: string
   }
@@ -424,7 +424,7 @@ export async function updateFlightDetailsForUser(
 
 export async function advanceEventStatus(
   eventId: string,
-  newStatus: 'in_progress' | 'closed',
+  newStatus: 'in_progress' | 'concluded' | 'closed',
   ritualSlug: string,
   year: number
 ) {
