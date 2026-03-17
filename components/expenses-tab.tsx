@@ -384,10 +384,8 @@ function getCrewStatus(
   settlements: { from: string; to: string; amountCents: number }[],
   settlementPayments: SettlementPayment[]
 ): CrewMemberStatus {
-  // Check if user has any expenses (paid or is in splits)
-  const hasExpenses = expenses.some(
-    (e) => e.paidBy === userId || e.splits.some((s) => s.userId === userId)
-  )
+  // Check if user has paid for any expense
+  const hasExpenses = expenses.some((e) => e.paidBy === userId)
   if (!hasExpenses) return 'none'
 
   // Check if settled: balance is 0, OR all their settlements are confirmed
@@ -561,228 +559,266 @@ function BalanceBarChart({
   )
 }
 
-// ─── Settlement Section ──────────────────────────────────────────────────────
+// ─── You Card (personal balance) ─────────────────────────────────────────────
 
-function SettlementSection({
-  expenses,
+function YouCard({
+  myBalance,
+  settlements,
   settlementPayments,
-  attendees,
-  attendeeUsers,
   currentUserId,
   canEdit,
-  ritualSlug,
-  event,
+  pending,
+  actionId,
+  handleMarkPaid,
+  handleConfirm,
+  getName,
 }: {
-  expenses: Expense[]
+  myBalance: number
+  settlements: { from: string; to: string; amountCents: number }[]
   settlementPayments: SettlementPayment[]
-  attendees: Attendee[]
-  attendeeUsers: AttendeeUser[]
   currentUserId: string
   canEdit: boolean
-  ritualSlug: string
-  event: Event
+  pending: boolean
+  actionId: string | null
+  handleMarkPaid: (toUserId: string, amountCents: number) => void
+  handleConfirm: (paymentId: string) => void
+  getName: (uid: string) => string
 }) {
-  const [pending, startTransition] = useTransition()
-  const [actionId, setActionId] = useState<string | null>(null)
-  const userMap = new Map(attendeeUsers.map((u) => [u.id, u]))
+  return (
+    <div className="p-4 rounded-xl border border-[var(--border)] bg-[var(--surface)]">
+      <p className={`text-lg font-bold ${myBalance >= 0 ? 'text-green-600' : 'text-red-500'}`}>
+        {myBalance >= 0
+          ? `You are owed $${(myBalance / 100).toFixed(2)}`
+          : `You owe $${(Math.abs(myBalance) / 100).toFixed(2)}`}
+      </p>
+      {settlements
+        .filter((s) => s.from === currentUserId || s.to === currentUserId)
+        .map((s, i) => {
+          const payment = settlementPayments.find(
+            (p) => p.fromUserId === s.from && p.toUserId === s.to
+          )
+          const isDebtor = s.from === currentUserId
+          const isCreditor = s.to === currentUserId
 
-  // Convert to ExpenseInput/PaymentInput for the utils
-  const expenseInputs: ExpenseInput[] = expenses.map((e) => ({
-    id: e.id,
-    paidBy: e.paidBy,
-    amount: e.amount,
-    splits: e.splits,
-  }))
+          return (
+            <div key={i} className="flex items-center justify-between mt-2 gap-2">
+              <p className="text-sm text-[var(--fg-muted)]">
+                {isDebtor
+                  ? `Venmo @${getName(s.to)} $${(s.amountCents / 100).toFixed(2)}`
+                  : `Collect $${(s.amountCents / 100).toFixed(2)} from @${getName(s.from)}`}
+              </p>
+              <div className="shrink-0">
+                {payment?.status === 'confirmed' ? (
+                  <span className="flex items-center gap-1 text-xs text-green-600 font-medium">
+                    <Check size={14} /> Done
+                  </span>
+                ) : payment?.status === 'paid' ? (
+                  isCreditor || canEdit ? (
+                    <button
+                      onClick={() => handleConfirm(payment.id)}
+                      disabled={pending && actionId === `confirm-${payment.id}`}
+                      className="px-3 py-1.5 rounded-lg text-xs bg-green-500/20 text-green-600 font-semibold hover:bg-green-500/30 transition-colors disabled:opacity-50"
+                    >
+                      {pending && actionId === `confirm-${payment.id}` ? (
+                        <Loader2 size={10} className="animate-spin" />
+                      ) : (
+                        'Confirm Receipt'
+                      )}
+                    </button>
+                  ) : (
+                    <span className="text-xs text-amber-600 font-medium">Pending confirm</span>
+                  )
+                ) : isDebtor ? (
+                  <button
+                    onClick={() => handleMarkPaid(s.to, s.amountCents)}
+                    disabled={pending && actionId === `pay-${s.to}`}
+                    className="px-3 py-1.5 rounded-lg text-xs bg-[var(--accent)] text-[var(--accent-fg)] font-semibold hover:opacity-80 transition-colors disabled:opacity-50"
+                  >
+                    {pending && actionId === `pay-${s.to}` ? (
+                      <Loader2 size={10} className="animate-spin" />
+                    ) : (
+                      'Mark Paid'
+                    )}
+                  </button>
+                ) : null}
+              </div>
+            </div>
+          )
+        })}
+    </div>
+  )
+}
 
-  const paymentInputs: PaymentInput[] = settlementPayments.map((p) => ({
-    id: p.id,
-    fromUserId: p.fromUserId,
-    toUserId: p.toUserId,
-    amount: p.amount,
-    status: p.status as 'pending' | 'paid' | 'confirmed',
-  }))
+// ─── Settlements Table ───────────────────────────────────────────────────────
 
-  const participantIds = attendees.filter((a) => a.bookingStatus !== 'out').map((a) => a.userId)
-
-  // Current user's balance
-  const balances = computeBalances(expenseInputs, paymentInputs, participantIds)
-  const myBalance = balances.get(currentUserId) ?? 0
-
-  // Minimum transactions
-  const settlements = computeSettlements(expenseInputs, paymentInputs, participantIds)
-
-  function handleMarkPaid(toUserId: string, amountCents: number) {
-    setActionId(`pay-${toUserId}`)
-    startTransition(async () => {
-      await markSettlementPaid(event.id, ritualSlug, event.year, toUserId, amountCents)
-      setActionId(null)
-    })
-  }
-
-  function handleConfirm(paymentId: string) {
-    setActionId(`confirm-${paymentId}`)
-    startTransition(async () => {
-      await confirmSettlementPayment(paymentId, ritualSlug, event.year)
-      setActionId(null)
-    })
-  }
-
-  function handleReset(paymentId: string) {
-    setActionId(`reset-${paymentId}`)
-    startTransition(async () => {
-      await resetSettlementPayment(paymentId, ritualSlug, event.year)
-      setActionId(null)
-    })
-  }
-
-  const getName = (uid: string) => userMap.get(uid)?.name?.split(' ')[0] ?? 'Unknown'
+function SettlementsTable({
+  settlements,
+  settlementPayments,
+  currentUserId,
+  canEdit,
+  pending,
+  actionId,
+  handleMarkPaid,
+  handleConfirm,
+  handleReset,
+  getName,
+}: {
+  settlements: { from: string; to: string; amountCents: number }[]
+  settlementPayments: SettlementPayment[]
+  currentUserId: string
+  canEdit: boolean
+  pending: boolean
+  actionId: string | null
+  handleMarkPaid: (toUserId: string, amountCents: number) => void
+  handleConfirm: (paymentId: string) => void
+  handleReset: (paymentId: string) => void
+  getName: (uid: string) => string
+}) {
+  if (settlements.length === 0) return null
 
   return (
-    <div className="flex flex-col gap-4">
-      {/* Personal balance summary */}
-      <div className="p-4 rounded-xl border border-[var(--border)] bg-[var(--surface)]">
-        <p className={`text-lg font-bold ${myBalance >= 0 ? 'text-green-600' : 'text-red-500'}`}>
-          {myBalance >= 0
-            ? `You are owed $${(myBalance / 100).toFixed(2)}`
-            : `You owe $${(Math.abs(myBalance) / 100).toFixed(2)}`}
-        </p>
-        {/* Personalized actions with inline Mark Paid */}
-        {settlements
-          .filter((s) => s.from === currentUserId || s.to === currentUserId)
-          .map((s, i) => {
-            const payment = settlementPayments.find(
-              (p) => p.fromUserId === s.from && p.toUserId === s.to
-            )
-            const isDebtor = s.from === currentUserId
-            const isCreditor = s.to === currentUserId
+    <div className="flex flex-col gap-2">
+      <p className="text-xs uppercase tracking-widest text-[var(--fg-muted)]">Settlements</p>
+      {settlements.map((s, i) => {
+        const payment = settlementPayments.find(
+          (p) => p.fromUserId === s.from && p.toUserId === s.to
+        )
+        const isDebtor = s.from === currentUserId
+        const isCreditor = s.to === currentUserId
 
-            return (
-              <div key={i} className="flex items-center justify-between mt-2 gap-2">
-                <p className="text-sm text-[var(--fg-muted)]">
-                  {isDebtor
-                    ? `Venmo @${getName(s.to)} $${(s.amountCents / 100).toFixed(2)}`
-                    : `Collect $${(s.amountCents / 100).toFixed(2)} from @${getName(s.from)}`}
-                </p>
-                <div className="shrink-0">
-                  {payment?.status === 'confirmed' ? (
-                    <span className="flex items-center gap-1 text-xs text-green-600 font-medium">
-                      <Check size={14} /> Done
-                    </span>
-                  ) : payment?.status === 'paid' ? (
-                    isCreditor || canEdit ? (
-                      <button
-                        onClick={() => handleConfirm(payment.id)}
-                        disabled={pending && actionId === `confirm-${payment.id}`}
-                        className="px-3 py-1.5 rounded-lg text-xs bg-green-500/20 text-green-600 font-semibold hover:bg-green-500/30 transition-colors disabled:opacity-50"
-                      >
-                        {pending && actionId === `confirm-${payment.id}` ? (
-                          <Loader2 size={10} className="animate-spin" />
-                        ) : (
-                          'Confirm Receipt'
-                        )}
-                      </button>
-                    ) : (
-                      <span className="text-xs text-amber-600 font-medium">Pending confirm</span>
-                    )
-                  ) : isDebtor ? (
+        return (
+          <div key={i} className="flex items-center justify-between py-3 border-b border-[var(--border)]">
+            <div className="flex-1">
+              <p className="text-sm text-[var(--fg)]">
+                <span className="font-medium">{getName(s.from)}</span>
+                {' owes '}
+                <span className="font-medium">{getName(s.to)}</span>
+                {' '}
+                <span className="font-semibold">${(s.amountCents / 100).toFixed(2)}</span>
+              </p>
+            </div>
+            <div className="flex items-center gap-1.5 shrink-0">
+              {payment?.status === 'confirmed' && (
+                <span className="flex items-center gap-1 text-xs text-green-600 font-medium">
+                  <Check size={14} /> Confirmed
+                </span>
+              )}
+              {payment?.status === 'paid' && (
+                <>
+                  <span className="text-xs text-amber-600 font-medium">Paid</span>
+                  {(isCreditor || canEdit) && (
                     <button
-                      onClick={() => handleMarkPaid(s.to, s.amountCents)}
-                      disabled={pending && actionId === `pay-${s.to}`}
-                      className="px-3 py-1.5 rounded-lg text-xs bg-[var(--accent)] text-[var(--accent-fg)] font-semibold hover:opacity-80 transition-colors disabled:opacity-50"
+                      onClick={() => handleConfirm(payment.id)}
+                      disabled={pending && actionId === `confirm-${payment.id}`}
+                      className="px-2 py-1 rounded text-xs bg-green-500/20 text-green-600 font-medium hover:bg-green-500/30 transition-colors disabled:opacity-50"
                     >
-                      {pending && actionId === `pay-${s.to}` ? (
+                      {pending && actionId === `confirm-${payment.id}` ? (
                         <Loader2 size={10} className="animate-spin" />
                       ) : (
-                        'Mark Paid'
+                        'Confirm'
                       )}
                     </button>
-                  ) : null}
+                  )}
+                </>
+              )}
+              {(!payment || payment.status === 'pending') && isDebtor && (
+                <button
+                  onClick={() => handleMarkPaid(s.to, s.amountCents)}
+                  disabled={pending && actionId === `pay-${s.to}`}
+                  className="px-2 py-1 rounded text-xs bg-[var(--accent)] text-[var(--accent-fg)] font-medium hover:opacity-80 transition-colors disabled:opacity-50"
+                >
+                  {pending && actionId === `pay-${s.to}` ? (
+                    <Loader2 size={10} className="animate-spin" />
+                  ) : (
+                    'Mark Paid'
+                  )}
+                </button>
+              )}
+              {canEdit && payment && payment.status !== 'pending' && (
+                <button
+                  onClick={() => handleReset(payment.id)}
+                  disabled={pending && actionId === `reset-${payment.id}`}
+                  title="Reset"
+                  className="p-2 text-[var(--fg-muted)] hover:text-red-400 transition-colors disabled:opacity-50"
+                >
+                  {pending && actionId === `reset-${payment.id}` ? (
+                    <Loader2 size={10} className="animate-spin" />
+                  ) : (
+                    <RotateCcw size={16} />
+                  )}
+                </button>
+              )}
+            </div>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+// ─── Category Breakdown Chart ────────────────────────────────────────────────
+
+function CategoryBreakdownChart({
+  categoryData,
+}: {
+  categoryData: { label: string; amountCents: number; pct: number }[]
+}) {
+  if (categoryData.length === 0) return null
+
+  const maxAmount = Math.max(...categoryData.map((c) => c.amountCents))
+
+  return (
+    <div className="flex flex-col gap-2">
+      <p className="text-xs uppercase tracking-widest text-[var(--fg-muted)]">By Category</p>
+      <div className="flex flex-col gap-1.5">
+        {categoryData.map((cat) => {
+          const pct = maxAmount > 0 ? (cat.amountCents / maxAmount) * 100 : 0
+          return (
+            <div key={cat.label} className="flex items-center gap-2">
+              <span className="text-xs text-[var(--fg-muted)] w-16 shrink-0 truncate">{cat.label}</span>
+              <div className="flex-1 h-6 relative bg-[var(--surface)] rounded overflow-hidden">
+                <div
+                  className="absolute top-0 left-0 h-full rounded bg-[var(--accent)]/30 transition-all"
+                  style={{ width: `${Math.max(pct, 4)}%` }}
+                />
+                <div className="absolute inset-0 flex items-center px-2">
+                  <span className="text-xs font-medium text-[var(--fg)]">
+                    ${(cat.amountCents / 100).toFixed(2)}
+                  </span>
+                  <span className="text-[10px] text-[var(--fg-muted)] ml-auto">
+                    {cat.pct.toFixed(0)}%
+                  </span>
                 </div>
               </div>
-            )
-          })}
+            </div>
+          )
+        })}
       </div>
+    </div>
+  )
+}
 
-      {/* All settlements */}
-      {settlements.length > 0 && (
-        <div className="flex flex-col gap-2">
-          <p className="text-xs uppercase tracking-widest text-[var(--fg-muted)]">Settlements</p>
-          {settlements.map((s, i) => {
-            // Find matching payment record
-            const payment = settlementPayments.find(
-              (p) => p.fromUserId === s.from && p.toUserId === s.to
-            )
-            const isDebtor = s.from === currentUserId
-            const isCreditor = s.to === currentUserId
+// ─── Category Table ──────────────────────────────────────────────────────────
 
-            return (
-              <div key={i} className="flex items-center justify-between py-3 border-b border-[var(--border)]">
-                <div className="flex-1">
-                  <p className="text-sm text-[var(--fg)]">
-                    <span className="font-medium">{getName(s.from)}</span>
-                    {' owes '}
-                    <span className="font-medium">{getName(s.to)}</span>
-                    {' '}
-                    <span className="font-semibold">${(s.amountCents / 100).toFixed(2)}</span>
-                  </p>
-                </div>
-                <div className="flex items-center gap-1.5 shrink-0">
-                  {payment?.status === 'confirmed' && (
-                    <span className="flex items-center gap-1 text-xs text-green-600 font-medium">
-                      <Check size={14} /> Confirmed
-                    </span>
-                  )}
-                  {payment?.status === 'paid' && (
-                    <>
-                      <span className="text-xs text-amber-600 font-medium">Paid</span>
-                      {(isCreditor || canEdit) && (
-                        <button
-                          onClick={() => handleConfirm(payment.id)}
-                          disabled={pending && actionId === `confirm-${payment.id}`}
-                          className="px-2 py-1 rounded text-xs bg-green-500/20 text-green-600 font-medium hover:bg-green-500/30 transition-colors disabled:opacity-50"
-                        >
-                          {pending && actionId === `confirm-${payment.id}` ? (
-                            <Loader2 size={10} className="animate-spin" />
-                          ) : (
-                            'Confirm'
-                          )}
-                        </button>
-                      )}
-                    </>
-                  )}
-                  {(!payment || payment.status === 'pending') && isDebtor && (
-                    <button
-                      onClick={() => handleMarkPaid(s.to, s.amountCents)}
-                      disabled={pending && actionId === `pay-${s.to}`}
-                      className="px-2 py-1 rounded text-xs bg-[var(--accent)] text-[var(--accent-fg)] font-medium hover:opacity-80 transition-colors disabled:opacity-50"
-                    >
-                      {pending && actionId === `pay-${s.to}` ? (
-                        <Loader2 size={10} className="animate-spin" />
-                      ) : (
-                        'Mark Paid'
-                      )}
-                    </button>
-                  )}
-                  {canEdit && payment && payment.status !== 'pending' && (
-                    <button
-                      onClick={() => handleReset(payment.id)}
-                      disabled={pending && actionId === `reset-${payment.id}`}
-                      title="Reset"
-                      className="p-2 text-[var(--fg-muted)] hover:text-red-400 transition-colors disabled:opacity-50"
-                    >
-                      {pending && actionId === `reset-${payment.id}` ? (
-                        <Loader2 size={10} className="animate-spin" />
-                      ) : (
-                        <RotateCcw size={16} />
-                      )}
-                    </button>
-                  )}
-                </div>
-              </div>
-            )
-          })}
+function CategoryTable({
+  categoryData,
+}: {
+  categoryData: { label: string; amountCents: number; pct: number }[]
+}) {
+  if (categoryData.length === 0) return null
+
+  return (
+    <div className="flex flex-col gap-1">
+      <p className="text-xs uppercase tracking-widest text-[var(--fg-muted)]">Category Breakdown</p>
+      {categoryData.map((cat) => (
+        <div key={cat.label} className="flex items-center justify-between py-1.5 border-b border-[var(--border)]">
+          <span className="text-sm text-[var(--fg)]">{cat.label}</span>
+          <div className="flex items-center gap-3">
+            <span className="text-xs text-[var(--fg-muted)]">{cat.pct.toFixed(0)}%</span>
+            <span className="text-sm font-medium text-[var(--fg)]">${(cat.amountCents / 100).toFixed(2)}</span>
+          </div>
         </div>
-      )}
+      ))}
     </div>
   )
 }
@@ -818,7 +854,7 @@ export function ExpensesTab({
 
   const totalCents = expenseList.reduce((s, e) => s + e.amount, 0)
 
-  // Compute balances and settlements for status strip and bar chart
+  // Compute balances and settlements (shared across components)
   const expenseInputs: ExpenseInput[] = expenseList.map((e) => ({
     id: e.id,
     paidBy: e.paidBy,
@@ -834,6 +870,54 @@ export function ExpensesTab({
   }))
   const balances = computeBalances(expenseInputs, paymentInputs, attendeeIds)
   const settlements = computeSettlements(expenseInputs, paymentInputs, attendeeIds)
+  const myBalance = balances.get(currentUserId) ?? 0
+
+  // Lifted settlement action state
+  const [settlePending, startSettle] = useTransition()
+  const [actionId, setActionId] = useState<string | null>(null)
+
+  function handleMarkPaid(toUserId: string, amountCents: number) {
+    setActionId(`pay-${toUserId}`)
+    startSettle(async () => {
+      await markSettlementPaid(event.id, ritualSlug, event.year, toUserId, amountCents)
+      setActionId(null)
+    })
+  }
+
+  function handleConfirm(paymentId: string) {
+    setActionId(`confirm-${paymentId}`)
+    startSettle(async () => {
+      await confirmSettlementPayment(paymentId, ritualSlug, event.year)
+      setActionId(null)
+    })
+  }
+
+  function handleReset(paymentId: string) {
+    setActionId(`reset-${paymentId}`)
+    startSettle(async () => {
+      await resetSettlementPayment(paymentId, ritualSlug, event.year)
+      setActionId(null)
+    })
+  }
+
+  const getName = (uid: string) => userMap.get(uid)?.name?.split(' ')[0] ?? 'Unknown'
+
+  // Category aggregation (shared by chart + table)
+  const categoryData = (() => {
+    if (expenseList.length === 0) return []
+    const totals = new Map<string, number>()
+    for (const e of expenseList) {
+      const key = e.category ?? 'other'
+      totals.set(key, (totals.get(key) ?? 0) + e.amount)
+    }
+    return Array.from(totals.entries())
+      .map(([key, amountCents]) => ({
+        label: CATEGORIES.find((c) => c.value === key)?.label ?? 'Other',
+        amountCents,
+        pct: totalCents > 0 ? (amountCents / totalCents) * 100 : 0,
+      }))
+      .sort((a, b) => b.amountCents - a.amountCents)
+  })()
 
   function handleDelete(expenseId: string) {
     setDeletingId(expenseId)
@@ -858,40 +942,7 @@ export function ExpensesTab({
 
   return (
     <div className="flex flex-col gap-4">
-      {/* Crew status strip */}
-      <CrewStatusStrip
-        attendees={attendees}
-        attendeeUsers={attendeeUsers}
-        expenses={expenseList}
-        balances={balances}
-        settlements={settlements}
-        settlementPayments={settlementPayments}
-      />
-
-      {/* Balance bar chart */}
-      {expenseList.length > 0 && (
-        <BalanceBarChart
-          balances={balances}
-          attendeeUsers={attendeeUsers}
-          expenses={expenseList}
-        />
-      )}
-
-      {/* Balance summary + settlements */}
-      {expenseList.length > 0 && (
-        <SettlementSection
-          expenses={expenseList}
-          settlementPayments={settlementPayments}
-          attendees={attendees}
-          attendeeUsers={attendeeUsers}
-          currentUserId={currentUserId}
-          canEdit={canEdit}
-          ritualSlug={ritualSlug}
-          event={event}
-        />
-      )}
-
-      {/* Add/Edit form */}
+      {/* 1. Add/Edit form */}
       {(showForm || editingExpense) ? (
         <ExpenseForm
           event={event}
@@ -913,7 +964,78 @@ export function ExpensesTab({
         </button>
       )}
 
-      {/* Expense list */}
+      {/* 2. Crew status + You card (side by side) */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="flex flex-col gap-2">
+          <CrewStatusStrip
+            attendees={attendees}
+            attendeeUsers={attendeeUsers}
+            expenses={expenseList}
+            balances={balances}
+            settlements={settlements}
+            settlementPayments={settlementPayments}
+          />
+          {/* Legend */}
+          <div className="flex items-center gap-3 text-[10px] text-[var(--fg-muted)]">
+            <span className="flex items-center gap-1">
+              <Circle size={12} className="opacity-40" /> Not started
+            </span>
+            <span className="flex items-center gap-1">
+              <DollarSign size={12} className="text-[var(--accent)]" /> Active
+            </span>
+            <span className="flex items-center gap-1">
+              <CircleCheck size={12} className="text-green-500" /> Settled
+            </span>
+          </div>
+        </div>
+        {expenseList.length > 0 && (
+          <YouCard
+            myBalance={myBalance}
+            settlements={settlements}
+            settlementPayments={settlementPayments}
+            currentUserId={currentUserId}
+            canEdit={canEdit}
+            pending={settlePending}
+            actionId={actionId}
+            handleMarkPaid={handleMarkPaid}
+            handleConfirm={handleConfirm}
+            getName={getName}
+          />
+        )}
+      </div>
+
+      {/* 3. Balances bar chart */}
+      {expenseList.length > 0 && (
+        <BalanceBarChart
+          balances={balances}
+          attendeeUsers={attendeeUsers}
+          expenses={expenseList}
+        />
+      )}
+
+      {/* 4. Settlements table */}
+      {expenseList.length > 0 && (
+        <SettlementsTable
+          settlements={settlements}
+          settlementPayments={settlementPayments}
+          currentUserId={currentUserId}
+          canEdit={canEdit}
+          pending={settlePending}
+          actionId={actionId}
+          handleMarkPaid={handleMarkPaid}
+          handleConfirm={handleConfirm}
+          handleReset={handleReset}
+          getName={getName}
+        />
+      )}
+
+      {/* 5. Category breakdown chart */}
+      <CategoryBreakdownChart categoryData={categoryData} />
+
+      {/* 6. Category breakdown table */}
+      <CategoryTable categoryData={categoryData} />
+
+      {/* 7. Expense list + totals */}
       {expenseList.length === 0 ? (
         <p className="text-sm text-[var(--fg-muted)] text-center py-4">No expenses yet.</p>
       ) : (
