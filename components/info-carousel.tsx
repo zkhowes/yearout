@@ -13,6 +13,10 @@ import {
   Wind,
   Calendar,
   Flame,
+  Trophy,
+  DollarSign,
+  BarChart3,
+  PartyPopper,
 } from 'lucide-react'
 import type { WeatherData } from '@/app/api/event/weather/route'
 
@@ -34,6 +38,12 @@ type InfoCarouselProps = {
   cachedTips: string[] | null
   ritualSlug: string
   todayItinerary?: { themeName: string | null; notes: string | null }[] | null
+  // Concluded-state data
+  awardWinners?: { awardName: string; winnerName: string }[]
+  expenseStats?: { total: number; unsettledCount: number; currency: string }
+  loreHighlights?: { hofCount: number; totalCount: number }
+  activityHighlights?: { metric: string; bestValue: string; bestUser: string; unit: string | null }[]
+  crewCount?: number
 }
 
 type CarouselCard = {
@@ -73,6 +83,16 @@ const HYPE_QUOTES: Record<string, string[]> = {
   ],
 }
 
+const WRAP_QUOTES: string[] = [
+  'Another one for the books.',
+  'Legends never die — they just plan the next trip.',
+  'The trip is over. The stories are forever.',
+  'You showed up. That\'s what matters.',
+  'Same crew, same chaos, same tradition.',
+  'Start planning next year.',
+  'The best trips end with "we have to do that again."',
+]
+
 export function InfoCarousel({
   event,
   activityType,
@@ -80,6 +100,11 @@ export function InfoCarousel({
   attendeeUsers,
   cachedTips,
   todayItinerary,
+  awardWinners,
+  expenseStats,
+  loreHighlights,
+  activityHighlights,
+  crewCount,
 }: InfoCarouselProps) {
   const [current, setCurrent] = useState(0)
   const [weather, setWeather] = useState<WeatherData | null>(null)
@@ -87,9 +112,11 @@ export function InfoCarousel({
   const [tipsLoading, setTipsLoading] = useState(false)
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
-  // Fetch weather
+  const isConcluded = event.status === 'concluded'
+
+  // Fetch weather (skip for concluded — trip is over)
   useEffect(() => {
-    if (!event.location || !event.startDate) return
+    if (isConcluded || !event.location || !event.startDate) return
     const params = new URLSearchParams({
       location: event.location,
       startDate: new Date(event.startDate).toISOString(),
@@ -100,11 +127,11 @@ export function InfoCarousel({
       .then((r) => r.json())
       .then((data) => setWeather(data))
       .catch(() => setWeather({ available: false }))
-  }, [event.location, event.startDate, event.endDate, activityType])
+  }, [isConcluded, event.location, event.startDate, event.endDate, activityType])
 
-  // Fetch tips if not cached
+  // Fetch tips if not cached (skip for concluded)
   useEffect(() => {
-    if (tips || tipsLoading || !event.location) return
+    if (isConcluded || tips || tipsLoading || !event.location) return
     setTipsLoading(true)
     fetch('/api/event/tips', {
       method: 'POST',
@@ -121,7 +148,7 @@ export function InfoCarousel({
       .then((data) => setTips(data.tips?.length > 0 ? data.tips : null))
       .catch(() => setTips(null))
       .finally(() => setTipsLoading(false))
-  }, [event.id, event.location, event.mountains, event.startDate, activityType, tips, tipsLoading])
+  }, [isConcluded, event.id, event.location, event.mountains, event.startDate, activityType, tips, tipsLoading])
 
   // Build cards
   const cards: CarouselCard[] = []
@@ -330,6 +357,110 @@ export function InfoCarousel({
       content: (
         <div className="flex flex-col gap-1">
           <p className="text-sm font-medium text-[var(--fg)] italic leading-relaxed">&ldquo;{quote}&rdquo;</p>
+        </div>
+      ),
+    })
+  }
+
+  // 6. Concluded-state cards
+  if (event.status === 'concluded') {
+    // Award winners
+    if (awardWinners && awardWinners.length > 0) {
+      cards.push({
+        id: 'awards-recap',
+        icon: <Trophy size={14} />,
+        label: 'AWARDS',
+        gradient: 'from-amber-500/15 to-yellow-500/5',
+        content: (
+          <div className="flex flex-col gap-1.5">
+            {awardWinners.slice(0, 3).map((aw) => (
+              <div key={aw.awardName} className="flex items-center gap-2">
+                <span className="text-sm font-bold text-[var(--fg)]">{aw.winnerName}</span>
+                <span className="text-xs text-[var(--fg-muted)]">{aw.awardName}</span>
+              </div>
+            ))}
+          </div>
+        ),
+      })
+    }
+
+    // Activity highlights
+    if (activityHighlights && activityHighlights.length > 0) {
+      cards.push({
+        id: 'stats-recap',
+        icon: <BarChart3 size={14} />,
+        label: 'HIGHLIGHTS',
+        gradient: 'from-blue-500/15 to-indigo-500/5',
+        content: (
+          <div className="flex flex-col gap-1.5">
+            {activityHighlights.slice(0, 3).map((h) => (
+              <div key={h.metric} className="flex items-center gap-2">
+                <span className="text-sm font-bold text-[var(--fg)]">{h.bestValue}{h.unit ? ` ${h.unit}` : ''}</span>
+                <span className="text-xs text-[var(--fg-muted)]">{h.bestUser} — {h.metric}</span>
+              </div>
+            ))}
+          </div>
+        ),
+      })
+    }
+
+    // Expense nudge
+    if (expenseStats && expenseStats.unsettledCount > 0) {
+      cards.push({
+        id: 'expenses-nudge',
+        icon: <DollarSign size={14} />,
+        label: 'SETTLE UP',
+        gradient: 'from-green-500/15 to-emerald-500/5',
+        content: (
+          <div className="flex flex-col gap-1">
+            <p className="text-lg font-bold text-[var(--fg)]">
+              {expenseStats.unsettledCount} unsettled
+            </p>
+            <p className="text-xs text-[var(--fg-muted)]">
+              Time to square up. Don&apos;t be that person.
+            </p>
+          </div>
+        ),
+      })
+    }
+
+    // Lore stats
+    if (loreHighlights && loreHighlights.totalCount > 0) {
+      cards.push({
+        id: 'lore-recap',
+        icon: <Calendar size={14} />,
+        label: 'LORE',
+        gradient: 'from-purple-500/15 to-pink-500/5',
+        content: (
+          <div className="flex flex-col gap-1">
+            <p className="text-lg font-bold text-[var(--fg)]">
+              {loreHighlights.totalCount} {loreHighlights.totalCount === 1 ? 'entry' : 'entries'}
+            </p>
+            <p className="text-xs text-[var(--fg-muted)]">
+              {loreHighlights.hofCount > 0
+                ? `${loreHighlights.hofCount} Hall of Fame moment${loreHighlights.hofCount !== 1 ? 's' : ''}.`
+                : 'Add your best moments to the Hall of Fame.'}
+            </p>
+          </div>
+        ),
+      })
+    }
+
+    // Wrap-up celebration quote
+    const quoteIdx = (event.year + (crewCount ?? 0)) % WRAP_QUOTES.length
+    cards.push({
+      id: 'wrap-quote',
+      icon: <PartyPopper size={14} />,
+      label: `${event.year} WRAP`,
+      gradient: 'from-rose-500/15 to-orange-500/5',
+      content: (
+        <div className="flex flex-col gap-1">
+          <p className="text-sm font-medium text-[var(--fg)] italic leading-relaxed">
+            &ldquo;{WRAP_QUOTES[quoteIdx]}&rdquo;
+          </p>
+          {crewCount && (
+            <p className="text-xs text-[var(--fg-muted)]">{crewCount} crew made it happen.</p>
+          )}
         </div>
       ),
     })

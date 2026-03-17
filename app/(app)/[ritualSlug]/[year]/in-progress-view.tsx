@@ -792,14 +792,44 @@ export function InProgressView({
         event={{ ...event, status: isConcluded ? 'concluded' : 'in_progress' }}
         canEdit={canEdit}
         ritualSlug={ritualSlug}
-        carouselProps={isConcluded ? undefined : {
+        carouselProps={{
           activityType,
           attendees: attendees.map((a) => ({ userId: a.userId, bookingStatus: a.bookingStatus })),
           attendeeUsers: attendeeUsers.map((u) => ({ id: u.id, name: u.name })),
           loreCount: loreList.length,
           itineraryCount: itineraryList.length,
           cachedTips,
-          todayItinerary: todayItinerary.length > 0 ? todayItinerary : null,
+          todayItinerary: !isConcluded && todayItinerary.length > 0 ? todayItinerary : null,
+          ...(isConcluded && {
+            awardWinners: currentAwards.map((a) => {
+              const def = awardDefs.find((d) => d.id === a.awardDefinitionId)
+              const user = attendeeUsers.find((u) => u.id === a.winnerId)
+              return { awardName: def?.label ?? def?.name ?? 'Award', winnerName: user?.name?.split(' ')[0] ?? 'Unknown' }
+            }),
+            expenseStats: (() => {
+              const total = expenseList.reduce((s, e) => s + e.amount, 0)
+              const unsettledCount = settlementPayments.filter((p) => p.status !== 'confirmed').length
+              return { total, unsettledCount, currency: expenseList[0]?.currency ?? 'USD' }
+            })(),
+            loreHighlights: {
+              hofCount: loreList.filter((l) => l.isHallOfFame).length,
+              totalCount: loreList.length,
+            },
+            activityHighlights: (() => {
+              const byMetric = new Map<string, typeof activityList>()
+              activityList.forEach((a) => {
+                const list = byMetric.get(a.metric) ?? []
+                list.push(a)
+                byMetric.set(a.metric, list)
+              })
+              return Array.from(byMetric.entries()).slice(0, 3).map(([metric, entries]) => {
+                const best = entries.reduce((b, e) => parseFloat(e.value) > parseFloat(b.value) ? e : b)
+                const user = attendeeUsers.find((u) => u.id === best.userId)
+                return { metric, bestValue: best.value, bestUser: user?.name?.split(' ')[0] ?? 'Unknown', unit: best.unit }
+              })
+            })(),
+            crewCount: attendees.filter((a) => a.bookingStatus !== 'out').length,
+          }),
         }}
       />
 

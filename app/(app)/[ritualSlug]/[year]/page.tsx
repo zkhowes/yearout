@@ -335,14 +335,17 @@ export default async function EventPage({
 
       </div>
 
-      {/* Cover photo (closed events) */}
-      {event.status === 'closed' && (
+      {/* Cover photo (concluded + closed events) */}
+      {(event.status === 'closed' || event.status === 'concluded') && (
         <CoverPhoto
           eventId={event.id}
           ritualSlug={ritual.slug}
           year={event.year}
           coverPhotoUrl={event.coverPhotoUrl}
           canEdit={canEdit}
+          loreImages={loreList
+            .filter((l) => l.type === 'image' && l.mediaUrl)
+            .map((l) => ({ id: l.id, mediaUrl: l.mediaUrl! }))}
         />
       )}
 

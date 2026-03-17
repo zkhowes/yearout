@@ -255,7 +255,7 @@ export function ClosedView({
 
 // ─── 4a. Event Details Card ──────────────────────────────────────────────────
 
-export function EventDetailsCard({ event, canEdit, ritualSlug, carouselProps }: { event: { id: string; location: string | null; mountains: string | null; year: number; startDate: Date | null; endDate: Date | null; status?: string }; canEdit: boolean; ritualSlug: string; carouselProps?: { activityType: string; attendees: { userId: string; bookingStatus: string }[]; attendeeUsers: { id: string; name: string | null }[]; loreCount: number; itineraryCount: number; cachedTips: string[] | null; todayItinerary?: { themeName: string | null; notes: string | null }[] | null } }) {
+export function EventDetailsCard({ event, canEdit, ritualSlug, carouselProps }: { event: { id: string; location: string | null; mountains: string | null; year: number; startDate: Date | null; endDate: Date | null; status?: string }; canEdit: boolean; ritualSlug: string; carouselProps?: { activityType: string; attendees: { userId: string; bookingStatus: string }[]; attendeeUsers: { id: string; name: string | null }[]; loreCount: number; itineraryCount: number; cachedTips: string[] | null; todayItinerary?: { themeName: string | null; notes: string | null }[] | null; awardWinners?: { awardName: string; winnerName: string }[]; expenseStats?: { total: number; unsettledCount: number; currency: string }; loreHighlights?: { hofCount: number; totalCount: number }; activityHighlights?: { metric: string; bestValue: string; bestUser: string; unit: string | null }[]; crewCount?: number } }) {
   const [editing, setEditing] = useState(false)
   const [locationInput, setLocationInput] = useState(event.location ?? '')
   const [mountainsInput, setMountainsInput] = useState(event.mountains ?? '')
@@ -335,7 +335,7 @@ export function EventDetailsCard({ event, canEdit, ritualSlug, carouselProps }: 
 
   if (!hasContent && !canEdit) return null
 
-  const showCarousel = carouselProps && (event.status === 'scheduled' || event.status === 'in_progress')
+  const showCarousel = carouselProps && (event.status === 'scheduled' || event.status === 'in_progress' || event.status === 'concluded')
   const isLive = event.status === 'in_progress'
 
   return (
@@ -406,6 +406,11 @@ export function EventDetailsCard({ event, canEdit, ritualSlug, carouselProps }: 
             cachedTips={carouselProps.cachedTips}
             ritualSlug={ritualSlug}
             todayItinerary={carouselProps.todayItinerary}
+            awardWinners={carouselProps.awardWinners}
+            expenseStats={carouselProps.expenseStats}
+            loreHighlights={carouselProps.loreHighlights}
+            activityHighlights={carouselProps.activityHighlights}
+            crewCount={carouselProps.crewCount}
           />
         </div>
       )}
