@@ -50,6 +50,7 @@ const NATIONALITY_MAP: Record<string, string> = {
   hawaiian: 'https://flagcdn.com/w40/us.png',
   cascadia: '/flags/cascadia.svg',
   cascadian: '/flags/cascadia.svg',
+  pride: '/flags/pride.svg',
 }
 
 export function getNationalityFlag(

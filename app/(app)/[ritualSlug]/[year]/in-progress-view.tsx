@@ -9,6 +9,7 @@ import {
   updateItineraryDay,
   deleteItineraryDay,
 } from '@/lib/event-actions'
+import { getNationalityFlag } from '@/lib/flags'
 import { ExpensesTab, ExpenseForm } from '@/components/expenses-tab'
 import { CloseoutView } from './closeout-view'
 import { AwardsPodium } from './awards-podium'
@@ -739,7 +740,7 @@ export function InProgressView({
   activityType: string
   cachedTips: string[] | null
   allRitualEvents?: { id: string; name: string; year: number }[]
-  memberOverrides?: { userId: string; photoOverride: string | null; nicknameOverride: string | null }[]
+  memberOverrides?: { userId: string; photoOverride: string | null; nicknameOverride: string | null; nationalityOverride: string | null; customFlagSvg: string | null }[]
   allRitualMembers?: { userId: string; userName: string | null; userImage: string | null }[]
 }) {
   const searchParams = useSearchParams()
@@ -904,17 +905,28 @@ export function InProgressView({
                 const override = memberOverrides?.find((o) => o.userId === a.userId)
                 const photoUrl = override?.photoOverride ?? user.image
                 const displayName = override?.nicknameOverride ?? user.name?.split(' ')[0] ?? 'Unknown'
+                const flagUrl = getNationalityFlag(override?.nationalityOverride ?? user.nationality, override?.customFlagSvg)
                 return (
                   <div
                     key={a.userId}
                     className="flex flex-col items-center gap-1.5 p-3 rounded-xl border border-[var(--border)] bg-[var(--surface)]"
                   >
-                    {photoUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={photoUrl} alt={displayName} className="w-10 h-10 rounded-full object-cover" />
-                    ) : (
-                      <div className="w-10 h-10 rounded-full bg-[var(--border)]" />
-                    )}
+                    <div className="relative">
+                      {photoUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={photoUrl} alt={displayName} className="w-10 h-10 rounded-full object-cover" />
+                      ) : (
+                        <div className="w-10 h-10 rounded-full bg-[var(--border)]" />
+                      )}
+                      {flagUrl && (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={flagUrl}
+                          alt=""
+                          className="absolute -bottom-0.5 -right-0.5 w-4 h-3 rounded-sm object-cover border border-[var(--surface)]"
+                        />
+                      )}
+                    </div>
                     <span className="text-xs font-medium text-[var(--fg)] text-center leading-tight max-w-[72px] truncate">
                       {displayName}
                     </span>
@@ -1236,17 +1248,28 @@ export function InProgressView({
               const override = memberOverrides?.find((o) => o.userId === a.userId)
               const photoUrl = override?.photoOverride ?? user.image
               const displayName = override?.nicknameOverride ?? user.name?.split(' ')[0] ?? 'Unknown'
+              const flagUrl = getNationalityFlag(override?.nationalityOverride ?? user.nationality, override?.customFlagSvg)
               return (
                 <div
                   key={a.userId}
                   className="flex flex-col items-center gap-1.5 p-3 rounded-xl border border-[var(--border)] bg-[var(--surface)]"
                 >
-                  {photoUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={photoUrl} alt={displayName} className="w-10 h-10 rounded-full object-cover" />
-                  ) : (
-                    <div className="w-10 h-10 rounded-full bg-[var(--border)]" />
-                  )}
+                  <div className="relative">
+                    {photoUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={photoUrl} alt={displayName} className="w-10 h-10 rounded-full object-cover" />
+                    ) : (
+                      <div className="w-10 h-10 rounded-full bg-[var(--border)]" />
+                    )}
+                    {flagUrl && (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={flagUrl}
+                        alt=""
+                        className="absolute -bottom-0.5 -right-0.5 w-4 h-3 rounded-sm object-cover border border-[var(--surface)]"
+                      />
+                    )}
+                  </div>
                   <span className="text-xs font-medium text-[var(--fg)] text-center leading-tight max-w-[72px] truncate">
                     {displayName}
                   </span>
