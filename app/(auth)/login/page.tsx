@@ -39,6 +39,20 @@ export default async function LoginPage() {
               Continue with Google
             </button>
           </form>
+          <form
+            action={async () => {
+              'use server'
+              await signIn('apple', { redirectTo: '/' })
+            }}
+          >
+            <button
+              type="submit"
+              className="w-full flex items-center justify-center gap-3 px-4 py-3 rounded-lg border border-gray-900 bg-black text-sm font-medium text-white hover:bg-gray-900 transition-colors shadow-sm"
+            >
+              <AppleIcon />
+              Continue with Apple
+            </button>
+          </form>
         </div>
 
         <p className="text-xs text-gray-400 text-center">
@@ -48,6 +62,14 @@ export default async function LoginPage() {
         </p>
       </div>
     </div>
+  )
+}
+
+function AppleIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+      <path d="M15.096 14.318c-.354.816-.524 1.18-.98 1.9-.636.999-1.533 2.245-2.643 2.255-1.1.012-1.383-.717-2.876-.708-1.493.009-1.803.722-2.903.71-1.11-.01-1.96-1.137-2.596-2.136C1.42 13.558.783 10.135 2.53 7.87c.62-.803 1.722-1.352 2.9-1.366 1.094-.018 2.126.756 2.794.756.668 0 1.92-.935 3.236-.798.55.023 2.097.222 3.089 1.677-.08.05-1.844 1.078-1.823 3.216.024 2.557 2.243 3.408 2.27 3.418-.02.061-.355 1.222-.9 2.424v.001Zm-4.843-13.2c.492-.597.866-1.44.728-2.302-.8.053-1.737.534-2.287 1.162-.5.573-.914 1.43-.754 2.248.873.027 1.776-.47 2.313-1.108Z" fill="white"/>
+    </svg>
   )
 }
 
