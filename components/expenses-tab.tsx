@@ -689,9 +689,9 @@ function SettlementsTable({
         return (
           <div key={i} className="flex items-center justify-between py-3 border-b border-[var(--border)]">
             <div className="flex-1">
-              <p className="text-sm text-[var(--fg)]">
+              <p className={`text-sm ${payment?.status === 'confirmed' ? 'text-[var(--fg-muted)]' : 'text-[var(--fg)]'}`}>
                 <span className="font-medium">{getName(s.from)}</span>
-                {' owes '}
+                {payment?.status === 'paid' || payment?.status === 'confirmed' ? ' paid ' : ' owes '}
                 <span className="font-medium">{getName(s.to)}</span>
                 {' '}
                 <span className="font-semibold">${(s.amountCents / 100).toFixed(2)}</span>
@@ -869,7 +869,8 @@ export function ExpensesTab({
     status: p.status as 'pending' | 'paid' | 'confirmed',
   }))
   const balances = computeBalances(expenseInputs, paymentInputs, attendeeIds)
-  const settlements = computeSettlements(expenseInputs, paymentInputs, attendeeIds)
+  // Compute settlements from expenses only (no payments) so settled rows stay visible
+  const settlements = computeSettlements(expenseInputs, [], attendeeIds)
   const myBalance = balances.get(currentUserId) ?? 0
 
   // Lifted settlement action state
