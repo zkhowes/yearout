@@ -2,7 +2,7 @@
 
 import { useState, useTransition, useRef, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { Plus, Loader2, Trash2, Pencil, Calendar, Home, Plane, Award, Users, ChevronDown, Play } from 'lucide-react'
+import { Plus, Loader2, Trash2, Pencil, Calendar, Home, Plane, Award, Users, User, Play, DollarSign } from 'lucide-react'
 import {
   addActivityResult,
   addItineraryDay,
@@ -20,6 +20,7 @@ import { AddStatForm } from '@/components/add-stat-form'
 import type { LoreEntryData } from '@/components/lore/lore-post'
 import { BookingsSection, type EventBooking } from '@/components/bookings-section'
 import { QuickAddFab, type QuickAddTab } from '@/components/quick-add-fab'
+import { CollapsibleSection } from '@/components/collapsible-section'
 
 type Attendee = {
   id: string
@@ -657,36 +658,6 @@ function ArrivalDepartureBoard({
 
 // ─── Collapsible Section ──────────────────────────────────────────────────────
 
-function CollapsibleSection({
-  icon,
-  label,
-  borderColor,
-  children,
-}: {
-  icon: React.ReactNode
-  label: string
-  borderColor: string
-  children: React.ReactNode
-}) {
-  const [open, setOpen] = useState(false)
-
-  return (
-    <div className={`rounded-xl border border-[var(--border)] border-l-4 ${borderColor} bg-[var(--surface)] p-4 flex flex-col gap-3`}>
-      <button
-        onClick={() => setOpen(!open)}
-        className="flex items-center gap-2 w-full"
-      >
-        {icon}
-        <p className="text-xs uppercase tracking-widest text-[var(--fg-muted)] flex-1 text-left">{label}</p>
-        <ChevronDown
-          size={16}
-          className={`text-[var(--fg-muted)] transition-transform ${open ? 'rotate-180' : ''}`}
-        />
-      </button>
-      {open && children}
-    </div>
-  )
-}
 
 // ─── Main In Progress View ────────────────────────────────────────────────────
 
@@ -744,14 +715,17 @@ export function InProgressView({
   allRitualMembers?: { userId: string; userName: string | null; userImage: string | null }[]
 }) {
   const searchParams = useSearchParams()
-  const initialTab = (['lore', 'stats', 'expenses'] as const).includes(
-    searchParams.get('tab') as 'lore' | 'stats' | 'expenses'
+  const initialTab = (['lore', 'stats'] as const).includes(
+    searchParams.get('tab') as 'lore' | 'stats'
   )
-    ? (searchParams.get('tab') as 'lore' | 'stats' | 'expenses')
+    ? (searchParams.get('tab') as 'lore' | 'stats')
     : 'lore'
-  const [activeTab, setActiveTab] = useState<'lore' | 'stats' | 'expenses'>(initialTab)
+  const [activeTab, setActiveTab] = useState<'lore' | 'stats'>(initialTab)
   const [showCloseout, setShowCloseout] = useState(false)
   const tabsRef = useRef<HTMLDivElement>(null)
+  const overrideMap = memberOverrides
+    ? new Map(memberOverrides.map((m) => [m.userId, m]))
+    : undefined
 
   // Auto-scroll to tabs when arriving via ?tab= param
   useEffect(() => {
@@ -819,7 +793,6 @@ export function InProgressView({
   const tabs = [
     { id: 'lore', label: 'Lore' },
     { id: 'stats', label: 'Stats' },
-    { id: 'expenses', label: 'Expenses' },
   ] as const
 
   // For concluded state, filter to only attendees who didn't drop out
@@ -888,14 +861,15 @@ export function InProgressView({
             currentAwards={currentAwards}
             isSponsor={isSponsor}
             ritualSlug={ritualSlug}
+            overrideMap={overrideMap}
           />
         </div>
 
         {/* Crew tiles (attended only) */}
         {concludedAttendees.length > 0 && (
-          <div className="rounded-xl border border-[var(--border)] border-l-4 border-l-indigo-500 bg-[var(--surface)] p-4 flex flex-col gap-3">
+          <div className="rounded-xl border border-[var(--border)] border-l-4 border-l-blue-500 bg-[var(--surface)] p-4 flex flex-col gap-3">
             <div className="flex items-center gap-2">
-              <Users size={14} className="text-indigo-500" />
+              <Users size={14} className="text-blue-500" />
               <p className="text-xs uppercase tracking-widest text-[var(--fg-muted)]">Crew</p>
             </div>
             <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
@@ -916,7 +890,9 @@ export function InProgressView({
                         // eslint-disable-next-line @next/next/no-img-element
                         <img src={photoUrl} alt={displayName} className="w-10 h-10 rounded-full object-cover" />
                       ) : (
-                        <div className="w-10 h-10 rounded-full bg-[var(--border)]" />
+                        <div className="w-10 h-10 rounded-full bg-[var(--border)] flex items-center justify-center">
+                          <User size={16} className="text-[var(--fg-muted)]" />
+                        </div>
                       )}
                       {flagUrl && (
                         // eslint-disable-next-line @next/next/no-img-element
@@ -940,7 +916,32 @@ export function InProgressView({
           </div>
         )}
 
-        {/* Lore / Stats / Expenses */}
+        {/* Video Edit Section */}
+        {(event.editUrl || canEdit) && (
+          <div className="rounded-xl border border-[var(--border)] border-l-4 border-l-[var(--accent)] bg-[var(--surface)] p-4 flex flex-col gap-3">
+            <div className="flex items-center gap-2">
+              <Play size={14} className="text-[var(--accent)]" />
+              <p className="text-xs uppercase tracking-widest text-[var(--fg-muted)]">Video Edit</p>
+            </div>
+            <VideoEditSection
+              event={{
+                id: event.id,
+                name: event.name ?? '',
+                location: event.location,
+                mountains: event.mountains,
+                year: event.year,
+                startDate: event.startDate,
+                endDate: event.endDate,
+                editUrl: event.editUrl ?? null,
+                editThumbnailUrl: event.editThumbnailUrl ?? null,
+              }}
+              canEdit={canEdit}
+              ritualSlug={ritualSlug}
+            />
+          </div>
+        )}
+
+        {/* Lore / Stats */}
         <div ref={tabsRef} className="rounded-xl border border-[var(--border)] border-l-4 border-l-[var(--accent)] bg-[var(--surface)] p-4 flex flex-col gap-4">
           <div className="flex border-b border-[var(--border)]">
             {tabs.map((tab) => (
@@ -982,44 +983,25 @@ export function InProgressView({
               ritualSlug={ritualSlug}
             />
           )}
-          {activeTab === 'expenses' && (
-            <ExpensesTab
-              event={event}
-              expenseList={expenseList}
-              settlementPayments={settlementPayments}
-              attendees={concludedAttendees}
-              attendeeUsers={attendeeUsers}
-              currentUserId={currentUserId}
-              canEdit={canEdit}
-              ritualSlug={ritualSlug}
-            />
-          )}
         </div>
 
-        {/* Video Edit Section */}
-        {(event.editUrl || canEdit) && (
-          <div className="rounded-xl border border-[var(--border)] border-l-4 border-l-[var(--accent)] bg-[var(--surface)] p-4 flex flex-col gap-3">
-            <div className="flex items-center gap-2">
-              <Play size={14} className="text-[var(--accent)]" />
-              <p className="text-xs uppercase tracking-widest text-[var(--fg-muted)]">Video Edit</p>
-            </div>
-            <VideoEditSection
-              event={{
-                id: event.id,
-                name: event.name ?? '',
-                location: event.location,
-                mountains: event.mountains,
-                year: event.year,
-                startDate: event.startDate,
-                endDate: event.endDate,
-                editUrl: event.editUrl ?? null,
-                editThumbnailUrl: event.editThumbnailUrl ?? null,
-              }}
-              canEdit={canEdit}
-              ritualSlug={ritualSlug}
-            />
+        {/* Expenses */}
+        <div className="rounded-xl border border-[var(--border)] border-l-4 border-l-green-600 bg-[var(--surface)] p-4 flex flex-col gap-3">
+          <div className="flex items-center gap-2">
+            <DollarSign size={14} className="text-green-600" />
+            <p className="text-xs uppercase tracking-widest text-[var(--fg-muted)]">Expenses</p>
           </div>
-        )}
+          <ExpensesTab
+            event={event}
+            expenseList={expenseList}
+            settlementPayments={settlementPayments}
+            attendees={concludedAttendees}
+            attendeeUsers={attendeeUsers}
+            currentUserId={currentUserId}
+            canEdit={canEdit}
+            ritualSlug={ritualSlug}
+          />
+        </div>
 
         {/* Collapsible: Lodging & Transportation */}
         <CollapsibleSection
@@ -1115,22 +1097,56 @@ export function InProgressView({
         }}
       />
 
-      {/* Awards Podium */}
-      <div className="rounded-xl border border-[var(--border)] border-l-4 border-l-amber-500 bg-[var(--surface)] p-4 flex flex-col gap-3">
-        <div className="flex items-center gap-2">
-          <Award size={14} className="text-amber-500" />
-          <p className="text-xs uppercase tracking-widest text-[var(--fg-muted)]">Awards</p>
+      {/* Crew tiles */}
+      {attendees.length > 0 && (
+        <div className="rounded-xl border border-[var(--border)] border-l-4 border-l-blue-500 bg-[var(--surface)] p-4 flex flex-col gap-3">
+          <div className="flex items-center gap-2">
+            <Users size={14} className="text-blue-500" />
+            <p className="text-xs uppercase tracking-widest text-[var(--fg-muted)]">Crew</p>
+          </div>
+          <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+            {attendees.map((a) => {
+              const user = attendeeUsers.find((u) => u.id === a.userId)
+              if (!user) return null
+              const override = memberOverrides?.find((o) => o.userId === a.userId)
+              const photoUrl = override?.photoOverride ?? user.image
+              const displayName = override?.nicknameOverride ?? user.name?.split(' ')[0] ?? 'Unknown'
+              const flagUrl = getNationalityFlag(override?.nationalityOverride ?? user.nationality, override?.customFlagSvg)
+              return (
+                <div
+                  key={a.userId}
+                  className="flex flex-col items-center gap-1.5 p-3 rounded-xl border border-[var(--border)] bg-[var(--surface)]"
+                >
+                  <div className="relative">
+                    {photoUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={photoUrl} alt={displayName} className="w-10 h-10 rounded-full object-cover" />
+                    ) : (
+                      <div className="w-10 h-10 rounded-full bg-[var(--border)] flex items-center justify-center">
+                        <User size={16} className="text-[var(--fg-muted)]" />
+                      </div>
+                    )}
+                    {flagUrl && (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={flagUrl}
+                        alt=""
+                        className="absolute -bottom-0.5 -right-0.5 w-4 h-3 rounded-sm object-cover border border-[var(--surface)]"
+                      />
+                    )}
+                  </div>
+                  <span className="text-xs font-medium text-[var(--fg)] text-center leading-tight max-w-[72px] truncate">
+                    {displayName}
+                  </span>
+                  {a.isHost && (
+                    <span className="text-[9px] font-bold uppercase tracking-wider text-[var(--accent)] opacity-80">Host</span>
+                  )}
+                </div>
+              )
+            })}
+          </div>
         </div>
-        <AwardsPodium
-          event={event}
-          attendees={attendees}
-          attendeeUsers={attendeeUsers}
-          awardDefs={awardDefs}
-          currentAwards={currentAwards}
-          isSponsor={isSponsor}
-          ritualSlug={ritualSlug}
-        />
-      </div>
+      )}
 
       {/* Lodging & Transportation */}
       <div className="rounded-xl border border-[var(--border)] border-l-4 border-l-green-500 bg-[var(--surface)] p-4 flex flex-col gap-3">
@@ -1175,9 +1191,8 @@ export function InProgressView({
         />
       </div>
 
-      {/* Lore / Stats / Expenses */}
+      {/* Lore / Stats */}
       <div ref={tabsRef} className="rounded-xl border border-[var(--border)] border-l-4 border-l-[var(--accent)] bg-[var(--surface)] p-4 flex flex-col gap-4">
-        {/* Tab switcher */}
         <div className="flex border-b border-[var(--border)]">
           {tabs.map((tab) => (
             <button
@@ -1193,8 +1208,6 @@ export function InProgressView({
             </button>
           ))}
         </div>
-
-        {/* Tab content */}
         {activeTab === 'lore' && (
           <LoreFeed
             entries={loreList}
@@ -1220,68 +1233,43 @@ export function InProgressView({
             ritualSlug={ritualSlug}
           />
         )}
-        {activeTab === 'expenses' && (
-          <ExpensesTab
-            event={event}
-            expenseList={expenseList}
-            settlementPayments={settlementPayments}
-            attendees={attendees}
-            attendeeUsers={attendeeUsers}
-            currentUserId={currentUserId}
-            canEdit={canEdit}
-            ritualSlug={ritualSlug}
-          />
-        )}
       </div>
 
-      {/* Crew tiles */}
-      {attendees.length > 0 && (
-        <div className="rounded-xl border border-[var(--border)] border-l-4 border-l-indigo-500 bg-[var(--surface)] p-4 flex flex-col gap-3">
-          <div className="flex items-center gap-2">
-            <Users size={14} className="text-indigo-500" />
-            <p className="text-xs uppercase tracking-widest text-[var(--fg-muted)]">Crew</p>
-          </div>
-          <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
-            {attendees.map((a) => {
-              const user = attendeeUsers.find((u) => u.id === a.userId)
-              if (!user) return null
-              const override = memberOverrides?.find((o) => o.userId === a.userId)
-              const photoUrl = override?.photoOverride ?? user.image
-              const displayName = override?.nicknameOverride ?? user.name?.split(' ')[0] ?? 'Unknown'
-              const flagUrl = getNationalityFlag(override?.nationalityOverride ?? user.nationality, override?.customFlagSvg)
-              return (
-                <div
-                  key={a.userId}
-                  className="flex flex-col items-center gap-1.5 p-3 rounded-xl border border-[var(--border)] bg-[var(--surface)]"
-                >
-                  <div className="relative">
-                    {photoUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={photoUrl} alt={displayName} className="w-10 h-10 rounded-full object-cover" />
-                    ) : (
-                      <div className="w-10 h-10 rounded-full bg-[var(--border)]" />
-                    )}
-                    {flagUrl && (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={flagUrl}
-                        alt=""
-                        className="absolute -bottom-0.5 -right-0.5 w-4 h-3 rounded-sm object-cover border border-[var(--surface)]"
-                      />
-                    )}
-                  </div>
-                  <span className="text-xs font-medium text-[var(--fg)] text-center leading-tight max-w-[72px] truncate">
-                    {displayName}
-                  </span>
-                  {a.isHost && (
-                    <span className="text-[9px] font-bold uppercase tracking-wider text-[var(--accent)] opacity-80">Host</span>
-                  )}
-                </div>
-              )
-            })}
-          </div>
+      {/* Expenses */}
+      <div className="rounded-xl border border-[var(--border)] border-l-4 border-l-green-600 bg-[var(--surface)] p-4 flex flex-col gap-3">
+        <div className="flex items-center gap-2">
+          <DollarSign size={14} className="text-green-600" />
+          <p className="text-xs uppercase tracking-widest text-[var(--fg-muted)]">Expenses</p>
         </div>
-      )}
+        <ExpensesTab
+          event={event}
+          expenseList={expenseList}
+          settlementPayments={settlementPayments}
+          attendees={attendees}
+          attendeeUsers={attendeeUsers}
+          currentUserId={currentUserId}
+          canEdit={canEdit}
+          ritualSlug={ritualSlug}
+        />
+      </div>
+
+      {/* Awards Podium */}
+      <div className="rounded-xl border border-[var(--border)] border-l-4 border-l-amber-500 bg-[var(--surface)] p-4 flex flex-col gap-3">
+        <div className="flex items-center gap-2">
+          <Award size={14} className="text-amber-500" />
+          <p className="text-xs uppercase tracking-widest text-[var(--fg-muted)]">Awards</p>
+        </div>
+        <AwardsPodium
+          event={event}
+          attendees={attendees}
+          attendeeUsers={attendeeUsers}
+          awardDefs={awardDefs}
+          currentAwards={currentAwards}
+          isSponsor={isSponsor}
+          ritualSlug={ritualSlug}
+          overrideMap={overrideMap}
+        />
+      </div>
 
       {/* Close Out button (sponsor/organizer) */}
       {canEdit && (

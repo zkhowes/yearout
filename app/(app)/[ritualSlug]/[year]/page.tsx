@@ -453,7 +453,6 @@ export default async function EventPage({
           currentAwards={currentAwards}
           loreList={loreList}
           itineraryList={itineraryList}
-          bookingList={bookingList}
           memberOverrides={memberOverrides}
           allRitualMembers={allRitualMembers}
           crewMembers={allRitualMembers.map((m) => ({ id: m.userId, name: m.userName, image: m.userImage }))}

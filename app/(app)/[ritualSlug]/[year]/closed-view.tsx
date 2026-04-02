@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useTransition } from 'react'
-import { Calendar, User, Plus, Loader2, Play, Home, Award, Users, BookOpen } from 'lucide-react'
+import { Calendar, User, Plus, Loader2, Play, Award, Users, BookOpen } from 'lucide-react'
 import { AwardsPodium } from './awards-podium'
 import {
   updateEventEdit,
@@ -11,7 +11,7 @@ import {
 import { getNationalityFlag } from '@/lib/flags'
 import { LoreFeed as SharedLoreFeed } from '@/components/lore/lore-feed'
 import type { LoreEntryData } from '@/components/lore/lore-post'
-import { BookingsSection, type EventBooking } from '@/components/bookings-section'
+import { CollapsibleSection } from '@/components/collapsible-section'
 import { InfoCarousel } from '@/components/info-carousel'
 
 type Attendee = {
@@ -118,7 +118,6 @@ export function ClosedView({
   currentAwards,
   loreList,
   itineraryList,
-  bookingList,
   memberOverrides,
   allRitualMembers,
   crewMembers,
@@ -134,7 +133,6 @@ export function ClosedView({
   currentAwards: Award[]
   loreList: LoreEntryData[]
   itineraryList: ItineraryDay[]
-  bookingList: EventBooking[]
   memberOverrides: MemberOverride[]
   allRitualMembers: RitualMember[]
   crewMembers: CrewMember[]
@@ -150,35 +148,7 @@ export function ClosedView({
       {/* Event Details Card */}
       <EventDetailsCard event={event} canEdit={canEdit} ritualSlug={ritualSlug} />
 
-      {/* Lodging & Transportation */}
-      {(bookingList.length > 0 || canEdit) && (
-        <div className="rounded-xl border border-[var(--border)] border-l-4 border-l-green-500 bg-[var(--surface)] p-4 flex flex-col gap-3">
-          <div className="flex items-center gap-2">
-            <Home size={14} className="text-green-500" />
-            <p className="text-xs uppercase tracking-widest text-[var(--fg-muted)]">Lodging & Transportation</p>
-          </div>
-          <BookingsSection
-            bookings={bookingList}
-            eventId={event.id}
-            canEdit={canEdit}
-            ritualSlug={ritualSlug}
-            year={event.year}
-          />
-        </div>
-      )}
-
-      {/* Daily Itinerary Recap */}
-      {itineraryList.length > 0 && (
-        <div className="rounded-xl border border-[var(--border)] border-l-4 border-l-purple-500 bg-[var(--surface)] p-4 flex flex-col gap-3">
-          <div className="flex items-center gap-2">
-            <Calendar size={14} className="text-purple-500" />
-            <p className="text-xs uppercase tracking-widest text-[var(--fg-muted)]">Itinerary</p>
-          </div>
-          <ItineraryRecap itineraryList={itineraryList} />
-        </div>
-      )}
-
-      {/* Awards Podium (exclude totem for archived events) */}
+      {/* Awards Podium */}
       {awardDefs.length > 0 && (
         <div className="rounded-xl border border-[var(--border)] border-l-4 border-l-amber-500 bg-[var(--surface)] p-4 flex flex-col gap-3">
           <div className="flex items-center gap-2">
@@ -249,6 +219,17 @@ export function ClosedView({
           allEvents={allRitualEvents}
         />
       </div>
+
+      {/* Itinerary (collapsible) */}
+      {itineraryList.length > 0 && (
+        <CollapsibleSection
+          icon={<Calendar size={14} className="text-purple-500" />}
+          label="Itinerary"
+          borderColor="border-l-purple-500"
+        >
+          <ItineraryRecap itineraryList={itineraryList} />
+        </CollapsibleSection>
+      )}
     </div>
   )
 }
