@@ -510,9 +510,8 @@ function BalanceBarChart({
     spent.set(e.paidBy, (spent.get(e.paidBy) ?? 0) + e.amount)
   }
 
-  // Build entries sorted by balance descending
+  // Build entries sorted by balance descending — show everyone
   const entries = Array.from(balances.entries())
-    .filter(([, bal]) => bal !== 0)
     .sort((a, b) => b[1] - a[1])
 
   if (entries.length === 0) return null
@@ -758,67 +757,86 @@ function SettlementsTable({
 
 // ─── Category Breakdown Chart ────────────────────────────────────────────────
 
-function CategoryBreakdownChart({
+// ─── Category Pie Chart ─────────────────────────────────────────────────────
+
+const CATEGORY_COLORS = [
+  '#22c55e', // green
+  '#3b82f6', // blue
+  '#f59e0b', // amber
+  '#ef4444', // red
+  '#8b5cf6', // purple
+  '#ec4899', // pink
+  '#06b6d4', // cyan
+  '#f97316', // orange
+]
+
+function CategoryPieChart({
   categoryData,
+  totalCents,
 }: {
   categoryData: { label: string; amountCents: number; pct: number }[]
+  totalCents: number
 }) {
   if (categoryData.length === 0) return null
 
-  const maxAmount = Math.max(...categoryData.map((c) => c.amountCents))
+  // Build SVG pie slices
+  const size = 120
+  const cx = size / 2
+  const cy = size / 2
+  const r = 48
+
+  let cumAngle = -90 // start at top
+  const slices = categoryData.map((cat, i) => {
+    const angle = (cat.pct / 100) * 360
+    const startAngle = cumAngle
+    const endAngle = cumAngle + angle
+    cumAngle = endAngle
+
+    const startRad = (startAngle * Math.PI) / 180
+    const endRad = (endAngle * Math.PI) / 180
+    const largeArc = angle > 180 ? 1 : 0
+
+    const x1 = cx + r * Math.cos(startRad)
+    const y1 = cy + r * Math.sin(startRad)
+    const x2 = cx + r * Math.cos(endRad)
+    const y2 = cy + r * Math.sin(endRad)
+
+    const d = `M ${cx} ${cy} L ${x1} ${y1} A ${r} ${r} 0 ${largeArc} 1 ${x2} ${y2} Z`
+
+    return { d, color: CATEGORY_COLORS[i % CATEGORY_COLORS.length], ...cat }
+  })
 
   return (
     <div className="flex flex-col gap-2">
-      <p className="text-xs uppercase tracking-widest text-[var(--fg-muted)]">By Category</p>
-      <div className="flex flex-col gap-1.5">
-        {categoryData.map((cat) => {
-          const pct = maxAmount > 0 ? (cat.amountCents / maxAmount) * 100 : 0
-          return (
-            <div key={cat.label} className="flex items-center gap-2">
-              <span className="text-xs text-[var(--fg-muted)] w-16 shrink-0 truncate">{cat.label}</span>
-              <div className="flex-1 h-6 relative bg-[var(--surface)] rounded overflow-hidden">
-                <div
-                  className="absolute top-0 left-0 h-full rounded bg-[var(--accent)]/30 transition-all"
-                  style={{ width: `${Math.max(pct, 4)}%` }}
-                />
-                <div className="absolute inset-0 flex items-center px-2">
-                  <span className="text-xs font-medium text-[var(--fg)]">
-                    ${(cat.amountCents / 100).toFixed(2)}
-                  </span>
-                  <span className="text-[10px] text-[var(--fg-muted)] ml-auto">
-                    {cat.pct.toFixed(0)}%
-                  </span>
-                </div>
-              </div>
-            </div>
-          )
-        })}
-      </div>
-    </div>
-  )
-}
-
-// ─── Category Table ──────────────────────────────────────────────────────────
-
-function CategoryTable({
-  categoryData,
-}: {
-  categoryData: { label: string; amountCents: number; pct: number }[]
-}) {
-  if (categoryData.length === 0) return null
-
-  return (
-    <div className="flex flex-col gap-1">
-      <p className="text-xs uppercase tracking-widest text-[var(--fg-muted)]">Category Breakdown</p>
-      {categoryData.map((cat) => (
-        <div key={cat.label} className="flex items-center justify-between py-1.5 border-b border-[var(--border)]">
-          <span className="text-sm text-[var(--fg)]">{cat.label}</span>
-          <div className="flex items-center gap-3">
-            <span className="text-xs text-[var(--fg-muted)]">{cat.pct.toFixed(0)}%</span>
-            <span className="text-sm font-medium text-[var(--fg)]">${(cat.amountCents / 100).toFixed(2)}</span>
-          </div>
+      <p className="text-xs uppercase tracking-widest text-[var(--fg-muted)]">Spending Breakdown</p>
+      <div className="flex items-center gap-4">
+        <div className="shrink-0">
+          <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+            {slices.map((slice, i) => (
+              <path key={i} d={slice.d} fill={slice.color} opacity={0.8} />
+            ))}
+            {/* Center total */}
+            <circle cx={cx} cy={cy} r={24} fill="var(--surface)" />
+            <text x={cx} y={cy - 4} textAnchor="middle" fill="var(--fg)" fontSize="10" fontWeight="600">
+              ${(totalCents / 100).toFixed(0)}
+            </text>
+            <text x={cx} y={cy + 8} textAnchor="middle" fill="var(--fg-muted)" fontSize="7">
+              total
+            </text>
+          </svg>
         </div>
-      ))}
+        <div className="flex flex-col gap-1 flex-1 min-w-0">
+          {slices.map((slice, i) => (
+            <div key={i} className="flex items-center gap-2">
+              <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: slice.color }} />
+              <span className="text-xs text-[var(--fg)] truncate">{slice.label}</span>
+              <span className="text-xs text-[var(--fg-muted)] ml-auto shrink-0">
+                ${(slice.amountCents / 100).toFixed(0)} ({slice.pct.toFixed(0)}%)
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   )
 }
@@ -869,9 +887,11 @@ export function ExpensesTab({
     status: p.status as 'pending' | 'paid' | 'confirmed',
   }))
   const balances = computeBalances(expenseInputs, paymentInputs, attendeeIds)
+  // Original balances from expenses only — shows everyone's position before any payments
+  const originalBalances = computeBalances(expenseInputs, [], attendeeIds)
   // Compute settlements from expenses only (no payments) so settled rows stay visible
   const settlements = computeSettlements(expenseInputs, [], attendeeIds)
-  const myBalance = balances.get(currentUserId) ?? 0
+  const myBalance = originalBalances.get(currentUserId) ?? 0
 
   // Lifted settlement action state
   const [settlePending, startSettle] = useTransition()
@@ -1008,7 +1028,7 @@ export function ExpensesTab({
       {/* 3. Balances bar chart */}
       {expenseList.length > 0 && (
         <BalanceBarChart
-          balances={balances}
+          balances={originalBalances}
           attendeeUsers={attendeeUsers}
           expenses={expenseList}
         />
@@ -1030,11 +1050,8 @@ export function ExpensesTab({
         />
       )}
 
-      {/* 5. Category breakdown chart */}
-      <CategoryBreakdownChart categoryData={categoryData} />
-
-      {/* 6. Category breakdown table */}
-      <CategoryTable categoryData={categoryData} />
+      {/* 5. Category pie chart */}
+      <CategoryPieChart categoryData={categoryData} totalCents={totalCents} />
 
       {/* 7. Expense list + totals */}
       {expenseList.length === 0 ? (
