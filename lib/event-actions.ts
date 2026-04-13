@@ -337,6 +337,124 @@ export async function quickEnterEvent(
   redirect(`/${ritualSlug}/${data.year}`)
 }
 
+// ─── History Enter (Already Happened) ─────────────────────────────────────────
+
+export async function historyEnterEvent(
+  ritualId: string,
+  ritualSlug: string,
+  data: {
+    name: string
+    year: number
+    location: string
+    mountains?: string
+    startDate?: Date
+    endDate?: Date
+    logoUrl?: string
+    attendeeIds: string[]
+    hostIds: string[]
+    awards: { awardDefinitionId: string; winnerId: string }[]
+    editUrl?: string
+    loreEntries?: string[]
+  }
+) {
+  const session = await auth()
+  if (!session?.user?.id) redirect('/login')
+
+  const member = await db.query.ritualMembers.findFirst({
+    where: (rm, { and, eq }) =>
+      and(
+        eq(rm.ritualId, ritualId),
+        eq(rm.userId, session.user!.id!),
+        eq(rm.role, 'sponsor')
+      ),
+  })
+  if (!member) throw new Error('Only the sponsor can create events')
+
+  const eventId = crypto.randomUUID()
+  const now = new Date()
+
+  // Create event in closed state
+  await db.insert(events).values({
+    id: eventId,
+    ritualId,
+    organizerId: null,
+    name: data.name.trim(),
+    year: data.year,
+    location: data.location.trim(),
+    mountains: data.mountains?.trim() || null,
+    startDate: data.startDate || null,
+    endDate: data.endDate || null,
+    logoUrl: data.logoUrl || null,
+    editUrl: data.editUrl?.trim() || null,
+    status: 'closed',
+    sealedAt: now,
+    createdAt: now,
+  })
+
+  // Insert only selected attendees (not all ritual members)
+  if (data.attendeeIds.length > 0) {
+    const hostIdSet = new Set(data.hostIds)
+    await db
+      .insert(eventAttendees)
+      .values(
+        data.attendeeIds.map((userId) => ({
+          id: crypto.randomUUID(),
+          eventId,
+          userId,
+          bookingStatus: 'not_yet' as const,
+          isHost: hostIdSet.has(userId),
+        }))
+      )
+      .onConflictDoNothing()
+  }
+
+  // Auto-link all ritual award definitions
+  const existingAwardDefs = await db
+    .select({ id: ritualAwardDefinitions.id })
+    .from(ritualAwardDefinitions)
+    .where(eq(ritualAwardDefinitions.ritualId, ritualId))
+
+  if (existingAwardDefs.length > 0) {
+    await db.insert(eventAwardLinks).values(
+      existingAwardDefs.map((d) => ({
+        id: crypto.randomUUID(),
+        eventId,
+        awardDefinitionId: d.id,
+        createdAt: now,
+      }))
+    )
+  }
+
+  // Insert award winners
+  if (data.awards.length > 0) {
+    await db.insert(awards).values(
+      data.awards.map((a) => ({
+        id: crypto.randomUUID(),
+        eventId,
+        awardDefinitionId: a.awardDefinitionId,
+        winnerId: a.winnerId,
+        createdAt: now,
+      }))
+    )
+  }
+
+  // Insert initial lore entries
+  if (data.loreEntries && data.loreEntries.length > 0) {
+    await db.insert(loreEntries).values(
+      data.loreEntries.map((content) => ({
+        id: crypto.randomUUID(),
+        eventId,
+        authorId: session.user!.id!,
+        type: 'memory' as const,
+        content,
+        createdAt: now,
+      }))
+    )
+  }
+
+  redirect(`/${ritualSlug}/${data.year}`)
+}
+
 // ─── Booking Status ───────────────────────────────────────────────────────────
 
 export async function updateBookingStatus(

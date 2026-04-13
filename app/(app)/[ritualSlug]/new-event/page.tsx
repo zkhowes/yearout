@@ -1,7 +1,7 @@
 import { db } from '@/db'
 import { auth } from '@/auth'
 import { redirect } from 'next/navigation'
-import { ritualMembers, users } from '@/db/schema'
+import { ritualMembers, ritualAwardDefinitions, users } from '@/db/schema'
 import { eq, inArray } from 'drizzle-orm'
 import { NewEventForm } from './form'
 
@@ -39,6 +39,17 @@ export default async function NewEventPage({
           .where(inArray(users.id, members.map((m) => m.userId)))
       : []
 
+  // Load award definitions for history mode
+  const awardDefs = await db
+    .select({
+      id: ritualAwardDefinitions.id,
+      name: ritualAwardDefinitions.name,
+      label: ritualAwardDefinitions.label,
+      type: ritualAwardDefinitions.type,
+    })
+    .from(ritualAwardDefinitions)
+    .where(eq(ritualAwardDefinitions.ritualId, ritual.id))
+
   return (
     <div className="min-h-[70vh] flex flex-col justify-center gap-8 px-2 py-8">
       <div>
@@ -54,6 +65,7 @@ export default async function NewEventPage({
         ritualName={ritual.name}
         currentUserId={session.user.id!}
         crewUsers={crewUsers}
+        awardDefs={awardDefs}
       />
     </div>
   )
