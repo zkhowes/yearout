@@ -37,6 +37,7 @@ export const events = pgTable('events', {
   createdAt: timestamp('created_at', { mode: 'date' }).defaultNow().notNull(),
 }, (table) => [
   index('events_ritual_id_idx').on(table.ritualId),
+  unique('events_ritual_year_name_uq').on(table.ritualId, table.year, table.name),
 ])
 
 export const eventProposals = pgTable('event_proposals', {

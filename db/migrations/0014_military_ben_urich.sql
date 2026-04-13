@@ -1,0 +1,1 @@
+ALTER TABLE "events" ADD CONSTRAINT "events_ritual_year_name_uq" UNIQUE("ritual_id","year","name");

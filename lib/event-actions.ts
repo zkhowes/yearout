@@ -53,13 +53,23 @@ export async function createEvent(
   })
   if (!member) throw new Error('Only the sponsor can create events')
 
+  // Check for duplicate year+name
+  const trimmedName = data.name.trim()
+  const existing = await db.query.events.findFirst({
+    where: (e, { and: a, eq: q }) =>
+      a(q(e.ritualId, ritualId), q(e.year, data.year), q(e.name, trimmedName)),
+  })
+  if (existing) {
+    throw new Error(`An event named "${trimmedName}" already exists for ${data.year}. Use a different name.`)
+  }
+
   const eventId = crypto.randomUUID()
 
   await db.insert(events).values({
     id: eventId,
     ritualId,
     organizerId: null,
-    name: data.name.trim(),
+    name: trimmedName,
     year: data.year,
     location: null,   // set when a proposal is locked
     status: 'planning',
@@ -248,6 +258,16 @@ export async function quickEnterEvent(
   })
   if (!member) throw new Error('Only the sponsor can create events')
 
+  // Check for duplicate year+name
+  const trimmedName = data.name.trim()
+  const existingEvent = await db.query.events.findFirst({
+    where: (e, { and: a, eq: q }) =>
+      a(q(e.ritualId, ritualId), q(e.year, data.year), q(e.name, trimmedName)),
+  })
+  if (existingEvent) {
+    throw new Error(`An event named "${trimmedName}" already exists for ${data.year}. Use a different name.`)
+  }
+
   const eventId = crypto.randomUUID()
   const now = new Date()
 
@@ -255,7 +275,7 @@ export async function quickEnterEvent(
     id: eventId,
     ritualId,
     organizerId: null,
-    name: data.name.trim(),
+    name: trimmedName,
     year: data.year,
     location: data.location.trim(),
     mountains: data.mountains?.trim() || null,
@@ -370,6 +390,16 @@ export async function historyEnterEvent(
   })
   if (!member) throw new Error('Only the sponsor can create events')
 
+  // Check for duplicate year+name
+  const trimmedName = data.name.trim()
+  const existingEvent = await db.query.events.findFirst({
+    where: (e, { and: a, eq: q }) =>
+      a(q(e.ritualId, ritualId), q(e.year, data.year), q(e.name, trimmedName)),
+  })
+  if (existingEvent) {
+    throw new Error(`An event named "${trimmedName}" already exists for ${data.year}. Use a different name.`)
+  }
+
   const eventId = crypto.randomUUID()
   const now = new Date()
 
@@ -378,7 +408,7 @@ export async function historyEnterEvent(
     id: eventId,
     ritualId,
     organizerId: null,
-    name: data.name.trim(),
+    name: trimmedName,
     year: data.year,
     location: data.location.trim(),
     mountains: data.mountains?.trim() || null,
@@ -1773,10 +1803,19 @@ export async function createCall(
     throw new Error('Provide 1-3 locations')
   }
 
-  const eventId = crypto.randomUUID()
-
   // Placeholder name — will be replaced by AI when The Call is sent
   const placeholderName = `${ritualSlug} ${data.year}`
+
+  // Check for duplicate year+name
+  const existingEvent = await db.query.events.findFirst({
+    where: (e, { and: a, eq: q }) =>
+      a(q(e.ritualId, ritualId), q(e.year, data.year), q(e.name, placeholderName)),
+  })
+  if (existingEvent) {
+    throw new Error(`An event already exists for ${data.year}. Delete the existing one first.`)
+  }
+
+  const eventId = crypto.randomUUID()
 
   await db.insert(events).values({
     id: eventId,
