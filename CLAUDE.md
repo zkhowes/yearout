@@ -57,7 +57,7 @@ Yearout is a mobile-first web app that manages the full lifecycle of recurring g
 
 ## Kanban
 
-> Last updated: 2026-03-18
+> Last updated: 2026-04-13
 
 ### Backlog
 - [ ] Trip templates (pre-populated checklists, pack lists, result fields)
@@ -88,7 +88,7 @@ Yearout is a mobile-first web app that manages the full lifecycle of recurring g
 - [x] Concluded state — auto-transition from in_progress when endDate passes, crew tiles, close-out wizard skip
 - [x] Auth — Google OAuth (Auth.js v5)
 - [x] Ritual creation (AI-powered inference, theme, awards, invite)
-- [x] Event creation — two modes (The Call / Already Confirmed)
+- [x] Event creation — three modes (The Call / Already Confirmed / Already Happened)
 - [x] The Call — Stage 2: date/location voting with AI location cards
 - [x] The Call — Stage 3: Send The Call (best fit / all or none, AI event naming)
 - [x] Planning state — structured voting + sponsor confirmation
