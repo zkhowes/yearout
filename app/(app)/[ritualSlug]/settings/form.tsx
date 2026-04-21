@@ -333,8 +333,15 @@ function AwardsSection({
   const [addPending, startAddTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
 
+  const trimmedNewName = newName.trim().toLowerCase()
+  const duplicateName = trimmedNewName.length > 0 && awardDefs.some((d) => d.name.toLowerCase() === trimmedNewName)
+
   function handleAdd() {
     if (!newName.trim() || !newLabel.trim()) return
+    if (duplicateName) {
+      setError(`An award named "${newName.trim()}" already exists`)
+      return
+    }
     setError(null)
     startAddTransition(async () => {
       try {
@@ -398,11 +405,14 @@ function AwardsSection({
             onChange={setNewEventIds}
             awardLinks={awardLinks}
           />
+          {duplicateName && !error && (
+            <p className="text-xs text-amber-500">An award named &ldquo;{newName.trim()}&rdquo; already exists</p>
+          )}
           {error && <p className="text-xs text-red-500">{error}</p>}
           <div className="flex gap-2">
             <button
               onClick={handleAdd}
-              disabled={addPending || !newName.trim() || !newLabel.trim()}
+              disabled={addPending || !newName.trim() || !newLabel.trim() || duplicateName}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg btn-accent text-sm font-medium disabled:opacity-50"
             >
               {addPending ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}

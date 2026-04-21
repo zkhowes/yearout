@@ -5,7 +5,7 @@ import { rituals, ritualAwardDefinitions, ritualMembers } from '@/db/schema'
 import { awards, awardVotes, eventAwardLinks } from '@/db/schema/events'
 import { auth } from '@/auth'
 import { redirect } from 'next/navigation'
-import { eq, and, inArray } from 'drizzle-orm'
+import { eq, and, inArray, sql } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
 import type { RitualInference } from '@/app/api/ritual/infer/route'
 
@@ -268,11 +268,28 @@ export async function createAwardDefinition(
   })
   if (!member) throw new Error('Only sponsors can manage awards')
 
+  const trimmedName = name.trim().slice(0, 100)
+  if (!trimmedName) throw new Error('Award name is required')
+
+  const existing = await db
+    .select({ id: ritualAwardDefinitions.id })
+    .from(ritualAwardDefinitions)
+    .where(
+      and(
+        eq(ritualAwardDefinitions.ritualId, ritualId),
+        sql`lower(${ritualAwardDefinitions.name}) = lower(${trimmedName})`,
+      ),
+    )
+    .limit(1)
+  if (existing.length > 0) {
+    throw new Error(`An award named "${trimmedName}" already exists for this ritual`)
+  }
+
   const awardDefId = crypto.randomUUID()
   await db.insert(ritualAwardDefinitions).values({
     id: awardDefId,
     ritualId,
-    name: name.trim().slice(0, 100),
+    name: trimmedName,
     label: label.trim().slice(0, 200),
     type: 'custom',
     createdAt: new Date(),
@@ -329,10 +346,28 @@ export async function updateAwardDefinition(
   })
   if (!member) throw new Error('Only sponsors can manage awards')
 
+  const nextName = data.name !== undefined ? data.name.trim().slice(0, 100) : undefined
+  if (nextName !== undefined) {
+    if (!nextName) throw new Error('Award name is required')
+    const conflict = await db
+      .select({ id: ritualAwardDefinitions.id })
+      .from(ritualAwardDefinitions)
+      .where(
+        and(
+          eq(ritualAwardDefinitions.ritualId, awardDef.ritualId),
+          sql`lower(${ritualAwardDefinitions.name}) = lower(${nextName})`,
+        ),
+      )
+      .limit(1)
+    if (conflict.length > 0 && conflict[0].id !== awardDefId) {
+      throw new Error(`An award named "${nextName}" already exists for this ritual`)
+    }
+  }
+
   await db
     .update(ritualAwardDefinitions)
     .set({
-      ...(data.name !== undefined && { name: data.name.trim().slice(0, 100) }),
+      ...(nextName !== undefined && { name: nextName }),
       ...(data.label !== undefined && { label: data.label.trim().slice(0, 200) }),
     })
     .where(eq(ritualAwardDefinitions.id, awardDefId))

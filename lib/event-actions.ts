@@ -438,15 +438,16 @@ export async function historyEnterEvent(
       .onConflictDoNothing()
   }
 
-  // Auto-link all ritual award definitions
+  // Auto-link up to 3 ritual award definitions (matches the per-event cap)
   const existingAwardDefs = await db
     .select({ id: ritualAwardDefinitions.id })
     .from(ritualAwardDefinitions)
     .where(eq(ritualAwardDefinitions.ritualId, ritualId))
 
-  if (existingAwardDefs.length > 0) {
+  const toLink = existingAwardDefs.slice(0, 3)
+  if (toLink.length > 0) {
     await db.insert(eventAwardLinks).values(
-      existingAwardDefs.map((d) => ({
+      toLink.map((d) => ({
         id: crypto.randomUUID(),
         eventId,
         awardDefinitionId: d.id,
