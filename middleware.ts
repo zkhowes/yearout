@@ -37,6 +37,18 @@ export default auth((req) => {
     }
   }
 
+  // Admin routes: require email allowlist
+  if (isAdminRoute && !isAdminLogin) {
+    const allowed = (process.env.ADMIN_EMAILS || 'zkhowes@gmail.com')
+      .split(',')
+      .map((e) => e.trim().toLowerCase())
+      .filter(Boolean)
+    const email = session?.user?.email?.toLowerCase()
+    if (!email || !allowed.includes(email)) {
+      return NextResponse.redirect(new URL('/', nextUrl))
+    }
+  }
+
   return NextResponse.next()
 })
 

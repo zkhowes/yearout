@@ -13,12 +13,14 @@
     "db:reset": "tsx scripts/db-reset.ts",
     "db:seed": "tsx scripts/seed-torture-tour.ts",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "email": "email dev --dir emails --port 3030"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.78.0",
     "@auth/drizzle-adapter": "^1.11.1",
     "@neondatabase/serverless": "^1.0.2",
+    "@react-email/components": "^0.5.7",
     "@vercel/blob": "^2.3.0",
     "dotenv": "^17.3.1",
     "drizzle-kit": "^0.31.9",
@@ -28,7 +30,9 @@
     "next": "14.2.35",
     "next-auth": "^5.0.0-beta.30",
     "react": "^18",
-    "react-dom": "^18"
+    "react-dom": "^18",
+    "react-email": "^3.0.7",
+    "resend": "^4.8.0"
   },
   "devDependencies": {
     "@types/node": "^20",

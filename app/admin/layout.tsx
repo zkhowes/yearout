@@ -6,6 +6,8 @@ const tabs = [
   { label: 'Analytics', href: '/admin' },
   { label: 'Search', href: '/admin/search' },
   { label: 'Data', href: '/admin/data' },
+  { label: 'The Call', href: '/admin/the-call' },
+  { label: 'Email History', href: '/admin/email-history' },
 ]
 
 export default async function AdminLayout({

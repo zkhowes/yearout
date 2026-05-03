@@ -2003,14 +2003,23 @@ export async function createCall(
   }))
   await db.insert(callLocationOptions).values(locationIds)
 
-  // Record Stage 2 (The Vote) call send
+  // Record Stage 2 (The Vote) call send (in-app log)
   await db.insert(callSends).values({
     id: crypto.randomUUID(),
     ritualId,
     eventId,
     stage: 2,
+    triggeredBy: 'sponsor',
     sentAt: new Date(),
   })
+
+  // Fire Stage 2 email — never blocks redirect on failure
+  try {
+    const { fireStage2Vote } = await import('@/lib/call/dispatch')
+    await fireStage2Vote(eventId)
+  } catch (e) {
+    console.error('[createCall] Stage 2 email dispatch failed', e)
+  }
 
   redirect(`/${ritualSlug}/${data.year}`)
 }
@@ -2148,14 +2157,23 @@ export async function sendTheCall(
       .onConflictDoNothing()
   }
 
-  // Record Stage 3 call send
+  // Record Stage 3 call send (in-app log)
   await db.insert(callSends).values({
     id: crypto.randomUUID(),
     ritualId: event.ritualId,
     eventId,
     stage: 3,
+    triggeredBy: 'sponsor',
     sentAt: new Date(),
   })
+
+  // Fire Stage 3 email — never blocks redirect on failure
+  try {
+    const { fireStage3Confirmed } = await import('@/lib/call/dispatch')
+    await fireStage3Confirmed(eventId)
+  } catch (e) {
+    console.error('[sendTheCall] Stage 3 email dispatch failed', e)
+  }
 
   redirect(`/${ritualSlug}/${event.year}`)
 }

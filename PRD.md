@@ -66,6 +66,9 @@ This isn't a travel app with social features. It's a brotherhood app with travel
 ### 6. Fewest Steps Possible
 Every workflow must be ruthlessly simple. If it takes more than 3 taps to complete a core action, we've failed. Usability is a design principle, not an afterthought.
 
+### 7. Delight, Never Guilt
+The Call must feel like good news in the inbox — a nostalgia bomb, a horn going off in the distance, a memory you forgot you needed. Never a finger-wag, never "you haven't done X yet." Mode-aware (Cold Start vs Ongoing) and state-aware copy ensures the message lands right for where the crew is. Reply-All is a feature: emails are addressed to the whole crew so the chat starts in the inbox.
+
 ---
 
 ## 5. Target Users
@@ -171,51 +174,33 @@ Each year, the Sponsor designates an Organizer, who creates and owns that year's
 6. Event moves from `planning` → `scheduled`
 
 ### 6.5 The Call
-The Call is not a single notification — it is a three-stage ritual that drives the entire planning lifecycle. Each stage has a distinct purpose, tone, and UX moment.
+The Call is not a single notification — it is an **8-variant matrix** that walks every event through its full lifecycle. Each variant is **state-aware** (none → planning → scheduled → in_progress → concluded → closed) and **mode-aware** (Cold Start: a ritual with no events yet, vs Ongoing: a ritual with history). Every email is delight, never guilt — the tone is excitement and nostalgia, not a finger-wag. All Calls go to the entire crew with **Reply-All as a feature**: the conversation starts in the inbox.
 
-#### The Call — Stage 1: The Summons
-**Trigger**: Auto-generated ~6 months before the crew's typical annual window, when no event is in `planning` state for the upcoming cycle.
-**Recipient**: The entire crew — everyone gets the nudge, not just the Sponsor. The idea is collective pressure. Anyone can forward it to the group or use it as the conversation starter.
-**Purpose**: A prod. The app notices nothing is in motion and blows the horn. "It's time to plan."
-**Tone**: Epic, philosophical, slightly dark. Memento mori meets adventure culture.
+| State | Mode | Goal | Yearout features surfaced | Primary CTA |
+|---|---|---|---|---|
+| **none** | cold_start | Get a trip into `planning` | Ritual name, tagline, theme; AI rallying cry seeded by activity type | Plan the trip → |
+| **none** | ongoing | Same | Years run, last location, last MVP, 1 HOF lore photo, AI nostalgia callback | Plan the next chapter → |
+| **planning** | both | Get crew to vote | Date + location options with AI cards, anonymized vote tally | Cast your votes → |
+| **scheduled** | both | Drive bookings + commitment | Event name + dates + location, nearest airport hint, commitment-board snapshot | Lock in your spot → |
+| **scheduled** | both | Per-recipient nudge to uncommitted (Stage 3a) | Soft tone, references who has committed | Commit → |
+| **scheduled** | both | Pack-list reminder, 7-14 days out (Stage 3b) | Activity-specific pack list (passport callout for international) | Review your pack list → |
+| **in_progress** | both | Drive lore + expense logging (Stage 4 in-trip pulse) | Today's daily itinerary, running expense total, lore prompt | Drop a memory → |
+| **concluded** | both | Drive close-out: settle expenses, vote awards, add final lore (Stage 5) | Awards podium (final or pending), expense settlement balance | Settle up → / Vote awards → |
+| **closed (archived)** | both | Convert nostalgia → next planning (Stage 6 mythology, ~30d after seal) | Recap of all years, this year's MVP, ritual archive link | Start next year → |
 
-**AI-Generated Quote Copy**: Each Stage 1 notification is powered by an AI-generated quote — unique per send, referencing the ritual name and built around themes of carpe diem, mortality, and the urgency of living. The quote is the notification body. Examples of the target voice:
+**AI Copy** — every variant uses Claude Haiku to generate `{subject, headline, body}` per send. The system prompt enforces the "delight not guilt" voice rules. Generated copy is cached per send in `callSends.aiCopy` so the archive shows exactly what fired.
 
-> *"No trip on the books, Carpe Diem Crew — quam minimum credula postero. Trust as little as possible in tomorrow."*
+**Sponsor control over Stage 1** — instead of a fully-automatic cron, the cron *drafts* a Stage 1 email into a queue and notifies the Sponsor. The Sponsor previews, edits, then sends (or cancels, or snoozes). A manual **"Send the Summons now"** button is also available from the ritual's Call page. Both are subject to rate limits (see §6.5.5).
 
-> *"Most men die at 25 but are buried at 75. Don't be those men. Get a [Torture Tour] on the books."* — Benjamin Franklin (adapted)
+#### Delivery
+- **Email first**: All Call stages are transactional email (Resend + React Email). Theme tokens mirror the ritual's chosen theme so the email feels native to The Circuit / The Club / The Trail / The Getaway.
+- **All crew on To: with Reply-All encouraged** — the email's footer says "Reply all — get the crew talking." This is the chat starter.
+- **Reply-To is `zkhowes@gmail.com`** in v1 — bypasses any need for a real inbound mailbox at the sending domain.
+- **No web push notifications**: Deliberate decision. Email is universal, persistent, and feels more ceremonial.
+- **In-app notification feed**: surfaces pending Calls, vote requests, and commit reminders.
 
-> *"The mountains are calling and you are making excuses. Another year is not guaranteed. [Torture Tour] — when?"*
-
-The AI (Claude API) generates these dynamically, seeded with:
-- The ritual name
-- How many years the crew has been running (e.g. "17 years strong")
-- The current date / time of year
-- A rotating thematic angle (Latin stoicism, literary, historical, raw/direct)
-
-Quotes are stored with each notification send so the archive can show the quote that fired for each year.
-
-#### The Call — Stage 2: The Vote
-**Trigger**: Organizer has posted proposals (dates, locations, activity) and opens voting.
-**Recipient**: All crew members
-**Purpose**: Summon the crew to weigh in. Life is busy. This cuts through.
-**Tone**: This is real. Show up and vote.
-
-#### The Call — Stage 3: The Confirmation
-**Trigger**: Organizer locks the date, location, and activity. Event moves to `scheduled`.
-**Recipient**: All crew members
-**Purpose**: It's official. The mythology grows. Drop everything — you're going.
-**Tone**: Ceremonial. This is the moment.
-
-#### The Call — Stage 3a: The Commit Reminder
-**Trigger**: A crew member has not responded or confirmed attendance after Stage 3 fires.
-**Recipient**: Individual crew members who haven't committed
-**Purpose**: Gentle but firm. Nobody gets left behind — or left out.
-
-#### Delivery — All Stages
-- **Email first**: All Call stages are delivered via transactional email (Resend + React Email). Emails are designed to match the ritual theme and carry the same dramatic voice as the in-app experience.
-- **No web push notifications**: Deliberate decision. Web push is unreliable and interruptive. Email is universal, persistent, and feels more ceremonial for something this important.
-- **In-app notification feed**: A persistent notification indicator in the UI surfaces pending Calls, vote requests, and commit reminders. Users see what's waiting for them when they open the app.
+#### Sending domain
+Sends originate from `Yearout <call@send.yearout.zkhowes.fun>` — a dedicated sending subdomain that keeps deliverability reputation isolated from the apex `zkhowes.fun`. SPF + DKIM + DMARC configured at Hover; DMARC starts at `p=none` and escalates after 2-4 weeks of clean sends.
 
 #### UX Design — In-App Call Experience
 - **Full-screen takeover**: When a user opens the app with an unacknowledged Stage 3 Call, they are presented with a full-screen, dramatic landing experience before reaching the dashboard. They must acknowledge it to proceed.
@@ -224,6 +209,18 @@ Quotes are stored with each notification send so the archive can show the quote 
 - **Sound**: A viking horn audio cue plays on the Stage 3 in-app takeover. Opt-out available but on by default.
 - **Animation**: Framer Motion — dramatic entrance, not subtle.
 - **Copy**: Each stage has its own voice. Stage 3 is the loudest.
+
+### 6.5.5 The Call — Rate Limits
+The Call's power depends on scarcity. To preserve "delight not guilt" we cap how often a crew can be summoned:
+
+| Scope | Limit | Window | Friendly block message |
+|---|---|---|---|
+| Per ritual — Stage 1 sends | 1 | 14 days | *"You sent The Summons already this fortnight. Let it breathe — try a Smart Share Link instead."* |
+| Per ritual — all Call emails | 4 | 30 days | *"4 calls this month. The crew will start ignoring them. Take a beat."* |
+| Per recipient — Stage 3a commit | 1 | 7 days | *"They got nudged in the last week — give them air."* |
+| Per recipient — Stage 4 in-trip | 1 | 24 hours | *"Already pulsed them today."* |
+
+Limits are surfaced in the Sponsor's Call page as a meter ("3 of 4 used this month") so the rule is visible *before* it bites. Admin force-sends from the Super Admin Test Harness bypass all limits (logged with `triggeredBy='admin'`).
 
 ### 6.6 App Modes
 
@@ -488,10 +485,11 @@ The leaderboard is the competitive soul of the Crew tab. 17 years of Torture Tou
 ### 6.13 Super Admin Dashboard
 A separate internal tool for platform operations and debugging. Not linked from the main app UI.
 
-**Authentication — two-factor:**
+**Authentication — three-factor:**
 1. Google or Apple OAuth (same as the main app)
 2. A secondary private password stored as an environment variable (`ADMIN_PASSWORD`)
-Both factors must pass. If either fails, access is denied. This gives us real identity (OAuth) plus a shared secret only the team knows.
+3. Email allowlist via `ADMIN_EMAILS` env var (comma-separated; defaults to `zkhowes@gmail.com`)
+All three must pass. If any fails, access is denied. This gives us real identity (OAuth), a shared secret, AND an explicit allowlist on top.
 
 **Implementation**: Next.js route group (`/admin`), middleware-protected. Separate layout from the main app.
 
@@ -525,9 +523,32 @@ Each result is expandable to show full detail. From any circuit or event result,
 
 #### Tab 3 — Data Management
 - Seed / manage test data (The Torture Tour CSV import)
-- Manual Call trigger override (fire any stage for any ritual — for testing)
-- View and manage all email sends (Call history, delivery status)
 - User account management (merge, deactivate)
+
+---
+
+#### Tab 4 — The Call (Test Harness)
+Critical iteration surface. Without it, testing The Call requires walking events through every state, which is brutal.
+
+Three-column layout:
+- **Left (selectors)**: ritual dropdown, event dropdown (or "None — Stage 1 only"), variant override (auto-derived from event state, but switchable for edge variants like 3a, 3b, 6), recipient mode
+- **Center (rendered email preview)**: live iframe of the React Email template with resolved content + AI copy. "Regenerate AI copy" button re-runs Haiku without re-rendering layout.
+- **Right (debug)**: JSON dump of content object, AI prompt + raw response, token count, recipient list
+
+Recipient modes:
+- **Preview only** — render, never touch network
+- **Send to test address** — defaults to `zkhowes@gmail.com`, single recipient
+- **Send to real crew** — double-confirm modal, bypasses rate limits, logged with `triggeredBy='admin'`
+
+This tool is reused (in subset form) as the Sponsor's `/[ritualSlug]/the-call` page — same templates, same content builders, same AI module.
+
+---
+
+#### Tab 5 — Email History
+Browsable log of every Call email ever sent (`call_sends` table):
+- Columns: sent at · ritual · event · stage · variant · recipient count · status · source · Resend message ID
+- Filter by ritual / stage / date
+- Click a row → full rendered HTML, AI copy used, recipient list
 
 ---
 
@@ -604,7 +625,7 @@ Clean, minimal, mobile-first. White background, dark text, no personality — th
 | Cron | Vercel Cron Jobs | Stage 1 Call auto-trigger (scheduled job) |
 | Icons | Lucide React | Clean, consistent icon set |
 | AI | Claude API (Anthropic) | AI-generated Stage 1 quote copy and motivational share link copy |
-| Email | Resend + React Email | Transactional email for all notification stages |
+| Email | Resend + React Email | Transactional email for all Call stages. From: `Yearout <call@send.yearout.zkhowes.fun>` (dedicated sending subdomain). Reply-To: personal Gmail. SPF/DKIM/DMARC at Hover. |
 
 ---
 
@@ -657,10 +678,27 @@ share_links[]
   ├── ai_quote (generated at send time, stored)
   └── token
 
-call_sends[]
-  ├── stage: 1 | 2 | 3 | 3a
-  ├── ai_quote (Stage 1 only)
+call_sends[]                      // every email actually sent
+  ├── ritual_id
+  ├── event_id (nullable for Stage 1)
+  ├── stage: 1 | 2 | 3 | 31 (3a) | 32 (3b) | 4 | 5 | 6
+  ├── variant: stage1_cold_start | stage1_ongoing | stage2_vote | ... (string)
+  ├── ai_copy (jsonb): { subject, headline, body, rawText, tokens }
+  ├── recipients (jsonb): string[] of email addresses
+  ├── resend_message_id
+  ├── status: sent | delivered | bounced | opened | failed
+  ├── triggered_by: cron | sponsor | admin | system
   └── sent_at
+
+call_schedule[]                   // drafts awaiting Sponsor approval
+  ├── ritual_id
+  ├── event_id (nullable)
+  ├── stage, variant
+  ├── scheduled_for
+  ├── draft_ai_copy (jsonb), draft_content (jsonb)
+  ├── status: draft | scheduled | sent | cancelled | edited
+  ├── triggered_by: cron | sponsor | admin
+  └── created_at
 ```
 
 ---
@@ -675,8 +713,11 @@ The MVP is the full lifecycle for a single crew:
 - [ ] Create a series (template → name → theme → awards → invite)
 - [ ] Tour view (past events + upcoming)
 - [ ] Plan & vote (propose dates/locations/activity, crew votes, Organizer locks)
-- [ ] The Call — all four stages with full-screen UX and viking horn metaphor
-- [ ] AI-generated Stage 1 quote copy (Claude API, crew-wide delivery)
+- [x] The Call — 8-variant matrix (Stages 1 cold-start, 1 ongoing, 2 vote, 3 confirmed, 3a commit, 3b pack list, 4 in-trip, 5 closeout, 6 mythology) wired to Resend
+- [x] Sponsor "Send the Summons" page with rate-limit meter
+- [x] Admin Test Harness for previewing + force-sending any variant
+- [ ] In-app full-screen takeover for Stage 3 (separate UI work; email pipeline ships first)
+- [x] AI-generated copy per variant (Claude Haiku, cached per send)
 - [ ] Smart booking: group + individual tracks, airport helper, Google Flights deep link, pack list
 - [ ] Commitment Board (public booking status, peer pressure by design)
 - [ ] Smart Share Links with AI-generated motivational copy

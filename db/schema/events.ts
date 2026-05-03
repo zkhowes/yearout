@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, pgEnum, integer, boolean, index, uniqueIndex, unique } from 'drizzle-orm/pg-core'
+import { pgTable, text, timestamp, pgEnum, integer, boolean, index, uniqueIndex, unique, jsonb } from 'drizzle-orm/pg-core'
 import { users } from './users'
 import { rituals, ritualAwardDefinitions } from './rituals'
 
@@ -174,10 +174,34 @@ export const callSends = pgTable('call_sends', {
   id: text('id').primaryKey(),
   ritualId: text('ritual_id').notNull().references(() => rituals.id, { onDelete: 'cascade' }),
   eventId: text('event_id').references(() => events.id),
-  stage: integer('stage').notNull(), // 1 | 2 | 3 | 4 (3a)
-  aiQuote: text('ai_quote'),         // Stage 1 only — stored for the archive
+  stage: integer('stage').notNull(), // 1 | 2 | 3 | 3.5 (3a) | 3.6 (3b) | 4 | 5 | 6 — see emails/ for variants
+  variant: text('variant'),          // 'cold_start' | 'ongoing' | 'commit' | 'pack_list' | etc — disambiguates stage
+  aiQuote: text('ai_quote'),         // Stage 1 legacy — kept for archive backfill
+  aiCopy: jsonb('ai_copy'),          // { subject, headline, body, ... } — full per-send AI cache
+  recipients: jsonb('recipients'),   // string[] of email addresses sent to
+  resendMessageId: text('resend_message_id'),
+  status: text('status'),            // 'sent' | 'delivered' | 'bounced' | 'opened' | 'failed'
+  triggeredBy: text('triggered_by'), // 'cron' | 'sponsor' | 'admin' | 'system'
   sentAt: timestamp('sent_at', { mode: 'date' }).defaultNow().notNull(),
 })
+
+// Drafts of upcoming Calls — cron generates these, sponsor (or admin) approves and sends
+export const callSchedule = pgTable('call_schedule', {
+  id: text('id').primaryKey(),
+  ritualId: text('ritual_id').notNull().references(() => rituals.id, { onDelete: 'cascade' }),
+  eventId: text('event_id').references(() => events.id, { onDelete: 'cascade' }), // null for Stage 1 (no event yet)
+  stage: integer('stage').notNull(),
+  variant: text('variant'),
+  scheduledFor: timestamp('scheduled_for', { mode: 'date' }).notNull(),
+  draftAiCopy: jsonb('draft_ai_copy'),
+  draftContent: jsonb('draft_content'),
+  status: text('status').notNull().default('draft'), // 'draft' | 'scheduled' | 'sent' | 'cancelled' | 'edited'
+  triggeredBy: text('triggered_by').notNull(),       // 'cron' | 'sponsor' | 'admin'
+  createdAt: timestamp('created_at', { mode: 'date' }).defaultNow().notNull(),
+}, (table) => [
+  index('call_schedule_ritual_id_idx').on(table.ritualId),
+  index('call_schedule_status_idx').on(table.status),
+])
 
 // The Call — date range options set by sponsor
 export const callDateOptions = pgTable('call_date_options', {
