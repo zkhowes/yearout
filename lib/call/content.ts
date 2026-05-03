@@ -564,6 +564,8 @@ export interface Stage6MythologyContent {
     coverPhotoUrl: string | null
     mvpName: string | null
   }
+  /** Real prior chapters of this ritual, most recent first, excluding the recap event. */
+  priorChapters: Array<{ year: number; location: string | null }>
   ctaUrl: string
 }
 
@@ -587,6 +589,16 @@ export async function buildStage6Mythology(
     .where(and(eq(awards.eventId, eventId), eq(ritualAwardDefinitions.type, 'mvp')))
     .limit(1)
 
+  const priorRows = await db
+    .select({ id: events.id, year: events.year, location: events.location })
+    .from(events)
+    .where(eq(events.ritualId, event.ritualId))
+    .orderBy(desc(events.year))
+
+  const priorChapters = priorRows
+    .filter((r) => r.id !== eventId)
+    .map((r) => ({ year: r.year, location: r.location }))
+
   return {
     variant: 'stage6_mythology',
     ritual: event.ritual,
@@ -597,6 +609,7 @@ export async function buildStage6Mythology(
       coverPhotoUrl: ev.coverPhotoUrl,
       mvpName: mvpRow[0]?.name ?? null,
     },
+    priorChapters,
     ctaUrl: `${appUrl}/${event.ritual.slug}/new-event?mode=call`,
   }
 }

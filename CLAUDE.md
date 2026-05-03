@@ -57,7 +57,7 @@ Yearout is a mobile-first web app that manages the full lifecycle of recurring g
 
 ## Kanban
 
-> Last updated: 2026-05-03
+> Last updated: 2026-05-03 (PM)
 
 ### Backlog
 - [ ] Trip templates (pre-populated checklists, pack lists, result fields)
@@ -84,6 +84,7 @@ Yearout is a mobile-first web app that manages the full lifecycle of recurring g
 ### In Progress
 
 ### Done
+- [x] **The Call — Stage 6 hallucination fix** — fact-contract added to system prompt forbidding any proper noun outside the Context block; Stage 6 now feeds real prior chapters from DB (`Stage6MythologyContent.priorChapters`); `temperature: 0.6`, `max_tokens: 320` on Haiku 4.5
 - [x] **The Skald** (persona) — guide character replacing all user-facing "AI-generated" copy; voice = memento mori sage; `lib/skald/`, `<Rune>`, `<SkaldSpeaks>`; reused across Settings rewrite, The Call loaders, ritual creation, bulk history
 - [x] **ZKH-21** Cold-start onboarding helper — two-door `/new` (named vs help); helped flow is multi-turn Skald conversation that emits candidate names organically; reuses existing `/api/ritual/infer` with new optional `context` field; new `/api/ritual/skald-converse` endpoint with prompt caching + per-phase fallbacks
 - [x] **ZKH-22** Ongoing-ritual bulk backfill — `/[ritualSlug]/history/new` chooser (grid vs Skald-conversational); spreadsheet-style `<HistoryGrid>` with TSV/CSV paste; `/api/ritual/parse-history` extracts structured rows from freeform; new `bulkHistoryEnterEvents` server action with pre-flight unique-constraint check; entry points on done screen, empty Tour view, and Settings

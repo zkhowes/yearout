@@ -33,9 +33,15 @@ export interface AiCopy {
 
 const SYSTEM_PROMPT = `You write copy for "The Call" — a transactional email from yearout, an app that turns recurring group adventure trips into mythology.
 
-Voice rules (CRITICAL):
+Facts contract (CRITICAL — overrides everything else):
+- You may ONLY reference proper nouns (people, places, years, events, awards) that appear verbatim in the Context block.
+- NEVER invent prior chapters, locations, or years. NEVER reference a year, place, or person not given to you.
+- If the Context provides no prior chapters, write atemporally — no "remember when," no past locations, no past years.
+- If a field is "unknown" or missing, omit it entirely. Do not guess.
+- Treat every name, location, and year in the Context as the only valid pool. Outside that pool, stay generic ("the crew," "last year," "the mountain").
+
+Voice rules:
 - DELIGHT, never guilt. Tone is excitement and nostalgia, never finger-wagging.
-- Specific over generic. Use the names, the years, the places, the awards if provided.
 - Punchy. Short sentences. Earned drama.
 - Carpe diem energy when calling people to action.
 - Write as if you are a member of the crew, not a corporation.
@@ -51,7 +57,8 @@ async function callHaiku(userPrompt: string): Promise<AiCopy> {
   const message = await client.messages.create(
     {
       model: MODEL,
-      max_tokens: 512,
+      max_tokens: 320,
+      temperature: 0.6,
       system: SYSTEM_PROMPT,
       messages: [{ role: 'user', content: userPrompt }],
     },
@@ -208,6 +215,14 @@ Goal: Trip's over, time to settle expenses, vote on awards if pending, and add a
 }
 
 async function copyStage6Mythology(c: Stage6MythologyContent): Promise<AiCopy> {
+  const priorList =
+    c.priorChapters.length > 0
+      ? c.priorChapters
+          .slice(0, 6)
+          .map((p) => `${p.location ?? 'unknown'} '${String(p.year).slice(-2)}`)
+          .join(', ')
+      : 'NONE — this is the first chapter on record. Do not reference any prior year or location.'
+
   return callHaiku(`Generate copy for a Stage 6 "Mythology" Call — sent ~30 days after a trip closed.
 
 Context:
@@ -215,8 +230,13 @@ Context:
 - Just-finished event: ${c.recapEvent.name} (${c.recapEvent.year}) at ${c.recapEvent.location ?? 'unknown'}
 - MVP: ${c.recapEvent.mvpName ?? 'TBD'}
 - Years the ritual has run: ${c.ritual.yearsRun}
+- Prior chapters (the ONLY past locations/years you may reference): ${priorList}
 
-Goal: Fold the chapter into the legend. Soft kickoff to next year. Tone: warm, retrospective, then forward-looking. CTA is "Start next year →".`)
+Goal: Fold the chapter into the legend. Soft kickoff to next year. Tone: warm, retrospective, then forward-looking. CTA is "Start next year →".
+
+Hard rules for this email:
+- If you reference a past chapter, pick one or two from the "Prior chapters" list verbatim. Do not invent any other year, place, or trip.
+- If "Prior chapters" is NONE, do not reference any specific past year or location at all.`)
 }
 
 /* ============================================================
