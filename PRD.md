@@ -485,11 +485,10 @@ The leaderboard is the competitive soul of the Crew tab. 17 years of Torture Tou
 ### 6.13 Super Admin Dashboard
 A separate internal tool for platform operations and debugging. Not linked from the main app UI.
 
-**Authentication — three-factor:**
+**Authentication — two-factor:**
 1. Google or Apple OAuth (same as the main app)
-2. A secondary private password stored as an environment variable (`ADMIN_PASSWORD`)
-3. Email allowlist via `ADMIN_EMAILS` env var (comma-separated; defaults to `zkhowes@gmail.com`)
-All three must pass. If any fails, access is denied. This gives us real identity (OAuth), a shared secret, AND an explicit allowlist on top.
+2. Email allowlist via `ADMIN_EMAILS` env var (comma-separated; defaults to `zkhowes@gmail.com`) — the authenticated session email must match an entry in the alias to authorize admin pages
+Both must pass. If either fails, access is denied.
 
 **Implementation**: Next.js route group (`/admin`), middleware-protected. Separate layout from the main app.
 

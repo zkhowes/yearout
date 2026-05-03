@@ -7,7 +7,6 @@ export default auth((req) => {
 
   const isLoggedIn = !!session
   const isAdminRoute = nextUrl.pathname.startsWith('/admin')
-  const isAdminLogin = nextUrl.pathname === '/admin/login'
   const isLoginRoute = nextUrl.pathname === '/login'
   const isApiRoute = nextUrl.pathname.startsWith('/api')
 
@@ -24,21 +23,11 @@ export default auth((req) => {
     return NextResponse.redirect(new URL('/login', nextUrl))
   }
 
-  // Admin routes: require Auth.js session first
-  if (isAdminRoute && !isAdminLogin && !isLoggedIn) {
-    return NextResponse.redirect(new URL('/login', nextUrl))
-  }
-
-  // Admin routes: require second-factor cookie
-  if (isAdminRoute && !isAdminLogin) {
-    const adminSession = req.cookies.get('admin_session')
-    if (!adminSession || adminSession.value !== 'granted') {
-      return NextResponse.redirect(new URL('/admin/login', nextUrl))
+  // Admin routes: require Auth.js session, then email allowlist
+  if (isAdminRoute) {
+    if (!isLoggedIn) {
+      return NextResponse.redirect(new URL('/login', nextUrl))
     }
-  }
-
-  // Admin routes: require email allowlist
-  if (isAdminRoute && !isAdminLogin) {
     const allowed = (process.env.ADMIN_EMAILS || 'zkhowes@gmail.com')
       .split(',')
       .map((e) => e.trim().toLowerCase())

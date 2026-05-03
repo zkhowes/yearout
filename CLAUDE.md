@@ -91,6 +91,7 @@ Yearout is a mobile-first web app that manages the full lifecycle of recurring g
 - [x] **Sponsor "Send the Summons" page** — `/[ritualSlug]/the-call`, drafts queue, preview/send/cancel/snooze, rate-limit meter
 - [x] **Admin Test Harness** — `/admin/the-call` with ritual/event/variant selector, live preview iframe, dry-run + send-to-test + send-to-crew modes
 - [x] **Admin Email History** — `/admin/email-history` browsable log of all `call_sends`
+- [x] **Admin auth simplified** — removed `ADMIN_PASSWORD` second factor + `/admin/login` page + `/api/admin/verify` route. `/admin/*` now authorized solely by `ADMIN_EMAILS` allowlist match against the OAuth session email
 - [x] **Email allowlist** — `ADMIN_EMAILS` env var gates `/admin` routes
 - [x] **Cron scaffolding** — `/api/cron/send-calls` daily 07:00 drafts upcoming Calls into `call_schedule` for sponsor approval
 - [x] Stage 2 + Stage 3 emails fire from existing `createCall` / `sendTheCall` flows
