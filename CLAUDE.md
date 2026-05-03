@@ -57,33 +57,43 @@ Yearout is a mobile-first web app that manages the full lifecycle of recurring g
 
 ## Kanban
 
-> Last updated: 2026-04-20
+> Last updated: 2026-05-03
 
 ### Backlog
 - [ ] Trip templates (pre-populated checklists, pack lists, result fields)
-- [ ] The Call — Stage 1: AI-generated summons (Claude API + Resend)
-- [ ] The Call — Stage 3: Full-screen takeover experience
-- [ ] The Call — Stage 3a: Commit reminder nudges
+- [ ] The Call — Stage 3: Full-screen in-app takeover experience
 - [ ] Smart Share Links with AI motivational copy
-- [ ] Pack list UI (checklist per crew member)
 - [ ] Nearest airport helper + Google Flights deep link
 - [ ] Sponsor photo/nickname override UI for members
 - [ ] Core Crew badge display throughout app
-- [ ] Email delivery integration (Resend + React Email)
 - [ ] Merch tab — Phase 2 placeholder page
 - [ ] Ritual archive export
 - [ ] Admin dashboard — stall detection
 - [ ] Admin dashboard — CSV seed import (Torture Tour history)
+- [ ] **ZKH-23** Stats → Lore generalization
+- [ ] **ZKH-24** Pack list UI (Stage 3b email upgrade)
+- [ ] **ZKH-25** Cross-event leaderboard aggregations
 
 ### Up Next
 - [ ] Daily Itinerary UI — *schema exists, needs create/edit/display*
 - [ ] Crew page — roster, Core Crew badges, all-time leaderboard
 - [ ] About page — bylaws, motto, founding year, activity type
 - [ ] Cross-event Lore tab — HOF moments browser across all years
+- [ ] DNS setup for `send.yearout.zkhowes.fun` (verify in Resend, add MX/SPF/DKIM/DMARC at Hover)
 
 ### In Progress
 
 ### Done
+- [x] **The Skald** (persona) — guide character replacing all user-facing "AI-generated" copy; voice = memento mori sage; `lib/skald/`, `<Rune>`, `<SkaldSpeaks>`; reused across Settings rewrite, The Call loaders, ritual creation, bulk history
+- [x] **ZKH-21** Cold-start onboarding helper — two-door `/new` (named vs help); helped flow is multi-turn Skald conversation that emits candidate names organically; reuses existing `/api/ritual/infer` with new optional `context` field; new `/api/ritual/skald-converse` endpoint with prompt caching + per-phase fallbacks
+- [x] **ZKH-22** Ongoing-ritual bulk backfill — `/[ritualSlug]/history/new` chooser (grid vs Skald-conversational); spreadsheet-style `<HistoryGrid>` with TSV/CSV paste; `/api/ritual/parse-history` extracts structured rows from freeform; new `bulkHistoryEnterEvents` server action with pre-flight unique-constraint check; entry points on done screen, empty Tour view, and Settings
+- [x] **The Call email pipeline** — 8-variant matrix (Stage 1 cold/ongoing, 2, 3, 3a, 3b, 4, 5, 6) wired to Resend, theme-aware React Email templates, AI copy per variant via Claude Haiku
+- [x] **Sponsor "Send the Summons" page** — `/[ritualSlug]/the-call`, drafts queue, preview/send/cancel/snooze, rate-limit meter
+- [x] **Admin Test Harness** — `/admin/the-call` with ritual/event/variant selector, live preview iframe, dry-run + send-to-test + send-to-crew modes
+- [x] **Admin Email History** — `/admin/email-history` browsable log of all `call_sends`
+- [x] **Email allowlist** — `ADMIN_EMAILS` env var gates `/admin` routes
+- [x] **Cron scaffolding** — `/api/cron/send-calls` daily 07:00 drafts upcoming Calls into `call_schedule` for sponsor approval
+- [x] Stage 2 + Stage 3 emails fire from existing `createCall` / `sendTheCall` flows
 - [x] Award cleanup — dedup torture tour defs, prevent duplicate award names, cap already-happened auto-link at 3
 - [x] Award management — full CRUD in settings, per-event linking via join table, auto-link on event creation
 - [x] Concluded state — auto-transition from in_progress when endDate passes, crew tiles, close-out wizard skip

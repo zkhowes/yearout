@@ -204,12 +204,23 @@ export default async function RitualTourPage({
       ) : isSponsor ? (
         <div className="rounded-xl border border-dashed border-[var(--border)] p-6 text-center flex flex-col gap-3">
           <p className="text-[var(--fg-muted)] text-sm">No events yet.</p>
-          <Link
-            href={`/${ritual.slug}/new-event`}
-            className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg btn-accent text-sm font-semibold self-center"
-          >
-            <Plus size={14} /> Plan your first event
-          </Link>
+          <p className="text-xs italic text-[var(--fg-muted)]">
+            Has this been going for years? Let the Skald enter the lore.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-2 self-center">
+            <Link
+              href={`/${ritual.slug}/new-event`}
+              className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg btn-accent text-sm font-semibold"
+            >
+              <Plus size={14} /> Plan your first event
+            </Link>
+            <Link
+              href={`/${ritual.slug}/history/new`}
+              className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg border border-[var(--border)] text-sm font-medium text-[var(--fg)] hover:border-[var(--fg-muted)] transition-colors"
+            >
+              <Plus size={14} /> Add past years
+            </Link>
+          </div>
         </div>
       ) : (
         <div className="rounded-xl border border-dashed border-[var(--border)] p-6 text-center">

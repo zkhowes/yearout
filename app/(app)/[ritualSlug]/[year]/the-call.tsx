@@ -1,8 +1,10 @@
 'use client'
 
 import { useState, useEffect, useTransition, useCallback } from 'react'
-import { Megaphone, ChevronDown, ChevronUp, Loader2, MapPin, Calendar, Users, Sparkles } from 'lucide-react'
+import { Megaphone, ChevronDown, ChevronUp, Loader2, MapPin, Calendar, Users } from 'lucide-react'
 import { castCallVote, sendTheCall } from '@/lib/event-actions'
+import { Rune } from '@/components/skald/rune'
+import { SKALD_LOADERS } from '@/lib/skald/voice'
 import { computeOptimal, type OptimalResult } from '@/lib/call-optimizer'
 import type { LocationCard } from '@/app/api/call/location-card/route'
 
@@ -250,13 +252,13 @@ export function TheCallView({
                   </div>
                 </button>
 
-                {/* AI Location Card */}
+                {/* Skald location card */}
                 {isExpanded && (
                   <div className="border-x border-b border-[var(--border)] rounded-b-xl p-3 bg-[var(--surface)] flex flex-col gap-3">
                     {isLoading && !card ? (
                       <div className="flex items-center gap-2 py-4 justify-center text-[var(--fg-muted)]">
                         <Loader2 size={14} className="animate-spin" />
-                        <span className="text-xs">Generating location info...</span>
+                        <span className="text-xs">{SKALD_LOADERS.readingRunes}</span>
                       </div>
                     ) : card ? (
                       <>
@@ -358,7 +360,7 @@ export function TheCallView({
       {/* Optimal Trip Panel */}
       <div className="flex flex-col gap-3 p-4 rounded-xl border border-[var(--accent)]/30 bg-[var(--accent)]/5">
         <div className="flex items-center gap-2">
-          <Sparkles size={14} className="text-[var(--accent)]" />
+          <Rune size={14} className="text-[var(--accent)]" />
           <p className="text-xs uppercase tracking-widest text-[var(--accent)] font-semibold">
             {callMode === 'best_fit' ? 'Best Fit' : 'Consensus'}
           </p>
@@ -388,7 +390,7 @@ export function TheCallView({
             <label className="text-xs text-[var(--fg-muted)]">Event Name</label>
             {nameLoading ? (
               <div className="flex items-center gap-2 text-sm text-[var(--fg-muted)]">
-                <Loader2 size={12} className="animate-spin" /> Generating name...
+                <Loader2 size={12} className="animate-spin" /> {SKALD_LOADERS.namingStop}
               </div>
             ) : (
               <input

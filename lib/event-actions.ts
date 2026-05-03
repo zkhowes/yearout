@@ -28,7 +28,7 @@ import { computeEqualSplit, validateExactSplit } from '@/lib/expense-utils'
 import { auth } from '@/auth'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
-import { eq, and } from 'drizzle-orm'
+import { eq, and, inArray } from 'drizzle-orm'
 
 export async function createEvent(
   ritualId: string,
@@ -484,6 +484,156 @@ export async function historyEnterEvent(
   }
 
   redirect(`/${ritualSlug}/${data.year}`)
+}
+
+// ─── Bulk History Enter ───────────────────────────────────────────────────────
+
+export type BulkHistoryRow = {
+  year: number
+  location: string
+  mountains?: string
+  memory?: string
+}
+
+export type BulkHistoryResult = {
+  inserted: number
+  skipped: { year: number; reason: 'duplicate' | 'invalid' }[]
+}
+
+/**
+ * Insert many past events (status='closed') for an existing ritual in one
+ * shot. Caller passes an array of rows; we pre-flight against the
+ * events_ritual_year_name_uq constraint, then insert events / award-links /
+ * lore entries sequentially. The Neon HTTP driver does not support
+ * transactions, so partial failure is possible — see code comments below.
+ */
+export async function bulkHistoryEnterEvents(
+  ritualId: string,
+  ritualSlug: string,
+  rows: BulkHistoryRow[],
+): Promise<BulkHistoryResult> {
+  const session = await auth()
+  if (!session?.user?.id) redirect('/login')
+
+  const member = await db.query.ritualMembers.findFirst({
+    where: (rm, { and: a, eq: q }) =>
+      a(q(rm.ritualId, ritualId), q(rm.userId, session.user!.id!), q(rm.role, 'sponsor')),
+  })
+  if (!member) throw new Error('Only the sponsor can bulk-add history')
+
+  const ritual = await db.query.rituals.findFirst({
+    where: (r, { eq: q }) => q(r.id, ritualId),
+  })
+  if (!ritual) throw new Error('Ritual not found')
+
+  // Validate + normalize rows
+  const skipped: BulkHistoryResult['skipped'] = []
+  const validRows: { year: number; name: string; location: string; mountains: string | null; memory: string | null }[] = []
+  const thisYear = new Date().getFullYear()
+
+  for (const row of rows) {
+    const year = Number(row.year)
+    const location = (row.location ?? '').trim()
+    if (!Number.isFinite(year) || year < 1900 || year > thisYear) {
+      skipped.push({ year, reason: 'invalid' })
+      continue
+    }
+    if (!location) {
+      skipped.push({ year, reason: 'invalid' })
+      continue
+    }
+    validRows.push({
+      year,
+      name: `${ritual.name} ${year}`,
+      location,
+      mountains: row.mountains?.trim() || null,
+      memory: row.memory?.trim() || null,
+    })
+  }
+
+  if (validRows.length === 0) {
+    return { inserted: 0, skipped }
+  }
+
+  // Pre-flight uniqueness check against events_ritual_year_name_uq
+  const proposedYears = validRows.map((r) => r.year)
+  const existing = await db
+    .select({ year: events.year, name: events.name })
+    .from(events)
+    .where(and(eq(events.ritualId, ritualId), inArray(events.year, proposedYears)))
+
+  const existingKeys = new Set(existing.map((e) => `${e.year}::${e.name}`))
+  const insertable = validRows.filter((r) => {
+    if (existingKeys.has(`${r.year}::${r.name}`)) {
+      skipped.push({ year: r.year, reason: 'duplicate' })
+      return false
+    }
+    return true
+  })
+
+  if (insertable.length === 0) {
+    return { inserted: 0, skipped }
+  }
+
+  // Award defs once — auto-link up to 3 per event
+  const awardDefs = await db
+    .select({ id: ritualAwardDefinitions.id })
+    .from(ritualAwardDefinitions)
+    .where(eq(ritualAwardDefinitions.ritualId, ritualId))
+  const awardDefsToLink = awardDefs.slice(0, 3)
+
+  const now = new Date()
+  const eventRows = insertable.map((r) => ({
+    id: crypto.randomUUID(),
+    ritualId,
+    organizerId: null,
+    name: r.name,
+    year: r.year,
+    location: r.location,
+    mountains: r.mountains,
+    status: 'closed' as const,
+    sealedAt: now,
+    createdAt: now,
+  }))
+
+  // Sequential inserts. Neon HTTP has no transactions; on failure we cannot
+  // atomically roll back, but events are insert-only with idempotent
+  // pre-flight, so re-running the bulk action with the same rows is safe.
+  await db.insert(events).values(eventRows)
+
+  if (awardDefsToLink.length > 0) {
+    const linkRows = eventRows.flatMap((ev) =>
+      awardDefsToLink.map((d) => ({
+        id: crypto.randomUUID(),
+        eventId: ev.id,
+        awardDefinitionId: d.id,
+        createdAt: now,
+      })),
+    )
+    if (linkRows.length > 0) {
+      await db.insert(eventAwardLinks).values(linkRows)
+    }
+  }
+
+  const memoryRows = eventRows
+    .map((ev, i) => ({ ev, memory: insertable[i].memory }))
+    .filter((p) => !!p.memory)
+    .map(({ ev, memory }) => ({
+      id: crypto.randomUUID(),
+      eventId: ev.id,
+      authorId: session.user!.id!,
+      type: 'memory' as const,
+      content: memory!,
+      createdAt: now,
+    }))
+
+  if (memoryRows.length > 0) {
+    await db.insert(loreEntries).values(memoryRows)
+  }
+
+  revalidatePath(`/${ritualSlug}`)
+
+  return { inserted: eventRows.length, skipped }
 }
 
 // ─── Booking Status ───────────────────────────────────────────────────────────

@@ -1,8 +1,10 @@
 'use client'
 
 import { useState, useTransition, useRef } from 'react'
-import { Check, Loader2, Upload, Sparkles, Trash2, Plus, ChevronDown } from 'lucide-react'
+import Link from 'next/link'
+import { Check, Loader2, Upload, Trash2, Plus, ChevronDown, History } from 'lucide-react'
 import { updateRitual, createAwardDefinition, updateAwardDefinition, deleteAwardDefinition, toggleAwardEventLink } from '@/lib/ritual-actions'
+import { Rune } from '@/components/skald/rune'
 
 const ACTIVITY_LABELS: Record<string, string> = {
   ski: '⛷️  Ski / Snow',
@@ -214,9 +216,9 @@ export function SettingsForm({
               onClick={handleRewrite}
               disabled={rewriting || !description.trim()}
               className="p-1 text-[var(--fg-muted)] hover:text-[var(--accent)] transition-colors disabled:opacity-40"
-              title="AI rewrite"
+              title="Skald rewrite"
             >
-              {rewriting ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
+              {rewriting ? <Loader2 size={14} className="animate-spin" /> : <Rune size={14} />}
             </button>
           </div>
           <textarea
@@ -279,6 +281,20 @@ export function SettingsForm({
         ritualEvents={ritualEvents}
         awardLinks={awardLinks}
       />
+
+      {/* ── History ── */}
+      <section className="flex flex-col gap-3">
+        <h2 className="text-xs uppercase tracking-widest text-[var(--fg-muted)]">History</h2>
+        <p className="text-xs text-[var(--fg-muted)] italic">
+          Backfill past years — fast grid or Skald walk-through.
+        </p>
+        <Link
+          href={`/${ritual.slug}/history/new`}
+          className="inline-flex items-center justify-center gap-2 self-start px-4 py-2.5 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-sm font-medium text-[var(--fg)] hover:border-[var(--fg-muted)] transition-colors"
+        >
+          <History size={14} /> Add or edit past events
+        </Link>
+      </section>
 
       {/* ── Invite link ── */}
       <section className="flex flex-col gap-3">

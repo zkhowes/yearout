@@ -109,4 +109,27 @@ describe('POST /api/ritual/infer', () => {
     expect(data).toHaveProperty('slug')
     expect(Array.isArray(data.awards)).toBe(true)
   })
+
+  it('passes optional context to the prompt without breaking shape', async () => {
+    mockClaudeText(JSON.stringify(VALID_INFERENCE))
+    const res = await POST(
+      makeReq({
+        name: 'Mavericks',
+        context: '15-year ski crew, dark vibe, Tahoe regulars',
+      }),
+    )
+    expect(res.status).toBe(200)
+    expect(mockCreate).toHaveBeenCalledTimes(1)
+    const call = mockCreate.mock.calls[0][0] as { messages: { content: string }[] }
+    expect(call.messages[0].content).toContain('Additional context from the sponsor')
+    expect(call.messages[0].content).toContain('15-year ski crew')
+  })
+
+  it('accepts requests without context (backwards compatible)', async () => {
+    mockClaudeText(JSON.stringify(VALID_INFERENCE))
+    const res = await POST(makeReq({ name: 'Mavericks' }))
+    expect(res.status).toBe(200)
+    const call = mockCreate.mock.calls[0][0] as { messages: { content: string }[] }
+    expect(call.messages[0].content).not.toContain('Additional context from the sponsor')
+  })
 })

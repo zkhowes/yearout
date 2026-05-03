@@ -39,15 +39,15 @@ export default async function DashboardPage() {
           <h2 className="text-2xl font-bold text-[var(--fg)]">
             You&apos;re not part of any Rituals yet.
           </h2>
-          <p className="mt-2 text-[var(--fg-muted)] text-sm">
-            Want to create one? We&apos;ll help you get started.
+          <p className="mt-2 text-[var(--fg-muted)] text-sm italic">
+            Want to start one? The Skald will walk you through it.
           </p>
         </div>
         <Link
           href="/new"
           className="inline-flex items-center justify-center px-6 py-3 rounded-lg btn-accent text-sm font-semibold"
         >
-          Create a Ritual
+          Begin a Ritual
         </Link>
       </div>
     )

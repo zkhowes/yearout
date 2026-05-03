@@ -18,10 +18,15 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const { name } = await req.json()
+  const { name, context } = (await req.json()) as { name?: string; context?: string }
   if (!name || name.trim().length < 2) {
     return NextResponse.json({ error: 'Name too short' }, { status: 400 })
   }
+
+  const contextLine =
+    typeof context === 'string' && context.trim().length > 0
+      ? `\nAdditional context from the sponsor: ${context.trim().slice(0, 500)}`
+      : ''
 
   const message = await client.messages.create({
     model: 'claude-haiku-4-5-20251001',
@@ -33,7 +38,7 @@ export async function POST(req: NextRequest) {
 
 Given the ritual name below, infer the best defaults. Be punchy and opinionated.
 
-Name: "${name.trim()}"
+Name: "${name.trim()}"${contextLine}
 
 Respond with ONLY valid JSON matching this exact structure:
 {
