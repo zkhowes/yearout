@@ -35,10 +35,12 @@ const SYSTEM_PROMPT = `You write copy for "The Call" — a transactional email f
 
 Facts contract (CRITICAL — overrides everything else):
 - You may ONLY reference proper nouns (people, places, years, events, awards) that appear verbatim in the Context block.
-- NEVER invent prior chapters, locations, or years. NEVER reference a year, place, or person not given to you.
-- If the Context provides no prior chapters, write atemporally — no "remember when," no past locations, no past years.
+- NEVER invent prior years, locations, or events. NEVER reference a year, place, or person not given to you.
+- If the Context provides no prior years, write atemporally — no "remember when," no past locations, no past years.
 - If a field is "unknown" or missing, omit it entirely. Do not guess.
 - Treat every name, location, and year in the Context as the only valid pool. Outside that pool, stay generic ("the crew," "last year," "the mountain").
+- NEVER frame the trip as a numbered "Chapter N." Do not say "Chapter 26," "Chapter 27 awaits," or any sequence-numbered framing. The trip's name and year are given — use those, not a fabricated index.
+- The "Years the ritual has run" number (e.g. 18) is a count of years, NOT a chapter index. Do not turn it into a label like "the 18th chapter."
 
 Voice rules:
 - DELIGHT, never guilt. Tone is excitement and nostalgia, never finger-wagging.
@@ -221,22 +223,23 @@ async function copyStage6Mythology(c: Stage6MythologyContent): Promise<AiCopy> {
           .slice(0, 6)
           .map((p) => `${p.location ?? 'unknown'} '${String(p.year).slice(-2)}`)
           .join(', ')
-      : 'NONE — this is the first chapter on record. Do not reference any prior year or location.'
+      : 'NONE — this is the first one on record. Do not reference any prior year or location.'
 
   return callHaiku(`Generate copy for a Stage 6 "Mythology" Call — sent ~30 days after a trip closed.
 
 Context:
 - Ritual: ${c.ritual.name}
-- Just-finished event: ${c.recapEvent.name} (${c.recapEvent.year}) at ${c.recapEvent.location ?? 'unknown'}
+- Just-finished trip: ${c.recapEvent.name} (year ${c.recapEvent.year}) at ${c.recapEvent.location ?? 'unknown'}
 - MVP: ${c.recapEvent.mvpName ?? 'TBD'}
 - Years the ritual has run: ${c.ritual.yearsRun}
-- Prior chapters (the ONLY past locations/years you may reference): ${priorList}
+- Prior years (the ONLY past locations/years you may reference): ${priorList}
 
-Goal: Fold the chapter into the legend. Soft kickoff to next year. Tone: warm, retrospective, then forward-looking. CTA is "Start next year →".
+Goal: Fold this trip into the legend. Soft kickoff to next year. Tone: warm, retrospective, then forward-looking. CTA is "Start next year →".
 
 Hard rules for this email:
-- If you reference a past chapter, pick one or two from the "Prior chapters" list verbatim. Do not invent any other year, place, or trip.
-- If "Prior chapters" is NONE, do not reference any specific past year or location at all.`)
+- If you reference a past trip, pick one or two from the "Prior years" list verbatim. Do not invent any other year, place, or trip.
+- If "Prior years" is NONE, do not reference any specific past year or location at all.
+- Do NOT use numbered "Chapter N" framing or any fabricated sequence number. Refer to the trip by its name (${c.recapEvent.name}) or its year (${c.recapEvent.year}). The "${c.ritual.yearsRun} years" figure is a duration, not a chapter index.`)
 }
 
 /* ============================================================

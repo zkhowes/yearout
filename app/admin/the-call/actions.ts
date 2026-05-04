@@ -2,8 +2,9 @@
 
 import { auth } from '@/auth'
 import { db } from '@/db'
-import { rituals, events } from '@/db/schema'
-import { asc, desc, eq } from 'drizzle-orm'
+import { rituals, events, ritualMembers, eventAttendees, users } from '@/db/schema'
+import { and, asc, desc, eq } from 'drizzle-orm'
+import { render } from '@react-email/components'
 import {
   buildStage1ColdStart,
   buildStage1Ongoing,
@@ -207,80 +208,172 @@ export async function buildPreview(input: {
   }
 }
 
-/** Send a preview to a single test address. */
-export async function sendTestEmail(input: {
-  variant: CallVariant
-  ritualId: string
-  eventId?: string | null
-  recipientUserId?: string | null
-  testAddress: string
-}): Promise<{ ok: boolean; resendId?: string; error?: string }> {
-  const session = await auth()
-  if (!session?.user?.email) return { ok: false, error: 'Unauthorized' }
+/* ============================================================
+ * Recipient resolution helpers
+ * ============================================================ */
 
-  const built = await buildPreview({
-    variant: input.variant,
-    ritualId: input.ritualId,
-    eventId: input.eventId,
-    recipientUserId: input.recipientUserId,
-  })
-  if (built.error || !built.content || !built.copy) {
-    return { ok: false, error: built.error || 'Build failed' }
-  }
-
-  const ritualId =
-    'ritual' in built.content
-      ? built.content.ritual.id
-      : built.content.event.ritualId
-  const eventId =
-    'event' in built.content ? built.content.event.id : null
-
-  const result = await sendCallEmail({
-    react: renderCallElement(built.content, built.copy),
-    subject: built.copy.subject || 'The Call',
-    mode: { kind: 'send', to: [input.testAddress] },
-    log: {
-      ritualId,
-      eventId,
-      stage: variantToStage(built.content.variant),
-      variant: built.content.variant,
-      aiCopy: built.copy,
-      triggeredBy: 'admin',
-    },
-    tags: [
-      { name: 'env', value: 'admin-test' },
-      { name: 'variant', value: built.content.variant },
-    ],
-  })
-
-  return result.error
-    ? { ok: false, error: result.error }
-    : { ok: true, resendId: result.resendId }
+export interface CrewMember {
+  userId: string
+  name: string | null
+  email: string | null
+  isCoreCrew?: boolean
 }
 
-/** Force-send to the entire crew. Bypasses rate limits (admin override). */
-export async function sendToCrew(input: {
+/** All ritual_members of a ritual. */
+export async function listCrew(ritualId: string): Promise<CrewMember[]> {
+  const rows = await db
+    .select({
+      userId: users.id,
+      name: users.name,
+      email: users.email,
+      isCoreCrew: ritualMembers.isCoreCrewe,
+    })
+    .from(ritualMembers)
+    .innerJoin(users, eq(ritualMembers.userId, users.id))
+    .where(eq(ritualMembers.ritualId, ritualId))
+    .orderBy(asc(users.name))
+  return rows
+}
+
+/** Core crew members of a ritual (is_core_crew = true). */
+export async function listCoreCrew(ritualId: string): Promise<CrewMember[]> {
+  const rows = await db
+    .select({
+      userId: users.id,
+      name: users.name,
+      email: users.email,
+      isCoreCrew: ritualMembers.isCoreCrewe,
+    })
+    .from(ritualMembers)
+    .innerJoin(users, eq(ritualMembers.userId, users.id))
+    .where(
+      and(eq(ritualMembers.ritualId, ritualId), eq(ritualMembers.isCoreCrewe, true))
+    )
+    .orderBy(asc(users.name))
+  return rows
+}
+
+/** Attendees of a specific event. */
+export async function listAttendees(eventId: string): Promise<CrewMember[]> {
+  const rows = await db
+    .select({
+      userId: users.id,
+      name: users.name,
+      email: users.email,
+    })
+    .from(eventAttendees)
+    .innerJoin(users, eq(eventAttendees.userId, users.id))
+    .where(eq(eventAttendees.eventId, eventId))
+    .orderBy(asc(users.name))
+  return rows
+}
+
+/* ============================================================
+ * Re-render with edited copy (no AI call)
+ * ============================================================ */
+
+export async function renderWithCopy(input: {
   variant: CallVariant
   ritualId: string
   eventId?: string | null
   recipientUserId?: string | null
+  copy: AiCopy
+}): Promise<{ html: string | null; error: string | null }> {
+  const session = await auth()
+  if (!session?.user?.email) return { html: null, error: 'Unauthorized' }
+
+  // Re-build content (cheap — no AI). We don't reuse buildPreview because that
+  // also calls Haiku, which we explicitly want to skip on copy edits.
+  let content: CallContent | null = null
+  try {
+    switch (input.variant) {
+      case 'stage1_cold_start':
+        content = await buildStage1ColdStart(input.ritualId, APP_URL)
+        break
+      case 'stage1_ongoing':
+        content = await buildStage1Ongoing(input.ritualId, APP_URL)
+        break
+      case 'stage2_vote':
+        if (!input.eventId) throw new Error('eventId required')
+        content = await buildStage2Vote(input.eventId, APP_URL)
+        break
+      case 'stage3_confirmed':
+        if (!input.eventId) throw new Error('eventId required')
+        content = await buildStage3Confirmed(input.eventId, APP_URL)
+        break
+      case 'stage3a_commit':
+        if (!input.eventId || !input.recipientUserId) {
+          throw new Error('eventId and recipientUserId required')
+        }
+        content = await buildStage3aCommit(
+          input.eventId,
+          input.recipientUserId,
+          APP_URL
+        )
+        break
+      case 'stage3b_pack_list':
+        if (!input.eventId) throw new Error('eventId required')
+        content = await buildStage3bPackList(input.eventId, APP_URL)
+        break
+      case 'stage4_in_trip':
+        if (!input.eventId) throw new Error('eventId required')
+        content = await buildStage4InTrip(input.eventId, APP_URL)
+        break
+      case 'stage5_closeout':
+        if (!input.eventId) throw new Error('eventId required')
+        content = await buildStage5Closeout(
+          input.eventId,
+          input.recipientUserId ?? null,
+          APP_URL
+        )
+        break
+      case 'stage6_mythology':
+        if (!input.eventId) throw new Error('eventId required')
+        content = await buildStage6Mythology(input.eventId, APP_URL)
+        break
+    }
+  } catch (e: unknown) {
+    return { html: null, error: e instanceof Error ? e.message : 'Build failed' }
+  }
+  if (!content) return { html: null, error: 'Could not build content' }
+
+  const html = await render(renderCallElement(content, input.copy))
+  return { html, error: null }
+}
+
+/* ============================================================
+ * Unified send action — covers test_address, attendees, core_crew, select
+ * ============================================================ */
+
+export async function sendCustom(input: {
+  variant: CallVariant
+  ritualId: string
+  eventId?: string | null
+  recipientUserId?: string | null
+  to: string[]
+  /** When provided, skip AI copy generation and use these strings verbatim. */
+  copyOverride?: AiCopy | null
+  /** For tagging in Resend. */
+  audience: 'test_address' | 'attendees' | 'core_crew' | 'select'
 }): Promise<{ ok: boolean; resendId?: string; recipientCount?: number; error?: string }> {
   const session = await auth()
   if (!session?.user?.email) return { ok: false, error: 'Unauthorized' }
 
+  const cleanTo = input.to.map((s) => s.trim()).filter(Boolean)
+  if (cleanTo.length === 0) return { ok: false, error: 'No recipients' }
+
   const built = await buildPreview({
     variant: input.variant,
     ritualId: input.ritualId,
     eventId: input.eventId,
     recipientUserId: input.recipientUserId,
   })
-  if (built.error || !built.content || !built.copy) {
+  if (built.error || !built.content) {
     return { ok: false, error: built.error || 'Build failed' }
   }
 
-  if (built.recipients.length === 0) {
-    return { ok: false, error: 'No crew emails resolved for this ritual' }
-  }
+  const copy = input.copyOverride ?? built.copy
+  if (!copy) return { ok: false, error: 'No copy available' }
 
   const ritualId =
     'ritual' in built.content
@@ -290,24 +383,25 @@ export async function sendToCrew(input: {
     'event' in built.content ? built.content.event.id : null
 
   const result = await sendCallEmail({
-    react: renderCallElement(built.content, built.copy),
-    subject: built.copy.subject || 'The Call',
-    mode: { kind: 'send', to: built.recipients },
+    react: renderCallElement(built.content, copy),
+    subject: copy.subject || 'The Call',
+    mode: { kind: 'send', to: cleanTo },
     log: {
       ritualId,
       eventId,
       stage: variantToStage(built.content.variant),
       variant: built.content.variant,
-      aiCopy: built.copy,
+      aiCopy: copy,
       triggeredBy: 'admin',
     },
     tags: [
-      { name: 'env', value: 'admin-crew' },
+      { name: 'env', value: `admin-${input.audience}` },
       { name: 'variant', value: built.content.variant },
+      { name: 'edited', value: input.copyOverride ? 'true' : 'false' },
     ],
   })
 
   return result.error
     ? { ok: false, error: result.error }
-    : { ok: true, resendId: result.resendId, recipientCount: built.recipients.length }
+    : { ok: true, resendId: result.resendId, recipientCount: cleanTo.length }
 }

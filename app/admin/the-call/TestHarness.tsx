@@ -3,16 +3,26 @@
 import { useEffect, useMemo, useState, useTransition } from 'react'
 import {
   buildPreview,
+  listAttendees,
+  listCoreCrew,
+  listCrew,
   listEvents,
-  sendTestEmail,
-  sendToCrew,
+  renderWithCopy,
+  sendCustom,
   type BuildResult,
+  type CrewMember,
   type EventOption,
   type RitualOption,
 } from './actions'
 import type { CallVariant } from '@/lib/call/content'
+import type { AiCopy } from '@/lib/ai/call-copy'
 
-type RecipientMode = 'preview' | 'test_address' | 'real_crew'
+type RecipientMode =
+  | 'preview'
+  | 'test_address'
+  | 'attendees'
+  | 'core_crew'
+  | 'select'
 
 interface VariantSpec {
   value: CallVariant
@@ -43,6 +53,19 @@ export function TestHarness({ ritualOptions }: { ritualOptions: RitualOption[] }
   const [sendStatus, setSendStatus] = useState<string | null>(null)
   const [pending, startTransition] = useTransition()
 
+  // Editable copy state — synced from result.copy when a fresh build lands.
+  const [editedSubject, setEditedSubject] = useState<string>('')
+  const [editedHeadline, setEditedHeadline] = useState<string>('')
+  const [editedBody, setEditedBody] = useState<string>('')
+  const [previewHtml, setPreviewHtml] = useState<string | null>(null)
+  const [copyDirty, setCopyDirty] = useState<boolean>(false)
+
+  // Recipient roster cache for the current ritual/event.
+  const [attendeeRoster, setAttendeeRoster] = useState<CrewMember[]>([])
+  const [coreCrewRoster, setCoreCrewRoster] = useState<CrewMember[]>([])
+  const [crewRoster, setCrewRoster] = useState<CrewMember[]>([])
+  const [selectedUserIds, setSelectedUserIds] = useState<Set<string>>(new Set())
+
   const variantSpec = useMemo(
     () => VARIANTS.find((v) => v.value === variant)!,
     [variant]
@@ -54,7 +77,18 @@ export function TestHarness({ ritualOptions }: { ritualOptions: RitualOption[] }
       setEventOptions(evs)
       setEventId((curr) => (evs.find((e) => e.id === curr) ? curr : evs[0]?.id ?? ''))
     })
+    listCrew(ritualId).then(setCrewRoster)
+    listCoreCrew(ritualId).then(setCoreCrewRoster)
+    setSelectedUserIds(new Set())
   }, [ritualId])
+
+  useEffect(() => {
+    if (!eventId) {
+      setAttendeeRoster([])
+      return
+    }
+    listAttendees(eventId).then(setAttendeeRoster)
+  }, [eventId])
 
   function build() {
     if (!ritualId) return
@@ -67,40 +101,106 @@ export function TestHarness({ ritualOptions }: { ritualOptions: RitualOption[] }
         recipientUserId: null,
       })
       setResult(r)
+      if (r.copy) {
+        setEditedSubject(r.copy.subject)
+        setEditedHeadline(r.copy.headline)
+        setEditedBody(r.copy.body)
+        setCopyDirty(false)
+      }
+      setPreviewHtml(r.html)
     })
   }
 
-  function sendTest() {
-    if (!result?.content) return
-    setSendStatus('Sending...')
+  function rerender() {
+    if (!result?.copy) return
+    setSendStatus(null)
     startTransition(async () => {
-      const r = await sendTestEmail({
+      const overlay: AiCopy = {
+        ...result.copy!,
+        subject: editedSubject,
+        headline: editedHeadline,
+        body: editedBody,
+      }
+      const r = await renderWithCopy({
         variant,
         ritualId,
         eventId: variantSpec.needs.event ? eventId : null,
         recipientUserId: null,
-        testAddress,
+        copy: overlay,
       })
-      setSendStatus(r.ok ? `Sent (${r.resendId?.slice(0, 8)})` : `Failed: ${r.error}`)
+      if (r.error) {
+        setSendStatus(`Render failed: ${r.error}`)
+      } else {
+        setPreviewHtml(r.html)
+        setCopyDirty(false)
+      }
     })
   }
 
-  function sendCrew() {
-    if (!result?.content) return
-    if (
-      !confirm(
-        `Send to ${result.recipients.length} real crew members? This bypasses rate limits.`
-      )
-    )
+  function resolveRecipients(): { to: string[]; audience: 'test_address' | 'attendees' | 'core_crew' | 'select' } | null {
+    if (recipientMode === 'test_address') {
+      return { to: [testAddress], audience: 'test_address' }
+    }
+    if (recipientMode === 'attendees') {
+      return {
+        to: attendeeRoster.map((r) => r.email).filter((e): e is string => !!e),
+        audience: 'attendees',
+      }
+    }
+    if (recipientMode === 'core_crew') {
+      return {
+        to: coreCrewRoster.map((r) => r.email).filter((e): e is string => !!e),
+        audience: 'core_crew',
+      }
+    }
+    if (recipientMode === 'select') {
+      return {
+        to: crewRoster
+          .filter((c) => selectedUserIds.has(c.userId))
+          .map((c) => c.email)
+          .filter((e): e is string => !!e),
+        audience: 'select',
+      }
+    }
+    return null
+  }
+
+  function send() {
+    const resolved = resolveRecipients()
+    if (!resolved) return
+    if (resolved.to.length === 0) {
+      setSendStatus('No recipients')
       return
-    if (!confirm('Are you really sure? Last chance.')) return
-    setSendStatus('Sending to crew...')
+    }
+    const overlay: AiCopy | null = result?.copy
+      ? copyDirty
+        ? {
+            ...result.copy,
+            subject: editedSubject,
+            headline: editedHeadline,
+            body: editedBody,
+          }
+        : null // no edits — skip override, send what was already rendered
+      : null
+
+    if (resolved.audience !== 'test_address') {
+      const ok = confirm(
+        `Send to ${resolved.to.length} recipient${resolved.to.length === 1 ? '' : 's'} (${resolved.audience})? This bypasses rate limits.`
+      )
+      if (!ok) return
+      if (!confirm('Are you really sure? Last chance.')) return
+    }
+
+    setSendStatus(resolved.audience === 'test_address' ? 'Sending...' : `Sending to ${resolved.audience}...`)
     startTransition(async () => {
-      const r = await sendToCrew({
+      const r = await sendCustom({
         variant,
         ritualId,
         eventId: variantSpec.needs.event ? eventId : null,
         recipientUserId: null,
+        to: resolved.to,
+        copyOverride: overlay,
+        audience: resolved.audience,
       })
       setSendStatus(
         r.ok
@@ -108,6 +208,20 @@ export function TestHarness({ ritualOptions }: { ritualOptions: RitualOption[] }
           : `Failed: ${r.error}`
       )
     })
+  }
+
+  function toggleUser(userId: string) {
+    setSelectedUserIds((curr) => {
+      const next = new Set(curr)
+      if (next.has(userId)) next.delete(userId)
+      else next.add(userId)
+      return next
+    })
+  }
+
+  function recipientCount(): number {
+    const r = resolveRecipients()
+    return r?.to.length ?? 0
   }
 
   return (
@@ -185,36 +299,90 @@ export function TestHarness({ ritualOptions }: { ritualOptions: RitualOption[] }
               >
                 <option value="preview">Preview only</option>
                 <option value="test_address">Send to test address</option>
-                <option value="real_crew">Send to real crew ({result.recipients.length})</option>
+                <option value="attendees" disabled={!eventId}>
+                  Attendees ({attendeeRoster.length})
+                </option>
+                <option value="core_crew">
+                  Core crew ({coreCrewRoster.length})
+                </option>
+                <option value="select">Select crew members…</option>
               </select>
             </Field>
 
             {recipientMode === 'test_address' ? (
-              <>
-                <Field label="Test address">
-                  <input
-                    value={testAddress}
-                    onChange={(e) => setTestAddress(e.target.value)}
-                    style={selectStyle}
-                  />
-                </Field>
-                <button
-                  onClick={sendTest}
-                  disabled={pending}
-                  style={{ ...buttonStyle, marginTop: '8px', width: '100%' }}
-                >
-                  Send test
-                </button>
-              </>
+              <Field label="Test address">
+                <input
+                  value={testAddress}
+                  onChange={(e) => setTestAddress(e.target.value)}
+                  style={selectStyle}
+                />
+              </Field>
             ) : null}
 
-            {recipientMode === 'real_crew' ? (
+            {recipientMode === 'select' ? (
+              <Field label={`Crew (${selectedUserIds.size}/${crewRoster.length} selected)`}>
+                <div
+                  style={{
+                    maxHeight: '180px',
+                    overflowY: 'auto',
+                    border: '1px solid #374151',
+                    borderRadius: '4px',
+                    padding: '6px',
+                    background: '#0a0a0a',
+                  }}
+                >
+                  {crewRoster.length === 0 ? (
+                    <div style={{ fontSize: '11px', color: '#6b7280' }}>No crew members.</div>
+                  ) : (
+                    crewRoster.map((c) => (
+                      <label
+                        key={c.userId}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          fontSize: '11px',
+                          color: c.email ? '#e5e7eb' : '#6b7280',
+                          padding: '3px 0',
+                          cursor: c.email ? 'pointer' : 'not-allowed',
+                          fontFamily: 'monospace',
+                        }}
+                      >
+                        <input
+                          type="checkbox"
+                          disabled={!c.email}
+                          checked={selectedUserIds.has(c.userId)}
+                          onChange={() => toggleUser(c.userId)}
+                        />
+                        <span>
+                          {c.name || '(no name)'}
+                          {c.isCoreCrew ? ' ★' : ''}
+                          {c.email ? '' : ' (no email)'}
+                        </span>
+                      </label>
+                    ))
+                  )}
+                </div>
+              </Field>
+            ) : null}
+
+            {recipientMode !== 'preview' ? (
               <button
-                onClick={sendCrew}
-                disabled={pending || result.recipients.length === 0}
-                style={{ ...buttonStyle, marginTop: '8px', width: '100%', backgroundColor: '#7f1d1d', borderColor: '#991b1b' }}
+                onClick={send}
+                disabled={pending || recipientCount() === 0}
+                style={{
+                  ...buttonStyle,
+                  marginTop: '8px',
+                  width: '100%',
+                  ...(recipientMode === 'test_address'
+                    ? {}
+                    : { backgroundColor: '#7f1d1d', borderColor: '#991b1b' }),
+                }}
               >
-                Send to crew ({result.recipients.length})
+                {recipientMode === 'test_address'
+                  ? 'Send test'
+                  : `Send to ${recipientCount()}`}
+                {copyDirty ? ' (with edits)' : ''}
               </button>
             ) : null}
 
@@ -229,9 +397,9 @@ export function TestHarness({ ritualOptions }: { ritualOptions: RitualOption[] }
 
       {/* Center — rendered email */}
       <main style={{ overflow: 'auto' }}>
-        {result?.html ? (
+        {previewHtml ? (
           <iframe
-            srcDoc={result.html}
+            srcDoc={previewHtml}
             style={{
               width: '100%',
               height: '85vh',
@@ -253,20 +421,61 @@ export function TestHarness({ ritualOptions }: { ritualOptions: RitualOption[] }
         ) : null}
       </main>
 
-      {/* Right — debug context */}
+      {/* Right — debug + editable copy */}
       <aside style={{ borderLeft: '1px solid #1f2937', paddingLeft: '16px', overflow: 'auto', maxHeight: '85vh' }}>
         <h2 style={{ fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.1em', color: '#6b7280', marginBottom: '12px' }}>
-          Debug
+          Debug · Edit copy
         </h2>
         {result?.copy ? (
           <>
-            <Section title="Subject">{result.copy.subject}</Section>
-            <Section title="Headline">{result.copy.headline}</Section>
-            <Section title="Body">{result.copy.body}</Section>
+            <EditableField label="Subject">
+              <input
+                value={editedSubject}
+                onChange={(e) => {
+                  setEditedSubject(e.target.value)
+                  setCopyDirty(true)
+                }}
+                style={inputStyle}
+              />
+            </EditableField>
+            <EditableField label="Headline">
+              <input
+                value={editedHeadline}
+                onChange={(e) => {
+                  setEditedHeadline(e.target.value)
+                  setCopyDirty(true)
+                }}
+                style={inputStyle}
+              />
+            </EditableField>
+            <EditableField label="Body">
+              <textarea
+                value={editedBody}
+                onChange={(e) => {
+                  setEditedBody(e.target.value)
+                  setCopyDirty(true)
+                }}
+                rows={6}
+                style={{ ...inputStyle, fontFamily: 'monospace', resize: 'vertical' }}
+              />
+            </EditableField>
+            <button
+              onClick={rerender}
+              disabled={pending || !copyDirty}
+              style={{
+                ...buttonStyle,
+                width: '100%',
+                marginBottom: '16px',
+                opacity: copyDirty ? 1 : 0.5,
+              }}
+            >
+              {copyDirty ? 'Re-render preview' : 'No edits'}
+            </button>
+
             <Section title="Tokens">
               in {result.copy.inputTokens} · out {result.copy.outputTokens}
             </Section>
-            <Section title="Recipients">
+            <Section title="Recipients (full crew)">
               <div style={{ fontSize: '11px', color: '#9ca3af', maxHeight: '120px', overflow: 'auto' }}>
                 {result.recipients.length === 0 ? '(none)' : result.recipients.join(', ')}
               </div>
@@ -279,7 +488,7 @@ export function TestHarness({ ritualOptions }: { ritualOptions: RitualOption[] }
             </Section>
           </>
         ) : (
-          <div style={{ fontSize: '12px', color: '#6b7280' }}>Build a preview to see debug info.</div>
+          <div style={{ fontSize: '12px', color: '#6b7280' }}>Build a preview to see and edit copy.</div>
         )}
       </aside>
     </div>
@@ -290,6 +499,17 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   return (
     <div style={{ marginBottom: '12px' }}>
       <div style={{ fontSize: '11px', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '4px' }}>
+        {label}
+      </div>
+      {children}
+    </div>
+  )
+}
+
+function EditableField({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div style={{ marginBottom: '10px' }}>
+      <div style={{ fontSize: '10px', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '4px' }}>
         {label}
       </div>
       {children}
@@ -317,6 +537,17 @@ const selectStyle: React.CSSProperties = {
   padding: '8px',
   fontSize: '12px',
   fontFamily: 'monospace',
+}
+const inputStyle: React.CSSProperties = {
+  width: '100%',
+  backgroundColor: '#0a0a0a',
+  color: '#e5e7eb',
+  border: '1px solid #374151',
+  borderRadius: '4px',
+  padding: '6px 8px',
+  fontSize: '12px',
+  fontFamily: 'monospace',
+  boxSizing: 'border-box',
 }
 const buttonStyle: React.CSSProperties = {
   backgroundColor: '#1f2937',

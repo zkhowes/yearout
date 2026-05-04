@@ -57,7 +57,7 @@ Yearout is a mobile-first web app that manages the full lifecycle of recurring g
 
 ## Kanban
 
-> Last updated: 2026-05-03 (PM)
+> Last updated: 2026-05-03 (evening)
 
 ### Backlog
 - [ ] Trip templates (pre-populated checklists, pack lists, result fields)
@@ -84,6 +84,8 @@ Yearout is a mobile-first web app that manages the full lifecycle of recurring g
 ### In Progress
 
 ### Done
+- [x] **Admin Test Harness — editable copy + richer recipient modes** — debug pane now edits Subject/Headline/Body inline with a re-render-without-AI button; recipient modes expanded to Attendees / Core crew / Select crew members; new `sendCustom` action carries `copyOverride` for hand-edited sends, tags Resend with `audience` + `edited` flags
+- [x] **The Call — Stage 6 chapter-number hallucination fix** — system prompt now forbids numbered "Chapter N" framing and clarifies the years-run figure is duration, not an index; Stage 6 user prompt drops "chapter" wording in favor of "year"/"trip" and tells the model the actual event name and year to use
 - [x] **The Call — Stage 6 hallucination fix** — fact-contract added to system prompt forbidding any proper noun outside the Context block; Stage 6 now feeds real prior chapters from DB (`Stage6MythologyContent.priorChapters`); `temperature: 0.6`, `max_tokens: 320` on Haiku 4.5
 - [x] **The Skald** (persona) — guide character replacing all user-facing "AI-generated" copy; voice = memento mori sage; `lib/skald/`, `<Rune>`, `<SkaldSpeaks>`; reused across Settings rewrite, The Call loaders, ritual creation, bulk history
 - [x] **ZKH-21** Cold-start onboarding helper — two-door `/new` (named vs help); helped flow is multi-turn Skald conversation that emits candidate names organically; reuses existing `/api/ritual/infer` with new optional `context` field; new `/api/ritual/skald-converse` endpoint with prompt caching + per-phase fallbacks
