@@ -56,7 +56,11 @@ export default function NewRitualNamedPage() {
     if (!inference) return
     setStage('creating')
     try {
-      const { slug, inviteToken } = await createRitual(inference, name.trim())
+      const { slug, inviteToken } = await createRitual(
+        inference,
+        name.trim(),
+        { logoUrl: logoPreview ?? null },
+      )
       const base = process.env.NEXT_PUBLIC_APP_URL ?? ''
       setInviteLink(`${base}/join/${inviteToken}`)
       setCreatedSlug(slug)

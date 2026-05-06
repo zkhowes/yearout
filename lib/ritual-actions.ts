@@ -1,7 +1,7 @@
 'use server'
 
 import { db } from '@/db'
-import { rituals, ritualAwardDefinitions, ritualMembers } from '@/db/schema'
+import { rituals, ritualAwardDefinitions, ritualMembers, ritualActivityTemplates, isBuiltinActivityType } from '@/db/schema'
 import { awards, awardVotes, eventAwardLinks } from '@/db/schema/events'
 import { auth } from '@/auth'
 import { redirect } from 'next/navigation'
@@ -99,12 +99,13 @@ export async function joinRitual(token: string) {
 export async function createRitual(
   inference: RitualInference,
   name: string,
-  overrides?: Partial<RitualInference>
+  extras?: { logoUrl?: string | null },
+  overrides?: Partial<RitualInference>,
 ) {
   const session = await auth()
   if (!session?.user?.id) redirect('/login')
 
-  const data = { ...inference, ...overrides, name }
+  const data = { ...inference, ...overrides, name, logoUrl: extras?.logoUrl ?? null }
 
   // Ensure slug is unique
   const base = data.slug
@@ -130,9 +131,28 @@ export async function createRitual(
     activityType: data.activityType,
     theme: data.theme,
     tagline: data.tagline,
+    logoUrl: data.logoUrl ?? null,
     inviteToken,
     createdAt: new Date(),
   })
+
+  // If the inferred activity is a custom (non-builtin) slug, register a per-ritual
+  // template row so this ritual "owns" that activity locally. A future admin
+  // review queue may promote it to global.
+  if (!isBuiltinActivityType(data.activityType)) {
+    await db
+      .insert(ritualActivityTemplates)
+      .values({
+        id: crypto.randomUUID(),
+        ritualId,
+        slug: data.activityType,
+        label: data.activityLabel ?? data.activityType,
+        emoji: null,
+        createdBy: session.user.id,
+        createdAt: new Date(),
+      })
+      .onConflictDoNothing()
+  }
 
   // Awards — 0 is valid (e.g. family trips), first = mvp, second = lup, rest = custom
   const awardTypes = ['mvp', 'lup'] as const

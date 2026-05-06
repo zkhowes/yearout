@@ -34,7 +34,9 @@ import { updateRitual, joinRitual, createRitual } from '@/lib/ritual-actions'
 const SESSION = { user: { id: 'user-1', email: 'z@z.com' } }
 
 const INFERENCE = {
-  activityType: 'ski' as const,
+  activityType: 'ski',
+  activityLabel: 'Ski',
+  isCustomActivity: false,
   theme: 'circuit' as const,
   tagline: 'No brakes, all glory',
   awards: ['MVP', 'The Totem'],

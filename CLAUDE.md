@@ -57,7 +57,7 @@ Yearout is a mobile-first web app that manages the full lifecycle of recurring g
 
 ## Kanban
 
-> Last updated: 2026-05-03 (evening)
+> Last updated: 2026-05-06
 
 ### Backlog
 - [ ] Trip templates (pre-populated checklists, pack lists, result fields)
@@ -84,6 +84,9 @@ Yearout is a mobile-first web app that manages the full lifecycle of recurring g
 ### In Progress
 
 ### Done
+- [x] **Skald single-shot intake** — `/new/help` is now one textarea → one `/api/ritual/skald-distill` call returning acknowledgement + 3 candidate names + activity. Replaces the 4-phase chat. Old `/api/ritual/skald-converse` left in place but unused
+- [x] **Custom activity templates** — `rituals.activity_type` migrated from `pgenum` to plain text; new `ritual_activity_templates` table scoped per-ritual auto-populates when Skald infers a non-builtin activity (e.g. "sailing"). Confirm screen surfaces "The activity I heard" with a "new template" hint when custom. Admin promote/reject queue tracked as **ZKH-32**
+- [x] **Skald logo generation (Nano Banana)** — `/api/ritual/generate-logo` calls `gemini-2.5-flash-image-preview` with prompt informed by name + tagline + activity + theme + intake context; uploads to Vercel Blob. New "Have the Skald draft one / redraw" button on confirm screen. Requires `GEMINI_API_KEY` env
 - [x] **Admin Test Harness — editable copy + richer recipient modes** — debug pane now edits Subject/Headline/Body inline with a re-render-without-AI button; recipient modes expanded to Attendees / Core crew / Select crew members; new `sendCustom` action carries `copyOverride` for hand-edited sends, tags Resend with `audience` + `edited` flags
 - [x] **The Call — Stage 6 chapter-number hallucination fix** — system prompt now forbids numbered "Chapter N" framing and clarifies the years-run figure is duration, not an index; Stage 6 user prompt drops "chapter" wording in favor of "year"/"trip" and tells the model the actual event name and year to use
 - [x] **The Call — Stage 6 hallucination fix** — fact-contract added to system prompt forbidding any proper noun outside the Context block; Stage 6 now feeds real prior chapters from DB (`Stage6MythologyContent.priorChapters`); `temperature: 0.6`, `max_tokens: 320` on Haiku 4.5

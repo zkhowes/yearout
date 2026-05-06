@@ -1,7 +1,9 @@
-import { pgTable, text, timestamp, pgEnum } from 'drizzle-orm/pg-core'
+import { pgTable, text, timestamp, pgEnum, uniqueIndex } from 'drizzle-orm/pg-core'
 import { users } from './users'
 
-export const activityTypeEnum = pgEnum('activity_type', [
+// Built-in activity slugs the app has emoji/labels for. Stored as plain text
+// now (not an enum) so per-ritual custom activities (e.g. "sailing") are valid.
+export const BUILTIN_ACTIVITY_TYPES = [
   'ski',
   'golf',
   'mountain_biking',
@@ -10,7 +12,8 @@ export const activityTypeEnum = pgEnum('activity_type', [
   'family',
   'girls_trip',
   'other',
-])
+] as const
+export type BuiltinActivityType = (typeof BUILTIN_ACTIVITY_TYPES)[number]
 
 export const themeEnum = pgEnum('theme', [
   'circuit', // The Circuit theme (dark, gold, ski/adventure)
@@ -24,7 +27,9 @@ export const rituals = pgTable('rituals', {
   name: text('name').notNull(),
   slug: text('slug').notNull().unique(), // e.g. "torturetour" → yearout.zkhowes.fun/torturetour
   sponsorId: text('sponsor_id').notNull().references(() => users.id),
-  activityType: activityTypeEnum('activity_type').notNull(),
+  // Free-text slug so per-ritual activities (e.g. "sailing") work without enum migration each time.
+  // Use isBuiltinActivityType() if you need the curated set.
+  activityType: text('activity_type').notNull(),
   theme: themeEnum('theme').notNull(),
   tagline: text('tagline'),
   logoUrl: text('logo_url'),
@@ -36,6 +41,29 @@ export const rituals = pgTable('rituals', {
   inviteToken: text('invite_token').notNull().unique(), // shared link token
   createdAt: timestamp('created_at', { mode: 'date' }).defaultNow().notNull(),
 })
+
+// Per-ritual templates for custom activities the user introduces (e.g. "sailing").
+// Scope: ritualId is required — these are not global. An admin promotion flow
+// will later move approved entries into the curated/global set.
+export const ritualActivityTemplates = pgTable(
+  'ritual_activity_templates',
+  {
+    id: text('id').primaryKey(),
+    ritualId: text('ritual_id').notNull().references(() => rituals.id, { onDelete: 'cascade' }),
+    slug: text('slug').notNull(),       // lowercased, e.g. "sailing"
+    label: text('label').notNull(),     // display, e.g. "Sailing"
+    emoji: text('emoji'),               // optional, picked at creation
+    createdBy: text('created_by').notNull().references(() => users.id),
+    createdAt: timestamp('created_at', { mode: 'date' }).defaultNow().notNull(),
+  },
+  (t) => ({
+    ritualSlugUq: uniqueIndex('ritual_activity_templates_ritual_slug_uq').on(t.ritualId, t.slug),
+  }),
+)
+
+export function isBuiltinActivityType(slug: string): slug is BuiltinActivityType {
+  return (BUILTIN_ACTIVITY_TYPES as readonly string[]).includes(slug)
+}
 
 export const ritualAwardDefinitions = pgTable('ritual_award_definitions', {
   id: text('id').primaryKey(),

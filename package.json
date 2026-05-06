@@ -19,6 +19,7 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.78.0",
     "@auth/drizzle-adapter": "^1.11.1",
+    "@google/genai": "^1.52.0",
     "@neondatabase/serverless": "^1.0.2",
     "@react-email/components": "^0.5.7",
     "@vercel/blob": "^2.3.0",

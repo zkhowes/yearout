@@ -1,11 +1,11 @@
 'use client'
 
-import { useRef } from 'react'
+import { useRef, useState } from 'react'
 import { motion } from 'framer-motion'
-import { ArrowRight, Loader2, Pencil, Plus, X, Upload } from 'lucide-react'
-import { Rune } from '@/components/skald/rune'
+import { ArrowRight, Loader2, Pencil, Plus, X, Upload, RefreshCw, Sparkles } from 'lucide-react'
 import { SkaldSpeaks } from '@/components/skald/skald-speaks'
 import type { RitualInference } from '@/app/api/ritual/infer/route'
+import type { GenerateLogoResponse } from '@/app/api/ritual/generate-logo/route'
 
 const ACTIVITY_LABELS: Record<string, string> = {
   ski: '⛷️  Ski / Snow',
@@ -39,6 +39,9 @@ type Props = {
   setLogoPreview: (v: string | null) => void
   creating: boolean
   onCreate: () => void
+  // Optional freeform context from the Skald conversation — fed to the logo
+  // generator so it can lean on inside-jokes and vibe.
+  intakeContext?: string
 }
 
 export function ConfirmScreen({
@@ -51,8 +54,11 @@ export function ConfirmScreen({
   setLogoPreview,
   creating,
   onCreate,
+  intakeContext,
 }: Props) {
   const logoInputRef = useRef<HTMLInputElement>(null)
+  const [draftingLogo, setDraftingLogo] = useState(false)
+  const [logoError, setLogoError] = useState('')
 
   function handleLogoSelect(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -60,6 +66,35 @@ export function ConfirmScreen({
     const reader = new FileReader()
     reader.onload = (ev) => setLogoPreview(ev.target?.result as string)
     reader.readAsDataURL(file)
+  }
+
+  async function draftLogo() {
+    if (draftingLogo) return
+    setDraftingLogo(true)
+    setLogoError('')
+    try {
+      const res = await fetch('/api/ritual/generate-logo', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ritualName: name,
+          tagline: inference.tagline,
+          activityLabel: inference.activityLabel,
+          theme: inference.theme,
+          context: intakeContext,
+        }),
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error(data.error ?? 'Logo generation failed')
+      }
+      const data: GenerateLogoResponse = await res.json()
+      setLogoPreview(data.url)
+    } catch (err) {
+      setLogoError(err instanceof Error ? err.message : 'Logo generation failed')
+    } finally {
+      setDraftingLogo(false)
+    }
   }
 
   function addAward() {
@@ -76,6 +111,19 @@ export function ConfirmScreen({
     setInference({ ...inference, awards: next })
   }
 
+  // Activity options: all builtins, plus the custom one if it isn't already
+  // in the builtin list. Pinned to the front when custom.
+  const activityOptions: { key: string; label: string }[] = []
+  if (inference.isCustomActivity) {
+    activityOptions.push({
+      key: inference.activityType,
+      label: `✨  ${inference.activityLabel}`,
+    })
+  }
+  for (const [k, lbl] of Object.entries(ACTIVITY_LABELS)) {
+    activityOptions.push({ key: k, label: lbl })
+  }
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 16 }}
@@ -85,6 +133,23 @@ export function ConfirmScreen({
       <SkaldSpeaks tone="brief">
         I drafted these from what I know. Edit anything that is off.
       </SkaldSpeaks>
+
+      {/* Activity recognition banner */}
+      <div className="flex flex-col gap-2 px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)]">
+        <span className="text-xs uppercase tracking-widest text-[var(--fg-muted)]">
+          The activity I heard
+        </span>
+        <div className="flex items-baseline gap-2 flex-wrap">
+          <span className="text-lg font-semibold text-[var(--fg)]">
+            {inference.activityLabel}
+          </span>
+          {inference.isCustomActivity && (
+            <span className="text-xs text-[var(--fg-muted)]">
+              — new to my templates. I&apos;ll set it up for your ritual.
+            </span>
+          )}
+        </div>
+      </div>
 
       {/* Tagline */}
       <div className="flex flex-col gap-1">
@@ -108,14 +173,24 @@ export function ConfirmScreen({
         )}
       </div>
 
-      {/* Activity */}
+      {/* Activity picker — includes custom slug at the front when present */}
       <div className="flex flex-col gap-2">
         <span className="text-xs uppercase tracking-widest text-[var(--fg-muted)]">Activity</span>
         <div className="flex flex-wrap gap-2">
-          {Object.entries(ACTIVITY_LABELS).map(([key, label]) => (
+          {activityOptions.map(({ key, label }) => (
             <button
               key={key}
-              onClick={() => setInference({ ...inference, activityType: key as RitualInference['activityType'] })}
+              onClick={() => {
+                const isBuiltin = key in ACTIVITY_LABELS
+                setInference({
+                  ...inference,
+                  activityType: key,
+                  activityLabel: isBuiltin
+                    ? label.replace(/^[^\s]+\s+/, '')
+                    : inference.activityLabel,
+                  isCustomActivity: !isBuiltin,
+                })
+              }}
               className={`px-3 py-2 rounded-full text-sm border transition-colors ${
                 inference.activityType === key
                   ? 'border-[var(--fg)] bg-[var(--fg)] text-[var(--bg)]'
@@ -162,9 +237,13 @@ export function ConfirmScreen({
         <span className="text-xs uppercase tracking-widest text-[var(--fg-muted)]">Logo</span>
         <div className="flex items-center gap-4">
           <div className="w-16 h-16 rounded-xl border-2 border-dashed border-[var(--border)] bg-[var(--surface)] flex items-center justify-center shrink-0 overflow-hidden">
-            {logoPreview
-              ? <img src={logoPreview} alt="Logo" className="w-full h-full object-cover" />
-              : <span className="text-2xl select-none opacity-40">⬡</span>}
+            {draftingLogo ? (
+              <Loader2 size={20} className="animate-spin text-[var(--fg-muted)]" />
+            ) : logoPreview ? (
+              <img src={logoPreview} alt="Logo" className="w-full h-full object-cover" />
+            ) : (
+              <span className="text-2xl select-none opacity-40">⬡</span>
+            )}
           </div>
           <div className="flex flex-col gap-2">
             <input
@@ -175,20 +254,27 @@ export function ConfirmScreen({
               className="hidden"
             />
             <button
+              onClick={draftLogo}
+              disabled={draftingLogo}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--fg)] text-[var(--bg)] text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
+            >
+              {draftingLogo ? (
+                <><Loader2 size={14} className="animate-spin" /> The Skald draws…</>
+              ) : logoPreview ? (
+                <><RefreshCw size={14} /> Have the Skald redraw</>
+              ) : (
+                <><Sparkles size={14} /> Have the Skald draft one</>
+              )}
+            </button>
+            <button
               onClick={() => logoInputRef.current?.click()}
               className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-[var(--border)] text-sm text-[var(--fg)] hover:border-[var(--fg-muted)] transition-colors"
             >
               <Upload size={14} /> Upload your own
             </button>
-            <button
-              disabled
-              className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-[var(--border)] text-sm text-[var(--fg-muted)] opacity-40 cursor-not-allowed"
-              title="The Skald cannot draw yet. Coming."
-            >
-              <Rune size={14} /> Have the Skald draft one. Coming soon.
-            </button>
           </div>
         </div>
+        {logoError && <p className="text-xs text-red-500">{logoError}</p>}
         <p className="text-xs text-[var(--fg-muted)]">You can always update this from your ritual settings.</p>
       </div>
 

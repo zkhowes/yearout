@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { useState } from 'react'
+import { motion } from 'framer-motion'
 import { Loader2, ArrowRight, Send } from 'lucide-react'
 import { createRitual } from '@/lib/ritual-actions'
 import { SkaldSpeaks } from '@/components/skald/skald-speaks'
@@ -9,31 +9,20 @@ import { ConfirmScreen } from '@/components/new-ritual/confirm-screen'
 import { DoneScreen } from '@/components/new-ritual/done-screen'
 import { Rune } from '@/components/skald/rune'
 import { SKALD_LOADERS } from '@/lib/skald/voice'
-import type {
-  SkaldMessage,
-  SkaldPhase,
-  SkaldConverseResponse,
-} from '@/app/api/ritual/skald-converse/route'
+import type { SkaldDistillResponse } from '@/app/api/ritual/skald-distill/route'
 import type { RitualInference } from '@/app/api/ritual/infer/route'
 
-const OPENING_GREETING =
-  'Tell me about your crew. What do you do together when you escape the world? Activity, place, the people. As short or long as you like.'
+const PROMPT_LABEL =
+  'Tell me about your crew and your trip. Activity, place, the years, the people, any inside jokes — short or long, your choice.'
 
-const PHASE_ORDER: SkaldPhase[] = ['activity', 'years', 'phrase', 'naming']
-
-type Stage = 'chat' | 'confirm' | 'creating' | 'done'
+type Stage = 'intake' | 'distilling' | 'naming' | 'inferring' | 'confirm' | 'creating' | 'done'
 
 export default function NewRitualHelpPage() {
-  const [stage, setStage] = useState<Stage>('chat')
-  const [messages, setMessages] = useState<SkaldMessage[]>([
-    { role: 'assistant', content: OPENING_GREETING },
-  ])
-  const [phaseIndex, setPhaseIndex] = useState(0)
-  const [input, setInput] = useState('')
-  const [thinking, setThinking] = useState(false)
-  const [candidates, setCandidates] = useState<string[]>([])
-  const [pickedName, setPickedName] = useState<string>('')
-
+  const [stage, setStage] = useState<Stage>('intake')
+  const [intake, setIntake] = useState('')
+  const [distill, setDistill] = useState<SkaldDistillResponse | null>(null)
+  const [pickedName, setPickedName] = useState('')
+  const [customName, setCustomName] = useState('')
   const [inference, setInference] = useState<RitualInference | null>(null)
   const [editingTagline, setEditingTagline] = useState(false)
   const [logoPreview, setLogoPreview] = useState<string | null>(null)
@@ -41,100 +30,53 @@ export default function NewRitualHelpPage() {
   const [createdSlug, setCreatedSlug] = useState('')
   const [error, setError] = useState('')
 
-  const scrollRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' })
-  }, [messages, thinking, candidates])
-
-  async function sendUserTurn() {
-    const trimmed = input.trim()
-    if (!trimmed || thinking) return
-    if (phaseIndex >= PHASE_ORDER.length) return
-
-    const phase = PHASE_ORDER[phaseIndex]
-    const nextMessages: SkaldMessage[] = [
-      ...messages,
-      { role: 'user', content: trimmed },
-    ]
-    setMessages(nextMessages)
-    setInput('')
-    setThinking(true)
-    setError('')
-
-    try {
-      const res = await fetch('/api/ritual/skald-converse', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: nextMessages, phase }),
-      })
-      if (!res.ok) throw new Error('Skald failed')
-      const data: SkaldConverseResponse = await res.json()
-
-      setMessages((prev) => [
-        ...prev,
-        { role: 'assistant', content: data.assistantText },
-      ])
-      if (data.candidateNames && data.candidateNames.length > 0) {
-        setCandidates((prev) => [...prev, ...data.candidateNames!])
-      }
-      setPhaseIndex((i) => i + 1)
-    } catch {
-      setError('The Skald lost the thread. Try again.')
-    } finally {
-      setThinking(false)
-    }
-  }
-
-  async function rerollNames() {
-    if (thinking) return
-    setThinking(true)
+  async function distillIntake() {
+    const text = intake.trim()
+    if (text.length < 4) return
+    setStage('distilling')
     setError('')
     try {
-      const res = await fetch('/api/ritual/skald-converse', {
+      const res = await fetch('/api/ritual/skald-distill', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages, phase: 'naming' as SkaldPhase }),
+        body: JSON.stringify({ intake: text }),
       })
-      if (!res.ok) throw new Error('Skald failed')
-      const data: SkaldConverseResponse = await res.json()
-      setMessages((prev) => [
-        ...prev,
-        { role: 'assistant', content: data.assistantText },
-      ])
-      if (data.candidateNames) {
-        setCandidates((prev) => [...prev, ...data.candidateNames!])
-      }
+      if (!res.ok) throw new Error('distill failed')
+      const data: SkaldDistillResponse = await res.json()
+      setDistill(data)
+      setStage('naming')
     } catch {
       setError('The Skald lost the thread. Try again.')
-    } finally {
-      setThinking(false)
+      setStage('intake')
     }
   }
 
   async function lockName(name: string) {
+    if (!distill) return
     setPickedName(name)
-    setStage('confirm')
+    setStage('inferring')
     setError('')
-    // Build distilled context from the conversation: only user-authored turns.
-    const distilled = messages
-      .filter((m) => m.role === 'user')
-      .map((m) => m.content.trim())
-      .filter((s) => s.length > 0)
-      .join(' / ')
-
     try {
       const res = await fetch('/api/ritual/infer', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, context: distilled }),
+        body: JSON.stringify({ name, context: intake }),
       })
-      if (!res.ok) throw new Error('Inference failed')
+      if (!res.ok) throw new Error('infer failed')
       const data: RitualInference = await res.json()
-      setInference(data)
+      // Trust the distill result for activity (it had the full intake context).
+      // The inference call may classify differently with just the name; prefer distill.
+      const merged: RitualInference = {
+        ...data,
+        activityType: distill.activityType,
+        activityLabel: distill.activityLabel,
+        isCustomActivity: distill.isCustomActivity,
+      }
+      setInference(merged)
+      setStage('confirm')
     } catch {
       setError('Could not draft suggestions. Try again.')
-      setStage('chat')
+      setStage('naming')
     }
   }
 
@@ -142,7 +84,11 @@ export default function NewRitualHelpPage() {
     if (!inference || !pickedName) return
     setStage('creating')
     try {
-      const { slug, inviteToken } = await createRitual(inference, pickedName.trim())
+      const { slug, inviteToken } = await createRitual(
+        inference,
+        pickedName.trim(),
+        { logoUrl: logoPreview ?? null },
+      )
       const base = process.env.NEXT_PUBLIC_APP_URL ?? ''
       setInviteLink(`${base}/join/${inviteToken}`)
       setCreatedSlug(slug)
@@ -163,13 +109,13 @@ export default function NewRitualHelpPage() {
     )
   }
 
-  if (stage === 'confirm' || stage === 'creating') {
+  if (stage === 'confirm' || stage === 'creating' || stage === 'inferring') {
     return (
       <div
         className="max-w-2xl mx-auto px-4 min-h-[70vh] flex flex-col justify-center gap-10 py-8"
         style={{ paddingTop: 'calc(var(--header-height) + 24px)' }}
       >
-        {!inference ? (
+        {!inference || stage === 'inferring' ? (
           <div className="flex items-center gap-2 text-sm text-[var(--fg-muted)]">
             <Loader2 size={14} className="animate-spin" />
             {SKALD_LOADERS.readingRunes}
@@ -185,6 +131,7 @@ export default function NewRitualHelpPage() {
             setLogoPreview={setLogoPreview}
             creating={stage === 'creating'}
             onCreate={handleCreate}
+            intakeContext={intake}
           />
         )}
         {error && <p className="text-sm text-red-500">{error}</p>}
@@ -192,117 +139,123 @@ export default function NewRitualHelpPage() {
     )
   }
 
-  // Chat stage
-  const showCandidates = candidates.length > 0
-  const inputDisabled = thinking || phaseIndex >= PHASE_ORDER.length
+  if (stage === 'naming' && distill) {
+    return (
+      <div
+        className="max-w-2xl mx-auto px-4 min-h-[70vh] flex flex-col gap-8 py-8"
+        style={{ paddingTop: 'calc(var(--header-height) + 24px)' }}
+      >
+        <SkaldSpeaks tone="oration">{distill.acknowledgement}</SkaldSpeaks>
 
+        <div className="flex flex-col gap-2">
+          <span className="text-xs uppercase tracking-widest text-[var(--fg-muted)]">
+            Activity
+          </span>
+          <span className="text-sm text-[var(--fg)]">
+            I hear you — this is a <span className="font-semibold">{distill.activityLabel}</span> ritual.
+            {distill.isCustomActivity && (
+              <span className="text-[var(--fg-muted)]"> Not in my templates yet. I&apos;ll set it up for your ritual.</span>
+            )}
+          </span>
+        </div>
+
+        <div className="flex flex-col gap-3">
+          <span className="text-xs uppercase tracking-widest text-[var(--fg-muted)]">
+            Pick a name — or speak your own.
+          </span>
+          <div className="flex flex-wrap gap-2">
+            {distill.candidateNames.map((name) => (
+              <button
+                key={name}
+                onClick={() => lockName(name)}
+                className="px-4 py-2 rounded-full border border-[var(--border)] text-sm text-[var(--fg)] hover:border-[var(--fg)] hover:bg-[var(--surface)] transition-colors"
+              >
+                {name}
+              </button>
+            ))}
+          </div>
+          <div className="flex items-center gap-2 mt-2">
+            <input
+              type="text"
+              value={customName}
+              onChange={(e) => setCustomName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && customName.trim()) lockName(customName.trim())
+              }}
+              placeholder="Or type your own name…"
+              className="flex-1 bg-transparent border-b border-[var(--border)] focus:border-[var(--fg)] outline-none text-base text-[var(--fg)] placeholder-[var(--fg-muted)] py-2"
+            />
+            <button
+              onClick={() => customName.trim() && lockName(customName.trim())}
+              disabled={!customName.trim()}
+              className="flex items-center gap-1.5 px-4 py-2 rounded-lg btn-accent text-sm font-semibold disabled:opacity-50"
+            >
+              Lock it <ArrowRight size={14} />
+            </button>
+          </div>
+        </div>
+
+        {error && <p className="text-sm text-red-500">{error}</p>}
+      </div>
+    )
+  }
+
+  // Intake stage
   return (
     <div
       className="max-w-2xl mx-auto px-4 min-h-[70vh] flex flex-col gap-6 py-8"
       style={{ paddingTop: 'calc(var(--header-height) + 24px)' }}
     >
-      <div ref={scrollRef} className="flex-1 flex flex-col gap-6 overflow-y-auto">
-        <AnimatePresence initial={false}>
-          {messages.map((m, i) => (
-            <motion.div
-              key={i}
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="flex flex-col gap-1"
-            >
-              {m.role === 'assistant' ? (
-                <SkaldSpeaks tone="oration">{m.content}</SkaldSpeaks>
-              ) : (
-                <div className="self-end max-w-[85%] px-4 py-2.5 rounded-2xl bg-[var(--surface)] border border-[var(--border)] text-sm text-[var(--fg)] whitespace-pre-wrap">
-                  {m.content}
-                </div>
-              )}
-            </motion.div>
-          ))}
-        </AnimatePresence>
+      <SkaldSpeaks tone="oration">{PROMPT_LABEL}</SkaldSpeaks>
 
-        {thinking && (
-          <div className="flex items-center gap-2 text-sm text-[var(--fg-muted)]">
-            <Rune size={14} />
-            <Loader2 size={12} className="animate-spin" />
-            {SKALD_LOADERS.listening}
-          </div>
-        )}
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="flex flex-col gap-3"
+      >
+        <textarea
+          autoFocus
+          value={intake}
+          onChange={(e) => setIntake(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+              e.preventDefault()
+              distillIntake()
+            }
+          }}
+          placeholder="Six of us. Annual ski trip to Utah, started after college. Curse the bindings, lose money on parlays. We call it the Tour…"
+          rows={8}
+          disabled={stage === 'distilling'}
+          className="w-full bg-[var(--surface)] border border-[var(--border)] rounded-2xl px-4 py-3 text-base text-[var(--fg)] placeholder-[var(--fg-muted)] outline-none focus:border-[var(--fg-muted)] resize-y disabled:opacity-50"
+        />
+        <div className="flex items-center justify-between gap-3">
+          <span className="text-xs text-[var(--fg-muted)]">⌘/Ctrl+Enter to send</span>
+          <button
+            onClick={distillIntake}
+            disabled={intake.trim().length < 4 || stage === 'distilling'}
+            className="flex items-center gap-1.5 px-4 py-2.5 rounded-lg btn-accent text-sm font-semibold disabled:opacity-50"
+          >
+            {stage === 'distilling' ? (
+              <>
+                <Loader2 size={14} className="animate-spin" /> {SKALD_LOADERS.listening}
+              </>
+            ) : (
+              <>
+                <Send size={14} /> Send to the Skald
+              </>
+            )}
+          </button>
+        </div>
+      </motion.div>
 
-        {showCandidates && (
-          <div className="flex flex-col gap-3 mt-2">
-            <span className="text-xs uppercase tracking-widest text-[var(--fg-muted)]">
-              Pick a name — or speak your own.
-            </span>
-            <div className="flex flex-wrap gap-2">
-              {Array.from(new Set(candidates)).map((cand) => (
-                <button
-                  key={cand}
-                  onClick={() => lockName(cand)}
-                  disabled={thinking}
-                  className="px-4 py-2 rounded-full border border-[var(--border)] text-sm text-[var(--fg)] hover:border-[var(--fg)] hover:bg-[var(--surface)] transition-colors disabled:opacity-50"
-                >
-                  {cand}
-                </button>
-              ))}
-              <button
-                onClick={rerollNames}
-                disabled={thinking}
-                className="px-4 py-2 rounded-full border border-dashed border-[var(--border)] text-sm text-[var(--fg-muted)] hover:text-[var(--fg)] hover:border-[var(--fg-muted)] transition-colors disabled:opacity-50"
-              >
-                Three more
-              </button>
-            </div>
-            <div className="flex items-center gap-2">
-              <input
-                type="text"
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                placeholder="Or type your own name…"
-                className="flex-1 bg-transparent border-b border-[var(--border)] focus:border-[var(--fg)] outline-none text-base text-[var(--fg)] placeholder-[var(--fg-muted)] py-2"
-              />
-              <button
-                onClick={() => input.trim() && lockName(input.trim())}
-                disabled={!input.trim() || thinking}
-                className="flex items-center gap-1.5 px-4 py-2 rounded-lg btn-accent text-sm font-semibold disabled:opacity-50"
-              >
-                Lock it <ArrowRight size={14} />
-              </button>
-            </div>
-          </div>
-        )}
-
-        {error && <p className="text-sm text-red-500">{error}</p>}
-      </div>
-
-      {!showCandidates && (
-        <div className="sticky bottom-0 bg-[var(--bg)] pt-2">
-          <div className="flex items-end gap-2">
-            <textarea
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault()
-                  sendUserTurn()
-                }
-              }}
-              placeholder="Speak…"
-              rows={2}
-              disabled={inputDisabled}
-              className="flex-1 bg-[var(--surface)] border border-[var(--border)] rounded-2xl px-4 py-3 text-base text-[var(--fg)] placeholder-[var(--fg-muted)] outline-none focus:border-[var(--fg-muted)] resize-none disabled:opacity-50"
-            />
-            <button
-              onClick={sendUserTurn}
-              disabled={!input.trim() || inputDisabled}
-              className="p-3 rounded-2xl btn-accent disabled:opacity-50"
-              aria-label="Send"
-            >
-              <Send size={16} />
-            </button>
-          </div>
+      {stage === 'distilling' && (
+        <div className="flex items-center gap-2 text-sm text-[var(--fg-muted)]">
+          <Rune size={14} />
+          {SKALD_LOADERS.listening}
         </div>
       )}
+
+      {error && <p className="text-sm text-red-500">{error}</p>}
     </div>
   )
 }
