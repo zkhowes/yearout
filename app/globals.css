@@ -127,6 +127,16 @@ body {
   .btn-accent:hover {
     opacity: 0.9;
   }
+
+  .btn-outline {
+    background-color: transparent;
+    color: var(--fg);
+    border: 1px solid var(--fg);
+  }
+  .btn-outline:hover {
+    background-color: var(--fg);
+    color: var(--bg);
+  }
 }
 
 @keyframes fab-menu-in {

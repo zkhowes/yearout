@@ -8,6 +8,7 @@ export default auth((req) => {
   const isLoggedIn = !!session
   const isAdminRoute = nextUrl.pathname.startsWith('/admin')
   const isLoginRoute = nextUrl.pathname === '/login'
+  const isLandingRoute = nextUrl.pathname === '/'
   const isApiRoute = nextUrl.pathname.startsWith('/api')
 
   // Let API routes through — Auth.js handles its own
@@ -18,8 +19,9 @@ export default auth((req) => {
     return NextResponse.redirect(new URL('/', nextUrl))
   }
 
-  // Redirect unauthenticated users to /login
-  if (!isLoginRoute && !isAdminRoute && !isLoggedIn) {
+  // Redirect unauthenticated users to /login — except for the public
+  // landing page at `/`, which renders its own signed-out tree.
+  if (!isLoginRoute && !isLandingRoute && !isAdminRoute && !isLoggedIn) {
     return NextResponse.redirect(new URL('/login', nextUrl))
   }
 

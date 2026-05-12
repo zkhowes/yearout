@@ -57,7 +57,7 @@ Yearout is a mobile-first web app that manages the full lifecycle of recurring g
 
 ## Kanban
 
-> Last updated: 2026-05-06
+> Last updated: 2026-05-12
 
 ### Backlog
 - [ ] Trip templates (pre-populated checklists, pack lists, result fields)
@@ -84,6 +84,7 @@ Yearout is a mobile-first web app that manages the full lifecycle of recurring g
 ### In Progress
 
 ### Done
+- [x] **Public landing page** — new marketing page at `/` for signed-out visitors. Hero with faux archive grid showing year tiles in all 4 themes, Skald-voiced problem section, "What is a Ritual" explainer, 4-feature grid (The Call / Plan / Lore / Archive), 4-theme tease cards rendering in their own palettes, final CTA band. Two CTAs: **Begin a Ritual** → `/login?next=/new`, **Bring your Ritual** → `/login`. Moved root page out of auth-gated `(app)` group to `app/page.tsx` so signed-out users land here instead of being bounced to /login. Added `.btn-outline` utility, login page now honors `?next=` (validated to same-origin relative path)
 - [x] **Skald single-shot intake** — `/new/help` is now one textarea → one `/api/ritual/skald-distill` call returning acknowledgement + 3 candidate names + activity. Replaces the 4-phase chat. Old `/api/ritual/skald-converse` left in place but unused
 - [x] **Custom activity templates** — `rituals.activity_type` migrated from `pgenum` to plain text; new `ritual_activity_templates` table scoped per-ritual auto-populates when Skald infers a non-builtin activity (e.g. "sailing"). Confirm screen surfaces "The activity I heard" with a "new template" hint when custom. Admin promote/reject queue tracked as **ZKH-32**
 - [x] **Skald logo generation (Nano Banana)** — `/api/ritual/generate-logo` calls `gemini-2.5-flash-image-preview` with prompt informed by name + tagline + activity + theme + intake context; uploads to Vercel Blob. New "Have the Skald draft one / redraw" button on confirm screen. Requires `GEMINI_API_KEY` env

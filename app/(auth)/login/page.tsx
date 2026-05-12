@@ -2,9 +2,23 @@ import { signIn } from '@/auth'
 import { redirect } from 'next/navigation'
 import { auth } from '@/auth'
 
-export default async function LoginPage() {
+// Only allow same-origin relative paths through `?next=` so a crafted
+// link can't redirect a freshly signed-in user to an external host.
+function safeNext(raw: string | undefined): string {
+  if (!raw) return '/'
+  if (!raw.startsWith('/') || raw.startsWith('//')) return '/'
+  return raw
+}
+
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ next?: string }>
+}) {
   const session = await auth()
-  if (session) redirect('/')
+  const { next } = await searchParams
+  const redirectTo = safeNext(next)
+  if (session) redirect(redirectTo)
 
   return (
     <div className="min-h-dvh flex flex-col items-center justify-center px-6 bg-white">
@@ -28,7 +42,7 @@ export default async function LoginPage() {
           <form
             action={async () => {
               'use server'
-              await signIn('google', { redirectTo: '/' })
+              await signIn('google', { redirectTo })
             }}
           >
             <button
@@ -42,7 +56,7 @@ export default async function LoginPage() {
           <form
             action={async () => {
               'use server'
-              await signIn('apple', { redirectTo: '/' })
+              await signIn('apple', { redirectTo })
             }}
           >
             <button
