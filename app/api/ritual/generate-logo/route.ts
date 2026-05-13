@@ -3,7 +3,7 @@ import { GoogleGenAI } from '@google/genai'
 import { put } from '@vercel/blob'
 import { auth } from '@/auth'
 
-const MODEL = 'gemini-2.5-flash-image-preview'
+const MODEL = 'gemini-2.5-flash-image'
 
 export type GenerateLogoRequest = {
   ritualName: string
