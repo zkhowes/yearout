@@ -1,10 +1,11 @@
 'use client'
 
-import { useState, useTransition, useRef } from 'react'
+import { useState, useTransition } from 'react'
 import Link from 'next/link'
-import { Check, Loader2, Upload, Trash2, Plus, ChevronDown, History } from 'lucide-react'
+import { Check, Loader2, Trash2, Plus, ChevronDown, History } from 'lucide-react'
 import { updateRitual, createAwardDefinition, updateAwardDefinition, deleteAwardDefinition, toggleAwardEventLink } from '@/lib/ritual-actions'
 import { Rune } from '@/components/skald/rune'
+import { SkaldLogoDraft } from '@/components/skald/skald-logo-draft'
 
 const ACTIVITY_LABELS: Record<string, string> = {
   ski: '⛷️  Ski / Snow',
@@ -80,8 +81,6 @@ export function SettingsForm({
   const [description, setDescription] = useState(ritual.description ?? '')
   const [rewriting, setRewriting] = useState(false)
   const [logoUrl, setLogoUrl] = useState(ritual.logoUrl ?? '')
-  const [logoUploading, setLogoUploading] = useState(false)
-  const logoInputRef = useRef<HTMLInputElement>(null)
   const [saved, setSaved] = useState(false)
   const [pending, startTransition] = useTransition()
 
@@ -112,21 +111,6 @@ export function SettingsForm({
     setTimeout(() => setCopied(false), 2000)
   }
 
-  async function handleLogoUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
-    if (!file) return
-    setLogoUploading(true)
-    try {
-      const formData = new FormData()
-      formData.append('file', file)
-      const res = await fetch('/api/upload', { method: 'POST', body: formData })
-      const { url } = await res.json()
-      setLogoUrl(url)
-    } finally {
-      setLogoUploading(false)
-    }
-  }
-
   function save() {
     startTransition(async () => {
       await updateRitual(ritual.id, { name, tagline, theme: theme as 'circuit' | 'club' | 'trail' | 'getaway', activityType, foundingYear, bylaws, description, logoUrl: logoUrl || undefined })
@@ -142,32 +126,14 @@ export function SettingsForm({
       <section className="flex flex-col gap-5">
         <h2 className="text-xs uppercase tracking-widest text-[var(--fg-muted)]">Identity</h2>
 
-        <div className="flex flex-col items-center gap-3">
-          <label className="text-xs text-[var(--fg-muted)]">Logo</label>
-          <button
-            type="button"
-            onClick={() => logoInputRef.current?.click()}
-            className="relative w-20 h-20 rounded-full border-2 border-dashed border-[var(--border)] hover:border-[var(--fg)] transition-colors overflow-hidden flex items-center justify-center"
-          >
-            {logoUrl ? (
-              <img src={logoUrl} alt="Ritual logo" className="w-full h-full object-cover" />
-            ) : (
-              <Upload size={20} className="text-[var(--fg-muted)]" />
-            )}
-            {logoUploading && (
-              <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full">
-                <Loader2 size={20} className="animate-spin text-white" />
-              </div>
-            )}
-          </button>
-          <input
-            ref={logoInputRef}
-            type="file"
-            accept="image/*"
-            onChange={handleLogoUpload}
-            className="hidden"
-          />
-        </div>
+        <SkaldLogoDraft
+          ritualName={name}
+          tagline={tagline}
+          activityLabel={ACTIVITY_LABELS[activityType] ?? activityType}
+          theme={theme as 'circuit' | 'club' | 'trail' | 'getaway'}
+          logoUrl={logoUrl || null}
+          onLogoChange={setLogoUrl}
+        />
 
         <div className="flex flex-col gap-2">
           <label className="text-xs text-[var(--fg-muted)]">Name</label>

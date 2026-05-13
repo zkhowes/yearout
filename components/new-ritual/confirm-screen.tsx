@@ -1,11 +1,10 @@
 'use client'
 
-import { useRef, useState } from 'react'
 import { motion } from 'framer-motion'
-import { ArrowRight, Loader2, Pencil, Plus, X, Upload, RefreshCw, Sparkles } from 'lucide-react'
+import { ArrowRight, Loader2, Pencil, Plus, X } from 'lucide-react'
 import { SkaldSpeaks } from '@/components/skald/skald-speaks'
+import { SkaldLogoDraft } from '@/components/skald/skald-logo-draft'
 import type { RitualInference } from '@/app/api/ritual/infer/route'
-import type { GenerateLogoResponse } from '@/app/api/ritual/generate-logo/route'
 
 const ACTIVITY_LABELS: Record<string, string> = {
   ski: '⛷️  Ski / Snow',
@@ -56,47 +55,6 @@ export function ConfirmScreen({
   onCreate,
   intakeContext,
 }: Props) {
-  const logoInputRef = useRef<HTMLInputElement>(null)
-  const [draftingLogo, setDraftingLogo] = useState(false)
-  const [logoError, setLogoError] = useState('')
-
-  function handleLogoSelect(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
-    if (!file) return
-    const reader = new FileReader()
-    reader.onload = (ev) => setLogoPreview(ev.target?.result as string)
-    reader.readAsDataURL(file)
-  }
-
-  async function draftLogo() {
-    if (draftingLogo) return
-    setDraftingLogo(true)
-    setLogoError('')
-    try {
-      const res = await fetch('/api/ritual/generate-logo', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ritualName: name,
-          tagline: inference.tagline,
-          activityLabel: inference.activityLabel,
-          theme: inference.theme,
-          context: intakeContext,
-        }),
-      })
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}))
-        throw new Error(data.error ?? 'Logo generation failed')
-      }
-      const data: GenerateLogoResponse = await res.json()
-      setLogoPreview(data.url)
-    } catch (err) {
-      setLogoError(err instanceof Error ? err.message : 'Logo generation failed')
-    } finally {
-      setDraftingLogo(false)
-    }
-  }
-
   function addAward() {
     setInference({ ...inference, awards: [...inference.awards, ''] })
   }
@@ -232,51 +190,15 @@ export function ConfirmScreen({
         </div>
       </div>
 
-      {/* Logo */}
-      <div className="flex flex-col gap-2">
-        <span className="text-xs uppercase tracking-widest text-[var(--fg-muted)]">Logo</span>
-        <div className="flex items-center gap-4">
-          <div className="w-16 h-16 rounded-xl border-2 border-dashed border-[var(--border)] bg-[var(--surface)] flex items-center justify-center shrink-0 overflow-hidden">
-            {draftingLogo ? (
-              <Loader2 size={20} className="animate-spin text-[var(--fg-muted)]" />
-            ) : logoPreview ? (
-              <img src={logoPreview} alt="Logo" className="w-full h-full object-cover" />
-            ) : (
-              <span className="text-2xl select-none opacity-40">⬡</span>
-            )}
-          </div>
-          <div className="flex flex-col gap-2">
-            <input
-              ref={logoInputRef}
-              type="file"
-              accept="image/*"
-              onChange={handleLogoSelect}
-              className="hidden"
-            />
-            <button
-              onClick={draftLogo}
-              disabled={draftingLogo}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--fg)] text-[var(--bg)] text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
-            >
-              {draftingLogo ? (
-                <><Loader2 size={14} className="animate-spin" /> The Skald draws…</>
-              ) : logoPreview ? (
-                <><RefreshCw size={14} /> Have the Skald redraw</>
-              ) : (
-                <><Sparkles size={14} /> Have the Skald draft one</>
-              )}
-            </button>
-            <button
-              onClick={() => logoInputRef.current?.click()}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-[var(--border)] text-sm text-[var(--fg)] hover:border-[var(--fg-muted)] transition-colors"
-            >
-              <Upload size={14} /> Upload your own
-            </button>
-          </div>
-        </div>
-        {logoError && <p className="text-xs text-red-500">{logoError}</p>}
-        <p className="text-xs text-[var(--fg-muted)]">You can always update this from your ritual settings.</p>
-      </div>
+      <SkaldLogoDraft
+        ritualName={name}
+        tagline={inference.tagline}
+        activityLabel={inference.activityLabel}
+        theme={inference.theme}
+        logoUrl={logoPreview}
+        onLogoChange={setLogoPreview}
+        context={intakeContext}
+      />
 
       {/* Awards */}
       <div className="flex flex-col gap-3">
