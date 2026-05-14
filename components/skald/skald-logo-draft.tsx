@@ -87,11 +87,11 @@ export function SkaldLogoDraft({
     <div className="flex flex-col gap-2">
       <span className="text-xs uppercase tracking-widest text-[var(--fg-muted)]">Logo</span>
       <div className="flex items-center gap-4">
-        <div className="w-16 h-16 rounded-xl border-2 border-dashed border-[var(--border)] bg-[var(--surface)] flex items-center justify-center shrink-0 overflow-hidden">
+        <div className="w-16 h-16 rounded-full border-2 border-dashed border-[var(--border)] bg-[var(--surface)] flex items-center justify-center shrink-0 overflow-hidden">
           {busy ? (
             <Loader2 size={20} className="animate-spin text-[var(--fg-muted)]" />
           ) : logoUrl ? (
-            <img src={logoUrl} alt="Logo" className="w-full h-full object-cover" />
+            <img src={logoUrl} alt="Logo" className="w-full h-full object-contain" />
           ) : (
             <span className="text-2xl select-none opacity-40">⬡</span>
           )}

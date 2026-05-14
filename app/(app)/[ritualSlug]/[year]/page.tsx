@@ -289,7 +289,7 @@ export default async function EventPage({
       >
         <ArrowLeft size={14} />
         {ritual.logoUrl ? (
-          <img src={ritual.logoUrl} alt={ritual.name} className="w-8 h-8 rounded-full object-cover" />
+          <img src={ritual.logoUrl} alt={ritual.name} className="w-8 h-8 rounded-full object-contain bg-[var(--surface)]" />
         ) : (
           <div className="w-8 h-8 rounded-full bg-[var(--accent)] opacity-40" />
         )}

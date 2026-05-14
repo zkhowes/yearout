@@ -42,6 +42,7 @@ Theme direction: ${themeLine}
 CRITICAL output rules:
 - Square 1:1 aspect ratio.
 - Self-contained emblem on a single solid background — no busy scenery.
+- The emblem will be displayed inside a circular avatar crop. Compose so ALL meaningful detail (iconography + name) sits inside the inscribed circle (centered, fills ~85% of the frame). Only the solid background may extend into the four corners — never put icons, letters, or important detail there.
 - Vector / flat / screenprint feel. High contrast. Clean edges. No 3D rendering, no photorealism, no lens flare, no gradients beyond a single subtle one.
 - Bold iconography that references the activity (e.g. mountains for ski, anchor/sail for sailing, tee/club for golf, wheel/sprocket for biking) — but stylised, never literal stock-art.
 - The ritual NAME may appear once, in clean readable typography, integrated into the emblem (curved around it, banner, or inside a shield). Spell the name EXACTLY: "${req.ritualName}". No other text.
