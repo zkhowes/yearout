@@ -57,7 +57,7 @@ Yearout is a mobile-first web app that manages the full lifecycle of recurring g
 
 ## Kanban
 
-> Last updated: 2026-05-12
+> Last updated: 2026-05-17
 
 ### Backlog
 - [ ] Trip templates (pre-populated checklists, pack lists, result fields)
@@ -84,6 +84,7 @@ Yearout is a mobile-first web app that manages the full lifecycle of recurring g
 ### In Progress
 
 ### Done
+- [x] **Single-ritual nav fix** — single-ritual crew members were trapped: clicking the Yearout logo silently auto-redirected back to their only ritual, hiding the rituals hub and the only path to `/new`. Removed the `userRituals.length === 1` redirect in `app/page.tsx` so the logo always lands on the hub, and added a "Begin a Ritual" entry to the header drawer (`components/header.tsx`) for direct access from anywhere in the app
 - [x] **Logo: circular crop with object-contain** — ritual logos now render inside a circle with the full square emblem visible (corners filled by `--surface` instead of clipping). Applied to the 3 display sites (`ritual-identity.tsx`, landing list, year header) and the Skald-draft preview. Gemini prompt updated to compose meaningful detail inside the inscribed circle so the centered fit reads clean
 - [x] **Nano Banana model bump** — `/api/ritual/generate-logo` was 404-ing because `gemini-2.5-flash-image-preview` graduated. Pinned to GA `gemini-2.5-flash-image` (same family, same prompt, drop-in)
 - [x] **Skald logo draft in Settings** — extracted the new-ritual logo block into reusable `components/skald/skald-logo-draft.tsx`; mounted in `app/(app)/[ritualSlug]/settings/form.tsx` Identity section so existing rituals (e.g. Howes Drift) can ask the Skald to draft a logo without going through `/new`. Replaces the circular upload-only avatar with the square tile + "Have the Skald draft one / redraw" + "Upload your own" pair. `confirm-screen.tsx` refactored to use the same component to keep the two UIs from drifting

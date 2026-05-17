@@ -1,7 +1,6 @@
 import Link from 'next/link'
 import { db } from '@/db'
 import { auth } from '@/auth'
-import { redirect } from 'next/navigation'
 import { rituals, ritualMembers } from '@/db/schema'
 import { eq } from 'drizzle-orm'
 import { Header } from '@/components/header'
@@ -35,9 +34,6 @@ export default async function RootPage() {
     .where(eq(ritualMembers.userId, session.user.id!))
 
   const userRituals = memberships.map((m) => m.ritual)
-
-  // If only one ritual, go straight to it
-  if (userRituals.length === 1) redirect(`/${userRituals[0].slug}`)
 
   return (
     <div className="min-h-dvh bg-[var(--bg)]">

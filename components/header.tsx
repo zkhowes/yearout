@@ -83,6 +83,13 @@ export function Header({ user }: { user?: HeaderUser }) {
 
         <nav className="flex flex-col p-4 gap-1">
           <Link
+            href="/new"
+            onClick={() => setOpen(false)}
+            className="px-3 py-2.5 rounded-lg text-sm text-[var(--fg)] hover:bg-[var(--border)] transition-colors"
+          >
+            Begin a Ritual
+          </Link>
+          <Link
             href="/profile"
             onClick={() => setOpen(false)}
             className="px-3 py-2.5 rounded-lg text-sm text-[var(--fg)] hover:bg-[var(--border)] transition-colors"
