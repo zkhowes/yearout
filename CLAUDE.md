@@ -57,7 +57,7 @@ Yearout is a mobile-first web app that manages the full lifecycle of recurring g
 
 ## Kanban
 
-> Last updated: 2026-05-17
+> Last updated: 2026-05-18
 
 ### Backlog
 - [ ] Trip templates (pre-populated checklists, pack lists, result fields)
@@ -84,6 +84,7 @@ Yearout is a mobile-first web app that manages the full lifecycle of recurring g
 ### In Progress
 
 ### Done
+- [x] **Next.js 14 → 16 + React 18 → 19 upgrade** — clears 1 critical + 4 high CVEs that were blocking deploy gate (`next`, `react-email`, `eslint-config-next`, transitive `glob`). Ran `next-async-request-api` codemod (12 page/layout files: `params`/`searchParams` are now `Promise<...>` awaited), `middleware-to-proxy` (renamed `middleware.ts` → `proxy.ts` — Auth.js wrapper unchanged, runtime now Node), `next-lint-to-eslint-cli` (new flat `eslint.config.mjs`, ESLint 9, `lint` script = `eslint .`). Bumped `react-email` 3 → 6. Demoted new-in-Next-16 / React-Compiler-hooks rules to warnings (12 `set-state-in-effect`, 6 `static-components`, etc. — pre-existing patterns, follow-up cleanup). All 151 tests pass; build green; audit clean at high/critical
 - [x] **Single-ritual nav fix** — single-ritual crew members were trapped: clicking the Yearout logo silently auto-redirected back to their only ritual, hiding the rituals hub and the only path to `/new`. Removed the `userRituals.length === 1` redirect in `app/page.tsx` so the logo always lands on the hub, and added a "Begin a Ritual" entry to the header drawer (`components/header.tsx`) for direct access from anywhere in the app
 - [x] **Logo: circular crop with object-contain** — ritual logos now render inside a circle with the full square emblem visible (corners filled by `--surface` instead of clipping). Applied to the 3 display sites (`ritual-identity.tsx`, landing list, year header) and the Skald-draft preview. Gemini prompt updated to compose meaningful detail inside the inscribed circle so the centered fit reads clean
 - [x] **Nano Banana model bump** — `/api/ritual/generate-logo` was 404-ing because `gemini-2.5-flash-image-preview` graduated. Pinned to GA `gemini-2.5-flash-image` (same family, same prompt, drop-in)

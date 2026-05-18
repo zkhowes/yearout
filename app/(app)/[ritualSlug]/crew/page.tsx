@@ -13,11 +13,12 @@ import { eq, and, inArray, sql } from 'drizzle-orm'
 import { CrewGrid } from './crew-grid'
 import { getRitual } from '@/lib/ritual-data'
 
-export default async function CrewPage({
-  params,
-}: {
-  params: { ritualSlug: string }
-}) {
+export default async function CrewPage(
+  props: {
+    params: Promise<{ ritualSlug: string }>
+  }
+) {
+  const params = await props.params;
   const session = await auth()
   if (!session?.user?.id) redirect('/login')
 

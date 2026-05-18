@@ -5,11 +5,12 @@ import { redirect } from 'next/navigation'
 import { ArrowRight } from 'lucide-react'
 import { SkaldSpeaks } from '@/components/skald/skald-speaks'
 
-export default async function HistoryChooserPage({
-  params,
-}: {
-  params: { ritualSlug: string }
-}) {
+export default async function HistoryChooserPage(
+  props: {
+    params: Promise<{ ritualSlug: string }>
+  }
+) {
+  const params = await props.params;
   const session = await auth()
   if (!session?.user?.id) redirect('/login')
 

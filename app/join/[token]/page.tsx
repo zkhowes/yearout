@@ -14,11 +14,12 @@ const ACTIVITY_LABELS: Record<string, string> = {
   other: '🧭  Other',
 }
 
-export default async function JoinPage({
-  params,
-}: {
-  params: { token: string }
-}) {
+export default async function JoinPage(
+  props: {
+    params: Promise<{ token: string }>
+  }
+) {
+  const params = await props.params;
   const session = await auth()
   if (!session?.user?.id) redirect('/login')
 

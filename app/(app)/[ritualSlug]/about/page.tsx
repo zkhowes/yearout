@@ -5,11 +5,12 @@ import { ritualMembers, eventAttendees, events, users } from '@/db/schema'
 import { eq, and, inArray, sql } from 'drizzle-orm'
 import { getRitual } from '@/lib/ritual-data'
 
-export default async function AboutPage({
-  params,
-}: {
-  params: { ritualSlug: string }
-}) {
+export default async function AboutPage(
+  props: {
+    params: Promise<{ ritualSlug: string }>
+  }
+) {
+  const params = await props.params;
   const session = await auth()
   if (!session?.user?.id) redirect('/login')
 
@@ -65,7 +66,6 @@ export default async function AboutPage({
           Est. {ritual.foundingYear}
         </p>
       )}
-
       {/* Description */}
       {ritual.description && (
         <div className="flex flex-col gap-3">
@@ -76,7 +76,6 @@ export default async function AboutPage({
           ))}
         </div>
       )}
-
       {/* The Crew */}
       <div className="flex flex-col gap-3">
         <p className="text-xs uppercase tracking-widest text-[var(--fg-muted)]">The Crew</p>
@@ -99,11 +98,11 @@ export default async function AboutPage({
                 )}
                 {photoUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img
+                  (<img
                     src={photoUrl}
                     alt={displayName}
                     className="w-10 h-10 rounded-full object-cover"
-                  />
+                  />)
                 ) : (
                   <div className="w-10 h-10 rounded-full bg-[var(--border)] flex items-center justify-center">
                     <span className="text-sm font-semibold text-[var(--fg-muted)]">
@@ -115,7 +114,7 @@ export default async function AboutPage({
                   {displayName}
                 </span>
               </div>
-            )
+            );
           })}
         </div>
       </div>
@@ -129,5 +128,5 @@ export default async function AboutPage({
         </div>
       )}
     </div>
-  )
+  );
 }

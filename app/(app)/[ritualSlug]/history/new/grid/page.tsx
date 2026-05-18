@@ -4,11 +4,12 @@ import { redirect } from 'next/navigation'
 import { HistoryGrid } from '@/components/history/history-grid'
 import { SkaldSpeaks } from '@/components/skald/skald-speaks'
 
-export default async function HistoryGridPage({
-  params,
-}: {
-  params: { ritualSlug: string }
-}) {
+export default async function HistoryGridPage(
+  props: {
+    params: Promise<{ ritualSlug: string }>
+  }
+) {
+  const params = await props.params;
   const session = await auth()
   if (!session?.user?.id) redirect('/login')
 

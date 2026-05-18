@@ -23,11 +23,12 @@ const STATUS_LABEL: Record<string, string> = {
   closed: 'Closed',
 }
 
-export default async function RitualTourPage({
-  params,
-}: {
-  params: { ritualSlug: string }
-}) {
+export default async function RitualTourPage(
+  props: {
+    params: Promise<{ ritualSlug: string }>
+  }
+) {
+  const params = await props.params;
   const session = await auth()
   if (!session?.user?.id) redirect('/login')
 

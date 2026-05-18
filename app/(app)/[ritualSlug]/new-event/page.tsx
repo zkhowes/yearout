@@ -5,11 +5,12 @@ import { ritualMembers, ritualAwardDefinitions, users } from '@/db/schema'
 import { eq, inArray } from 'drizzle-orm'
 import { NewEventForm } from './form'
 
-export default async function NewEventPage({
-  params,
-}: {
-  params: { ritualSlug: string }
-}) {
+export default async function NewEventPage(
+  props: {
+    params: Promise<{ ritualSlug: string }>
+  }
+) {
+  const params = await props.params;
   const session = await auth()
   if (!session?.user?.id) redirect('/login')
 

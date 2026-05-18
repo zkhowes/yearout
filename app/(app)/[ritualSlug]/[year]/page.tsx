@@ -36,11 +36,12 @@ import { EventLogoUpload } from './event-logo-upload'
 import { EditableEventName } from './editable-event-name'
 import { getRitual, getMembership } from '@/lib/ritual-data'
 
-export default async function EventPage({
-  params,
-}: {
-  params: { ritualSlug: string; year: string }
-}) {
+export default async function EventPage(
+  props: {
+    params: Promise<{ ritualSlug: string; year: string }>
+  }
+) {
+  const params = await props.params;
   const session = await auth()
   if (!session?.user?.id) redirect('/login')
 

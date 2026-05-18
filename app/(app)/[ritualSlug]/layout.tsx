@@ -4,13 +4,18 @@ import { getRitual, getMembership } from '@/lib/ritual-data'
 import { RitualIdentity } from './ritual-identity'
 import { TabBar } from './tab-bar'
 
-export default async function RitualLayout({
-  children,
-  params,
-}: {
-  children: React.ReactNode
-  params: { ritualSlug: string }
-}) {
+export default async function RitualLayout(
+  props: {
+    children: React.ReactNode
+    params: Promise<{ ritualSlug: string }>
+  }
+) {
+  const params = await props.params;
+
+  const {
+    children
+  } = props;
+
   const session = await auth()
   if (!session?.user?.id) redirect('/login')
 

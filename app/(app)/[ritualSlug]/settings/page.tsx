@@ -9,11 +9,12 @@ import { eq, inArray } from 'drizzle-orm'
 import { getRitual, getMembership } from '@/lib/ritual-data'
 import { SettingsForm } from './form'
 
-export default async function SettingsPage({
-  params,
-}: {
-  params: { ritualSlug: string }
-}) {
+export default async function SettingsPage(
+  props: {
+    params: Promise<{ ritualSlug: string }>
+  }
+) {
+  const params = await props.params;
   const session = await auth()
   if (!session?.user?.id) redirect('/login')
 

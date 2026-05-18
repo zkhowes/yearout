@@ -3,11 +3,12 @@ import { auth } from '@/auth'
 import { redirect } from 'next/navigation'
 import { HistoryConverse } from '@/components/history/history-converse'
 
-export default async function HistoryConversePage({
-  params,
-}: {
-  params: { ritualSlug: string }
-}) {
+export default async function HistoryConversePage(
+  props: {
+    params: Promise<{ ritualSlug: string }>
+  }
+) {
+  const params = await props.params;
   const session = await auth()
   if (!session?.user?.id) redirect('/login')
 

@@ -13,11 +13,12 @@ import { RitualLoreFeed } from './ritual-lore-feed'
 import type { LoreEntryData } from '@/components/lore/lore-post'
 import { getRitual, getMembership } from '@/lib/ritual-data'
 
-export default async function LorePage({
-  params,
-}: {
-  params: { ritualSlug: string }
-}) {
+export default async function LorePage(
+  props: {
+    params: Promise<{ ritualSlug: string }>
+  }
+) {
+  const params = await props.params;
   const session = await auth()
   if (!session?.user?.id) redirect('/login')
 
