@@ -63,6 +63,8 @@ async function buildContent(
       return eventId ? buildStage6Mythology(eventId, APP_URL) : null
     case 'stage3a_commit':
       return null // 3a is per-recipient — handled separately
+    case 'invite_placeholder':
+      return null // invites are per-placeholder; sent ad-hoc from the settings UI
   }
 }
 

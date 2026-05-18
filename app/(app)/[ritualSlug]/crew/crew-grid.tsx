@@ -9,11 +9,12 @@ import { generateFlagSvg, flagSvgToDataUri } from '@/lib/generate-flag'
 type CrewMember = {
   userId: string
   name: string | null
-  email: string
+  email: string | null
   image: string | null
   nickname: string | null
   role: string
   isCoreCrewe: boolean
+  isPlaceholder?: boolean
   nationality: string | null
   customFlagSvg: string | null
   eventsAttended: number
@@ -130,7 +131,11 @@ export function CrewGrid({
               </div>
               <div className="flex-1 text-left min-w-0">
                 <p className="text-sm font-semibold text-[var(--fg)] truncate">{displayName}</p>
-                <p className="text-xs text-[var(--fg-muted)]">{ROLE_LABELS[member.role] ?? member.role}</p>
+                <p className="text-xs text-[var(--fg-muted)]">
+                  {member.isPlaceholder
+                    ? 'Placeholder · added by sponsor'
+                    : ROLE_LABELS[member.role] ?? member.role}
+                </p>
               </div>
               <div className="flex items-center gap-2 shrink-0">
                 {member.isCoreCrewe && (

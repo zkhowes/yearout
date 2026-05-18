@@ -7,6 +7,7 @@ import {
   listCoreCrew,
   listCrew,
   listEvents,
+  listPlaceholders,
   renderWithCopy,
   sendCustom,
   type BuildResult,
@@ -40,6 +41,7 @@ const VARIANTS: VariantSpec[] = [
   { value: 'stage4_in_trip', label: 'Stage 4 — In-trip pulse', needs: { event: 'required' } },
   { value: 'stage5_closeout', label: 'Stage 5 — Closeout (concluded)', needs: { event: 'required' } },
   { value: 'stage6_mythology', label: 'Stage 6 — Mythology (closed)', needs: { event: 'required' } },
+  { value: 'invite_placeholder', label: 'Invite — Placeholder claim invite', needs: { recipient: 'required' } },
 ]
 
 export function TestHarness({ ritualOptions }: { ritualOptions: RitualOption[] }) {
@@ -64,6 +66,8 @@ export function TestHarness({ ritualOptions }: { ritualOptions: RitualOption[] }
   const [attendeeRoster, setAttendeeRoster] = useState<CrewMember[]>([])
   const [coreCrewRoster, setCoreCrewRoster] = useState<CrewMember[]>([])
   const [crewRoster, setCrewRoster] = useState<CrewMember[]>([])
+  const [placeholderRoster, setPlaceholderRoster] = useState<CrewMember[]>([])
+  const [placeholderUserId, setPlaceholderUserId] = useState<string>('')
   const [selectedUserIds, setSelectedUserIds] = useState<Set<string>>(new Set())
 
   const variantSpec = useMemo(
@@ -79,6 +83,10 @@ export function TestHarness({ ritualOptions }: { ritualOptions: RitualOption[] }
     })
     listCrew(ritualId).then(setCrewRoster)
     listCoreCrew(ritualId).then(setCoreCrewRoster)
+    listPlaceholders(ritualId).then((rows) => {
+      setPlaceholderRoster(rows)
+      setPlaceholderUserId(rows[0]?.userId ?? '')
+    })
     setSelectedUserIds(new Set())
   }, [ritualId])
 
@@ -98,7 +106,7 @@ export function TestHarness({ ritualOptions }: { ritualOptions: RitualOption[] }
         variant,
         ritualId,
         eventId: variantSpec.needs.event ? eventId : null,
-        recipientUserId: null,
+        recipientUserId: variant === 'invite_placeholder' ? placeholderUserId || null : null,
       })
       setResult(r)
       if (r.copy) {
@@ -125,7 +133,7 @@ export function TestHarness({ ritualOptions }: { ritualOptions: RitualOption[] }
         variant,
         ritualId,
         eventId: variantSpec.needs.event ? eventId : null,
-        recipientUserId: null,
+        recipientUserId: variant === 'invite_placeholder' ? placeholderUserId || null : null,
         copy: overlay,
       })
       if (r.error) {
@@ -197,7 +205,7 @@ export function TestHarness({ ritualOptions }: { ritualOptions: RitualOption[] }
         variant,
         ritualId,
         eventId: variantSpec.needs.event ? eventId : null,
-        recipientUserId: null,
+        recipientUserId: variant === 'invite_placeholder' ? placeholderUserId || null : null,
         to: resolved.to,
         copyOverride: overlay,
         audience: resolved.audience,
@@ -273,6 +281,26 @@ export function TestHarness({ ritualOptions }: { ritualOptions: RitualOption[] }
                 eventOptions.map((e) => (
                   <option key={e.id} value={e.id}>
                     {e.year} · {e.name} · {e.status}
+                  </option>
+                ))
+              )}
+            </select>
+          </Field>
+        ) : null}
+
+        {variant === 'invite_placeholder' ? (
+          <Field label="Placeholder">
+            <select
+              value={placeholderUserId}
+              onChange={(e) => setPlaceholderUserId(e.target.value)}
+              style={selectStyle}
+            >
+              {placeholderRoster.length === 0 ? (
+                <option value="">No placeholders on this ritual</option>
+              ) : (
+                placeholderRoster.map((p) => (
+                  <option key={p.userId} value={p.userId}>
+                    {p.name || '(no name)'} {p.email && !p.email.endsWith('@placeholder.yearout.local') ? `· ${p.email}` : '· no email'}
                   </option>
                 ))
               )}

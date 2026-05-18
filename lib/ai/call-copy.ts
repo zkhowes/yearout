@@ -15,6 +15,7 @@ import type {
   Stage4InTripContent,
   Stage5CloseoutContent,
   Stage6MythologyContent,
+  InvitePlaceholderContent,
 } from '@/lib/call/content'
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
@@ -242,6 +243,33 @@ Hard rules for this email:
 - Do NOT use numbered "Chapter N" framing or any fabricated sequence number. Refer to the trip by its name (${c.recapEvent.name}) or its year (${c.recapEvent.year}). The "${c.ritual.yearsRun} years" figure is a duration, not a chapter index.`)
 }
 
+async function copyInvitePlaceholder(c: InvitePlaceholderContent): Promise<AiCopy> {
+  const firstName = c.recipient.name.split(' ')[0]
+  const lastBit = c.lastEvent
+    ? `Most recent past trip: ${c.lastEvent.name} (${c.lastEvent.year}) at ${c.lastEvent.location ?? 'unknown'}.`
+    : 'No past trips on file — this ritual is new.'
+  const upcomingBit = c.upcomingEvent
+    ? `Upcoming trip on the books: ${c.upcomingEvent.name} (${c.upcomingEvent.year}) at ${c.upcomingEvent.location ?? 'TBD'}.`
+    : 'No upcoming trip scheduled yet.'
+  const sponsorBit = c.sponsorName ? `${c.sponsorName} added you to the roster.` : 'The sponsor added you to the roster.'
+
+  return callHaiku(`Generate copy for an "Invite" Call email — sent to ONE person whom the sponsor added to the ritual as a placeholder crew member. They have no yearout account yet. This email invites them to view the ritual and (eventually) claim their spot.
+
+Context:
+- Ritual: ${c.ritual.name}
+- Activity: ${c.ritual.activityType}
+- Theme: ${c.ritual.theme}
+- Tagline: ${c.ritual.tagline ?? 'none'}
+- Founding year: ${c.ritual.foundingYear ?? 'unknown'}
+- Years run: ${c.ritual.yearsRun}
+- Recipient first name: ${firstName}
+- ${sponsorBit}
+- ${lastBit}
+- ${upcomingBit}
+
+Goal: Make them feel welcome and curious. They've been added by name. Tell them they're already on the roster — they just need to step in. Address them by first name. If a past trip exists, drop one warm reference. If an upcoming trip exists, name it once. CTA in the email is "See the ritual →" (links to a read-only view of the ritual). Tone: warm, a little ceremonial, no pressure. Do not say "create an account" — say "step in" or "claim your spot."`)
+}
+
 /* ============================================================
  * Dispatcher
  * ============================================================ */
@@ -266,6 +294,8 @@ export async function generateCallCopy(content: CallContent): Promise<AiCopy> {
       return copyStage5Closeout(content)
     case 'stage6_mythology':
       return copyStage6Mythology(content)
+    case 'invite_placeholder':
+      return copyInvitePlaceholder(content)
   }
 }
 

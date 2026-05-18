@@ -1,7 +1,6 @@
 import { Resend } from 'resend'
 import { render } from '@react-email/components'
 import * as React from 'react'
-import { mkdir, writeFile } from 'node:fs/promises'
 import { db } from '@/db'
 import { callSends } from '@/db/schema'
 
@@ -66,6 +65,7 @@ export async function sendCallEmail(
   }
 
   if (input.mode.kind === 'dry_run') {
+    const { mkdir, writeFile } = await import('node:fs/promises')
     const dir = 'tmp/email-preview'
     await mkdir(dir, { recursive: true })
     const slug = `${Date.now()}-${input.subject.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 60)}`

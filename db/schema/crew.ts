@@ -27,6 +27,9 @@ export const ritualMembers = pgTable('ritual_members', {
   photoOverride: text('photo_override'),         // Sponsor's funnier/more nostalgic mugshot
   nationalityOverride: text('nationality_override'), // Sponsor sets nationality label
   customFlagSvg: text('custom_flag_svg'),            // Generated SVG for unrecognized nationalities
+  // Placeholder = sponsor-created stub. The users row exists but no OAuth account is linked yet.
+  isPlaceholder: boolean('is_placeholder').notNull().default(false),
+  placeholderCreatedBy: text('placeholder_created_by').references(() => users.id, { onDelete: 'set null' }),
   joinedAt: timestamp('joined_at', { mode: 'date' }).defaultNow().notNull(),
 }, (table) => [
   index('ritual_members_ritual_user_idx').on(table.ritualId, table.userId),

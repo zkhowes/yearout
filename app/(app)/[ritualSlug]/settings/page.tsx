@@ -3,11 +3,12 @@ import { ArrowLeft } from 'lucide-react'
 import { auth } from '@/auth'
 import { redirect } from 'next/navigation'
 import { db } from '@/db'
-import { ritualAwardDefinitions } from '@/db/schema'
+import { ritualAwardDefinitions, ritualMembers, users } from '@/db/schema'
 import { events, eventAwardLinks, awards } from '@/db/schema/events'
-import { eq, inArray } from 'drizzle-orm'
+import { and, eq, inArray } from 'drizzle-orm'
 import { getRitual, getMembership } from '@/lib/ritual-data'
 import { SettingsForm } from './form'
+import { CrewSection } from './crew-section'
 
 export default async function SettingsPage(
   props: {
@@ -44,6 +45,19 @@ export default async function SettingsPage(
     ? await db.select({ awardDefinitionId: awards.awardDefinitionId }).from(awards).where(inArray(awards.awardDefinitionId, awardDefIds))
     : []
   const awardDefsWithWinners = new Set(finalizedAwards.map((a) => a.awardDefinitionId))
+
+  // Placeholders for Crew section
+  const placeholderRows = await db
+    .select({
+      memberId: ritualMembers.id,
+      userId: users.id,
+      name: users.name,
+      nickname: ritualMembers.nicknameOverride,
+      email: users.email,
+    })
+    .from(ritualMembers)
+    .innerJoin(users, eq(ritualMembers.userId, users.id))
+    .where(and(eq(ritualMembers.ritualId, ritual.id), eq(ritualMembers.isPlaceholder, true)))
 
   return (
     <div className="flex flex-col gap-6">
@@ -89,6 +103,20 @@ export default async function SettingsPage(
         awardLinks={awardLinks.map((l) => ({
           awardDefinitionId: l.awardDefinitionId,
           eventId: l.eventId,
+        }))}
+      />
+      <CrewSection
+        ritualId={ritual.id}
+        ritualSlug={ritual.slug}
+        appUrl={appUrl}
+        initialReadOnlyToken={ritual.readOnlyToken ?? null}
+        placeholders={placeholderRows.map((p) => ({
+          memberId: p.memberId,
+          userId: p.userId,
+          name: p.name,
+          nickname: p.nickname,
+          hasRealEmail: !!p.email && !p.email.endsWith('@placeholder.yearout.local'),
+          email: p.email && !p.email.endsWith('@placeholder.yearout.local') ? p.email : '',
         }))}
       />
     </div>

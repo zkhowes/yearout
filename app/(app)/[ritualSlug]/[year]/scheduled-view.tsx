@@ -9,6 +9,7 @@ import { EventDetailsCard } from './closed-view'
 import { LoreFeed } from '@/components/lore/lore-feed'
 import type { LoreEntryData } from '@/components/lore/lore-post'
 import { BookingsSection, type EventBooking } from '@/components/bookings-section'
+import { AddPlaceholderButton } from './add-placeholder-button'
 
 type BookingStatus = 'not_yet' | 'committed' | 'flights_booked' | 'all_booked' | 'out'
 
@@ -51,6 +52,7 @@ type AttendeeUser = {
 
 type Event = {
   id: string
+  ritualId: string
   location: string | null
   mountains: string | null
   startDate: Date | null
@@ -666,6 +668,9 @@ export function ScheduledView({
         <p className="text-xs text-[var(--fg-muted)]">
           {canEdit ? 'Tap a chip to manage that member.' : 'Tap your chip to cycle through booking status.'}
         </p>
+        {isSponsor ? (
+          <AddPlaceholderButton ritualId={event.ritualId} eventId={event.id} />
+        ) : null}
 
         {/* Member detail panel (inline within commitment card) */}
         {canEdit && selectedAttendee && (() => {

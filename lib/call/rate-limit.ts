@@ -150,6 +150,7 @@ export async function checkCallRateLimits(input: {
     | 'stage4_in_trip'
     | 'stage5_closeout'
     | 'stage6_mythology'
+    | 'invite_placeholder'
   ritualId: string
   recipientEmail?: string
   triggeredBy: 'cron' | 'sponsor' | 'admin'

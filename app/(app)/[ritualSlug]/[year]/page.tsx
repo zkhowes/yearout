@@ -370,6 +370,7 @@ export default async function EventPage(
         <ScheduledView
           event={{
             id: event.id,
+            ritualId: event.ritualId,
             location: event.location,
             mountains: event.mountains,
             startDate: event.startDate,

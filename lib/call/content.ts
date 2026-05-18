@@ -28,6 +28,7 @@ export type CallVariant =
   | 'stage4_in_trip'
   | 'stage5_closeout'
   | 'stage6_mythology'
+  | 'invite_placeholder'
 
 export interface RitualSnapshot {
   id: string
@@ -79,12 +80,15 @@ export interface RecipientList {
 /** Resolve all crew members of a ritual to their email addresses. */
 export async function loadRecipients(ritualId: string): Promise<RecipientList> {
   const rows = await db
-    .select({ email: users.email })
+    .select({ email: users.email, isPlaceholder: ritualMembers.isPlaceholder })
     .from(ritualMembers)
     .innerJoin(users, eq(ritualMembers.userId, users.id))
     .where(eq(ritualMembers.ritualId, ritualId))
 
-  const emails = rows.map((r) => r.email).filter((e): e is string => !!e)
+  const emails = rows
+    .filter((r) => !r.isPlaceholder)
+    .map((r) => r.email)
+    .filter((e): e is string => !!e && !e.endsWith('@placeholder.yearout.local'))
   // Vocative left at 'crew' for v1 — gender-aware heuristic deferred
   return { emails, count: emails.length, vocative: 'crew' }
 }
@@ -615,6 +619,98 @@ export async function buildStage6Mythology(
 }
 
 /* ============================================================
+ * Invite — sent to a placeholder crew member with an email,
+ * inviting them to claim their spot.
+ * ============================================================ */
+export interface InvitePlaceholderContent {
+  variant: 'invite_placeholder'
+  ritual: RitualSnapshot
+  recipient: { name: string }
+  /** Most recent past event for nostalgia, if any. */
+  lastEvent: {
+    name: string
+    year: number
+    location: string | null
+  } | null
+  /** Upcoming event the sponsor wants them at, if scoped to one. */
+  upcomingEvent: {
+    name: string
+    year: number
+    location: string | null
+    startDate: Date | null
+  } | null
+  sponsorName: string | null
+  /** /view/[token] URL — the share link the recipient lands on. */
+  ctaUrl: string
+}
+
+export async function buildInvitePlaceholder(
+  memberId: string,
+  appUrl: string,
+): Promise<InvitePlaceholderContent | null> {
+  const member = await db.query.ritualMembers.findFirst({
+    where: eq(ritualMembers.id, memberId),
+  })
+  if (!member || !member.isPlaceholder) return null
+
+  const ritual = await loadRitualSnapshot(member.ritualId)
+  if (!ritual) return null
+
+  const recipient = await db.query.users.findFirst({
+    where: eq(users.id, member.userId),
+    columns: { name: true },
+  })
+
+  const ritualRow = await db.query.rituals.findFirst({
+    where: eq(rituals.id, member.ritualId),
+    columns: { sponsorId: true, readOnlyToken: true },
+  })
+  let sponsorName: string | null = null
+  if (ritualRow) {
+    const sponsor = await db.query.users.findFirst({
+      where: eq(users.id, ritualRow.sponsorId),
+      columns: { name: true },
+    })
+    sponsorName = sponsor?.name ?? null
+  }
+
+  const last = await db.query.events.findFirst({
+    where: and(eq(events.ritualId, member.ritualId), eq(events.status, 'closed')),
+    orderBy: [desc(events.year)],
+  })
+
+  const upcoming = await db.query.events.findFirst({
+    where: and(
+      eq(events.ritualId, member.ritualId),
+      inArray(events.status, ['planning', 'scheduled']),
+    ),
+    orderBy: [desc(events.year)],
+  })
+
+  const token = ritualRow?.readOnlyToken
+  const ctaUrl = token ? `${appUrl}/view/${token}` : `${appUrl}/${ritual.slug}`
+
+  return {
+    variant: 'invite_placeholder',
+    ritual,
+    recipient: { name: recipient?.name ?? 'friend' },
+    lastEvent: last
+      ? { name: last.name, year: last.year, location: last.location }
+      : null,
+    upcomingEvent: upcoming
+      ? {
+          name: upcoming.name,
+          year: upcoming.year,
+          location: upcoming.location,
+          startDate: upcoming.startDate,
+        }
+      : null,
+    sponsorName,
+    ctaUrl,
+  }
+}
+
+/* ============================================================
  * Discriminated union for downstream consumers
  * ============================================================ */
 export type CallContent =
@@ -627,3 +723,4 @@ export type CallContent =
   | Stage4InTripContent
   | Stage5CloseoutContent
   | Stage6MythologyContent
+  | InvitePlaceholderContent

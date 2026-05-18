@@ -4,7 +4,8 @@ import Apple from 'next-auth/providers/apple'
 import { DrizzleAdapter } from '@auth/drizzle-adapter'
 import { db } from '@/db'
 import { users, accounts, sessions, verificationTokens } from '@/db/schema'
-import { eq, and } from 'drizzle-orm'
+import { eq } from 'drizzle-orm'
+import { convertStubReferences } from '@/lib/placeholder-claim'
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: DrizzleAdapter(db, {
@@ -73,6 +74,35 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             image: user.image ?? existing.image,
           })
           .where(eq(users.id, existing.id))
+
+        // If the linked stub had placeholder ritualMembers rows, flip them
+        // and notify the sponsor(s). The stub's user row is being reused —
+        // so realUserId === stubUserId here.
+        const placeholders = await db.query.ritualMembers.findMany({
+          where: (rm, { and: a, eq: e }) =>
+            a(e(rm.userId, existing.id), e(rm.isPlaceholder, true)),
+        })
+        if (placeholders.length > 0) {
+          await convertStubReferences(existing.id, existing.id)
+          // Notify sponsors via fetch — keeps auth.ts (and the middleware
+          // bundle) free of the email stack (which transitively imports
+          // node:fs/promises and is incompatible with the edge runtime).
+          const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3003'
+          const secret = process.env.INTERNAL_WEBHOOK_SECRET ?? ''
+          for (const ph of placeholders) {
+            // Fire-and-forget — never block sign-in on a notice send.
+            fetch(`${baseUrl}/api/internal/sponsor-claim-notice`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'x-internal-secret': secret },
+              body: JSON.stringify({
+                ritualId: ph.ritualId,
+                placeholderName: existing.name ?? user.email,
+                claimedByName: user.name ?? null,
+                claimedByEmail: user.email,
+              }),
+            }).catch((e) => console.error('[auth] sponsor claim notice failed', e))
+          }
+        }
       }
 
       return true

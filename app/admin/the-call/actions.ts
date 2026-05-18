@@ -15,6 +15,7 @@ import {
   buildStage4InTrip,
   buildStage5Closeout,
   buildStage6Mythology,
+  buildInvitePlaceholder,
   loadRecipients,
   type CallContent,
   type CallVariant,
@@ -156,6 +157,17 @@ export async function buildPreview(input: {
         if (!input.eventId) throw new Error('eventId required')
         content = await buildStage6Mythology(input.eventId, APP_URL)
         break
+      case 'invite_placeholder': {
+        if (!input.recipientUserId) throw new Error('Pick a placeholder member')
+        const member = await db.query.ritualMembers.findFirst({
+          where: (rm, { and: a, eq: e }) =>
+            a(e(rm.ritualId, input.ritualId), e(rm.userId, input.recipientUserId!)),
+        })
+        if (!member) throw new Error('No placeholder member found for that recipient')
+        if (!member.isPlaceholder) throw new Error('That recipient is not a placeholder')
+        content = await buildInvitePlaceholder(member.id, APP_URL)
+        break
+      }
     }
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : 'Failed to build content'
@@ -253,6 +265,23 @@ export async function listCoreCrew(ritualId: string): Promise<CrewMember[]> {
   return rows
 }
 
+/** Placeholder (un-claimed, sponsor-created) members of a ritual. */
+export async function listPlaceholders(ritualId: string): Promise<CrewMember[]> {
+  const rows = await db
+    .select({
+      userId: users.id,
+      name: users.name,
+      email: users.email,
+    })
+    .from(ritualMembers)
+    .innerJoin(users, eq(ritualMembers.userId, users.id))
+    .where(
+      and(eq(ritualMembers.ritualId, ritualId), eq(ritualMembers.isPlaceholder, true))
+    )
+    .orderBy(asc(users.name))
+  return rows
+}
+
 /** Attendees of a specific event. */
 export async function listAttendees(eventId: string): Promise<CrewMember[]> {
   const rows = await db
@@ -331,6 +360,16 @@ export async function renderWithCopy(input: {
         if (!input.eventId) throw new Error('eventId required')
         content = await buildStage6Mythology(input.eventId, APP_URL)
         break
+      case 'invite_placeholder': {
+        if (!input.recipientUserId) throw new Error('Pick a placeholder member')
+        const member = await db.query.ritualMembers.findFirst({
+          where: (rm, { and: a, eq: e }) =>
+            a(e(rm.ritualId, input.ritualId), e(rm.userId, input.recipientUserId!)),
+        })
+        if (!member?.isPlaceholder) throw new Error('That recipient is not a placeholder')
+        content = await buildInvitePlaceholder(member.id, APP_URL)
+        break
+      }
     }
   } catch (e: unknown) {
     return { html: null, error: e instanceof Error ? e.message : 'Build failed' }

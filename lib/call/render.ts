@@ -14,6 +14,7 @@ import { Stage3bPackListEmail } from '@/emails/Stage3bPackList'
 import { Stage4InTripEmail } from '@/emails/Stage4InTrip'
 import { Stage5CloseoutEmail } from '@/emails/Stage5Closeout'
 import { Stage6MythologyEmail } from '@/emails/Stage6Mythology'
+import { StageInviteEmail } from '@/emails/StageInvite'
 
 export function renderCallElement(
   content: CallContent,
@@ -38,6 +39,8 @@ export function renderCallElement(
       return React.createElement(Stage5CloseoutEmail, { content, copy })
     case 'stage6_mythology':
       return React.createElement(Stage6MythologyEmail, { content, copy })
+    case 'invite_placeholder':
+      return React.createElement(StageInviteEmail, { content, copy })
   }
 }
 
@@ -61,5 +64,7 @@ export function variantToStage(variant: CallContent['variant']): number {
       return 5
     case 'stage6_mythology':
       return 6
+    case 'invite_placeholder':
+      return 0 // not part of the main lifecycle staging
   }
 }

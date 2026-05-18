@@ -38,7 +38,10 @@ export const rituals = pgTable('rituals', {
   foundingYear: text('founding_year'),
   typicalMonth: text('typical_month'), // e.g. "january" — used for Stage 1 Call timing
   heroPhotos: text('hero_photos'),                      // JSON array of photo URLs
-  inviteToken: text('invite_token').notNull().unique(), // shared link token
+  inviteToken: text('invite_token').notNull().unique(), // shared link token (join → become full member)
+  // Public read-only viewer token. Lazy-generated on first share, rotatable.
+  // Independent of inviteToken so rotating one doesn't break the other.
+  readOnlyToken: text('read_only_token').unique(),
   createdAt: timestamp('created_at', { mode: 'date' }).defaultNow().notNull(),
 })
 
