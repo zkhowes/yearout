@@ -1,5 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk'
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { SKALD_SYSTEM_PROMPT } from '@/lib/skald/voice'
 
@@ -89,7 +89,7 @@ function extractCandidates(text: string): string[] | undefined {
   return list.length > 0 ? list : undefined
 }
 
-export async function POST(req: NextRequest) {
+export async function POST(req: Request) {
   const session = await auth()
   if (!session?.user?.id) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })

@@ -2004,8 +2004,9 @@ export async function createCall(
   await db.insert(callLocationOptions).values(locationIds)
 
   // Record Stage 2 (The Vote) call send (in-app log)
+  const callSendId = crypto.randomUUID()
   await db.insert(callSends).values({
-    id: crypto.randomUUID(),
+    id: callSendId,
     ritualId,
     eventId,
     stage: 2,
@@ -2013,10 +2014,19 @@ export async function createCall(
     sentAt: new Date(),
   })
 
-  // Fire Stage 2 email — never blocks redirect on failure
+  // Fire Stage 2 email — never blocks redirect on failure. When the send is
+  // suppressed (rate limit, no recipients) the reason is recorded on the
+  // call_sends row so the sponsor can see why the crew heard nothing.
   try {
     const { fireStage2Vote } = await import('@/lib/call/dispatch')
-    await fireStage2Vote(eventId)
+    const dispatched = await fireStage2Vote(eventId)
+    if (!dispatched.sent) {
+      console.warn('[createCall] Stage 2 email not sent:', dispatched.reason, dispatched.detail ?? '')
+      await db
+        .update(callSends)
+        .set({ status: `not_sent:${dispatched.reason}` })
+        .where(eq(callSends.id, callSendId))
+    }
   } catch (e) {
     console.error('[createCall] Stage 2 email dispatch failed', e)
   }

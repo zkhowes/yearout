@@ -126,16 +126,79 @@ Goal: Get the crew nostalgic about the last trip and itching to plan the next on
 }
 
 async function copyStage2Vote(c: Stage2VoteContent): Promise<AiCopy> {
+  const dateLines = c.dateOptions.map((d) => `  - ${d.label}`).join('\n')
+  // A sponsor may leave a slot as a literal placeholder ("Somewhere else",
+  // "TBD"). Flag those so the model treats them as an open slot rather than
+  // straining to describe a place that doesn't exist.
+  const isPlaceholderLocation = (name: string) =>
+    /^(somewhere else|somewhere|tbd|other|else|open|\?+)$/i.test(name.trim())
+
+  const locLines = c.locationOptions
+    .map((l) => {
+      if (isPlaceholderLocation(l.name)) {
+        return `  - "${l.name}" — NOT a real destination; an open slot for write-in suggestions`
+      }
+      return l.priorYears.length > 0
+        ? `  - ${l.name} (the crew has been here before: ${l.priorYears.join(', ')})`
+        : `  - ${l.name} (never been)`
+    })
+    .join('\n')
+
+  // Real history only — the fact contract forbids inventing years or places.
+  const history = c.pastTrips
+    .slice(0, 8)
+    .map((p) => `  - ${p.year}: ${p.location ?? p.name}`)
+    .join('\n')
+
   return callHaiku(`Generate copy for a Stage 2 "Vote" Call email.
 
 Context:
 - Ritual: ${c.event.ritual.name}
-- Year: ${c.event.year}
-- Date options: ${c.dateOptionsCount}
-- Location options: ${c.locationOptionsCount}
+- Year being planned: ${c.event.year}
+- Activity: ${c.event.ritual.activityType}
+- Years the ritual has run: ${c.event.ritual.yearsRun}
 - Votes cast so far: ${c.votesSoFar}
 
-Goal: Voting is open. Get people to weigh in fast. Tone: this is real, show up. CTA is "Cast your votes →".`)
+Candidate dates (${c.dateOptionsCount}):
+${dateLines || '  (none)'}
+
+Candidate locations (${c.locationOptionsCount}):
+${locLines || '  (none)'}
+
+Past trips (the ONLY prior years/places you may reference):
+${history || '  (none on record)'}
+
+Goal: Voting is open. Get people to weigh in fast.
+
+Requirements:
+- The email itself lists every date and location below your copy, so do NOT
+  enumerate them all. Instead, give the crew a REASON to care.
+- Name at least one candidate location explicitly and say what is distinctive
+  about it — the specific flavor of appeal it offers versus the others. Draw
+  only on the place names given and the history above.
+- If a candidate is marked as an open slot for write-ins, do NOT treat it as a
+  destination or invent a name for it. Either ignore it or frame it as the
+  crew's chance to propose somewhere of their own. It is also NOT a place the
+  crew has or hasn't been — exclude it from any count of destinations, and
+  never say "all three places" when one of them is an open slot.
+- Do NOT invent urgency that isn't given: no deadlines, no "voting closes
+  soon", no countdowns. No date or cutoff has been set. Urgency comes from
+  wanting to go, not from a fake clock.
+- The "(never been)" annotation applies ONLY to locations. Dates are windows
+  on a calendar — never describe a date as somewhere the crew has or has not
+  been, and never apply travel language to a date range.
+- Weaponized nostalgia, done precisely: each candidate is annotated above as
+  either having prior years or "(never been)". If a candidate HAS prior years,
+  call back to a specific year. If EVERY candidate says "(never been)", then
+  say so plainly — this is all new ground — and contrast it against a real
+  past trip from the list by year and place. Never write vague hedges like
+  "some familiar, some new" unless the annotations actually show both.
+- Do NOT claim the crew was slow, late, flaky, or dragged their feet on any
+  past trip. You have no data on planning speed. Delight, never guilt.
+- Do not invent facts about a location (no snowfall stats, vertical drop,
+  travel times, or resort details). You may characterize a place only in
+  terms a name alone supports, or what the history above states.
+- CTA is "Cast your votes →".`)
 }
 
 async function copyStage3Confirmed(c: Stage3ConfirmedContent): Promise<AiCopy> {

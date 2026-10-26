@@ -1,7 +1,9 @@
 // Fire a Call email immediately for sponsor-driven stages (2, 3, 5).
 // Stages 1, 3a, 3b, 4, 6 go through the draft queue + sponsor approval flow.
-// All errors are swallowed — email failure must NEVER block the underlying
-// state transition (event creation, lock-in, conclude, etc).
+// Errors are never thrown — email failure must NEVER block the underlying
+// state transition (event creation, lock-in, conclude, etc). Instead each
+// fire* returns a DispatchResult so the caller can surface *why* nothing was
+// sent (rate limit, no recipients, send error) rather than failing silently.
 
 import {
   buildStage2Vote,
@@ -17,11 +19,19 @@ import { checkCallRateLimits } from '@/lib/call/rate-limit'
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3003'
 
+export type DispatchResult =
+  | { sent: true; resendId?: string }
+  | {
+      sent: false
+      reason: 'no_content' | 'rate_limited' | 'no_recipients' | 'send_failed'
+      detail?: string
+    }
+
 async function dispatch(
   content: CallContent | null,
   triggeredBy: 'sponsor' | 'system'
-): Promise<void> {
-  if (!content) return
+): Promise<DispatchResult> {
+  if (!content) return { sent: false, reason: 'no_content' }
 
   const ritualId =
     'ritual' in content ? content.ritual.id : content.event.ritualId
@@ -36,7 +46,7 @@ async function dispatch(
   })
   if (!limit.allowed) {
     console.warn('[call dispatch] rate-limited', content.variant, limit.reason)
-    return
+    return { sent: false, reason: 'rate_limited', detail: limit.reason }
   }
 
   let copy: AiCopy
@@ -50,11 +60,11 @@ async function dispatch(
   const recipients = await loadRecipients(ritualId)
   if (recipients.emails.length === 0) {
     console.warn('[call dispatch] no recipients for ritual', ritualId)
-    return
+    return { sent: false, reason: 'no_recipients' }
   }
 
   try {
-    await sendCallEmail({
+    const result = await sendCallEmail({
       react: renderCallElement(content, copy),
       subject: copy.subject || 'The Call',
       mode: { kind: 'send', to: recipients.emails },
@@ -71,23 +81,33 @@ async function dispatch(
         { name: 'variant', value: content.variant },
       ],
     })
+    if (result.error) {
+      console.error('[call dispatch] send failed', content.variant, result.error)
+      return { sent: false, reason: 'send_failed', detail: result.error }
+    }
+    return { sent: true, resendId: result.resendId }
   } catch (e) {
     console.error('[call dispatch] send failed', content.variant, e)
+    return {
+      sent: false,
+      reason: 'send_failed',
+      detail: e instanceof Error ? e.message : 'Unknown error',
+    }
   }
 }
 
-export async function fireStage2Vote(eventId: string): Promise<void> {
+export async function fireStage2Vote(eventId: string): Promise<DispatchResult> {
   const content = await buildStage2Vote(eventId, APP_URL)
-  await dispatch(content, 'sponsor')
+  return dispatch(content, 'sponsor')
 }
 
-export async function fireStage3Confirmed(eventId: string): Promise<void> {
+export async function fireStage3Confirmed(eventId: string): Promise<DispatchResult> {
   const content = await buildStage3Confirmed(eventId, APP_URL)
-  await dispatch(content, 'sponsor')
+  return dispatch(content, 'sponsor')
 }
 
-export async function fireStage5Closeout(eventId: string): Promise<void> {
+export async function fireStage5Closeout(eventId: string): Promise<DispatchResult> {
   // Per-recipient balance is omitted in the broadcast version (use null)
   const content = await buildStage5Closeout(eventId, null, APP_URL)
-  await dispatch(content, 'sponsor')
+  return dispatch(content, 'sponsor')
 }
