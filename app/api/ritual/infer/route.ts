@@ -1,5 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk'
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { BUILTIN_ACTIVITY_TYPES, isBuiltinActivityType } from '@/db/schema/rituals'
 
@@ -36,7 +36,7 @@ function titleCase(s: string): string {
     .replace(/\b\w/g, (c) => c.toUpperCase())
 }
 
-export async function POST(req: NextRequest) {
+export async function POST(req: Request) {
   const session = await auth()
   if (!session?.user?.id) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })

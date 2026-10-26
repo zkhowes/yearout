@@ -16,7 +16,7 @@ import {
   ritualAwardDefinitions,
   users,
 } from '@/db/schema'
-import { and, desc, eq, inArray } from 'drizzle-orm'
+import { and, desc, eq, inArray, ne } from 'drizzle-orm'
 
 export type CallVariant =
   | 'stage1_cold_start'
@@ -77,7 +77,22 @@ export interface RecipientList {
   vocative: 'crew' | 'boys' | 'ladies' | 'team'
 }
 
-/** Resolve all crew members of a ritual to their email addresses. */
+/**
+ * True for any synthetic stub address that must never receive real mail.
+ * Two generations exist: ZKH-44 stubs (`placeholder+<uuid>@placeholder.yearout.local`)
+ * and older hand-seeded ones (`chuck@placeholder.yearout`), which carry
+ * is_placeholder = false and so are only caught by the domain check.
+ */
+export function isPlaceholderEmail(email: string | null | undefined): boolean {
+  if (!email) return true
+  const lower = email.toLowerCase()
+  return (
+    lower.endsWith('@placeholder.yearout.local') ||
+    lower.endsWith('@placeholder.yearout')
+  )
+}
+
+/** Resolve all crew members of a ritual to their real, mailable addresses. */
 export async function loadRecipients(ritualId: string): Promise<RecipientList> {
   const rows = await db
     .select({ email: users.email, isPlaceholder: ritualMembers.isPlaceholder })
@@ -88,7 +103,7 @@ export async function loadRecipients(ritualId: string): Promise<RecipientList> {
   const emails = rows
     .filter((r) => !r.isPlaceholder)
     .map((r) => r.email)
-    .filter((e): e is string => !!e && !e.endsWith('@placeholder.yearout.local'))
+    .filter((e): e is string => !isPlaceholderEmail(e))
   // Vocative left at 'crew' for v1 — gender-aware heuristic deferred
   return { emails, count: emails.length, vocative: 'crew' }
 }
@@ -244,12 +259,48 @@ async function loadEventSnapshot(eventId: string): Promise<EventSnapshot | null>
 /* ============================================================
  * Stage 2 — Vote (planning)
  * ============================================================ */
+/**
+ * Compact human range for an email, e.g. "Mar 11–15" or "Feb 27 – Mar 3".
+ * Always UTC so the label doesn't drift by timezone between render and send.
+ */
+export function formatDateRange(start: Date, end: Date): string {
+  const mon = (d: Date) =>
+    d.toLocaleDateString('en-US', { month: 'short', timeZone: 'UTC' })
+  const day = (d: Date) => d.getUTCDate()
+  const sameMonth =
+    start.getUTCMonth() === end.getUTCMonth() &&
+    start.getUTCFullYear() === end.getUTCFullYear()
+  return sameMonth
+    ? `${mon(start)} ${day(start)}–${day(end)}`
+    : `${mon(start)} ${day(start)} – ${mon(end)} ${day(end)}`
+}
+
+export interface CallDateOption {
+  id: string
+  startDate: Date
+  endDate: Date
+  /** Pre-formatted for the email, e.g. "Mar 11–15". */
+  label: string
+}
+
+export interface CallLocationOption {
+  id: string
+  name: string
+  /** Years this ritual previously visited this place, newest first. */
+  priorYears: number[]
+}
+
 export interface Stage2VoteContent {
   variant: 'stage2_vote'
   event: EventSnapshot
+  /** The actual options, so the email can show them without a click. */
+  dateOptions: CallDateOption[]
+  locationOptions: CallLocationOption[]
   dateOptionsCount: number
   locationOptionsCount: number
   votesSoFar: number
+  /** Past trips, newest first — real material for weaponized nostalgia. */
+  pastTrips: { year: number; name: string; location: string | null }[]
   ctaUrl: string
 }
 
@@ -260,18 +311,57 @@ export async function buildStage2Vote(
   const event = await loadEventSnapshot(eventId)
   if (!event) return null
 
-  // Cheap counts via the schema we already have
   const { callDateOptions, callLocationOptions, callVotes } = await import('@/db/schema')
-  const dateOpts = await db.select({ id: callDateOptions.id }).from(callDateOptions).where(eq(callDateOptions.eventId, eventId))
-  const locOpts = await db.select({ id: callLocationOptions.id }).from(callLocationOptions).where(eq(callLocationOptions.eventId, eventId))
+  const dateOpts = await db
+    .select()
+    .from(callDateOptions)
+    .where(eq(callDateOptions.eventId, eventId))
+    .orderBy(callDateOptions.sortOrder)
+  const locOpts = await db
+    .select()
+    .from(callLocationOptions)
+    .where(eq(callLocationOptions.eventId, eventId))
+    .orderBy(callLocationOptions.sortOrder)
   const voteRows = await db.select({ id: callVotes.id }).from(callVotes).where(eq(callVotes.eventId, eventId))
+
+  // Prior trips for this ritual — the nostalgia pool. Excludes this event.
+  const priorRows = await db
+    .select({ year: events.year, name: events.name, location: events.location })
+    .from(events)
+    .where(and(eq(events.ritualId, event.ritualId), ne(events.id, eventId)))
+    .orderBy(desc(events.year))
+  const pastTrips = priorRows.map((p) => ({
+    year: p.year,
+    name: p.name,
+    location: p.location,
+  }))
+
+  // Match each candidate location against real history so the email can say
+  // "you've been there" truthfully. Loose match on the city/region token.
+  const locationOptions: CallLocationOption[] = locOpts.map((l) => {
+    const needle = l.name.split(',')[0]!.trim().toLowerCase()
+    const priorYears = needle
+      ? pastTrips
+          .filter((p) => p.location?.toLowerCase().includes(needle))
+          .map((p) => p.year)
+      : []
+    return { id: l.id, name: l.name, priorYears }
+  })
 
   return {
     variant: 'stage2_vote',
     event,
+    dateOptions: dateOpts.map((d) => ({
+      id: d.id,
+      startDate: d.startDate,
+      endDate: d.endDate,
+      label: formatDateRange(d.startDate, d.endDate),
+    })),
+    locationOptions,
     dateOptionsCount: dateOpts.length,
     locationOptionsCount: locOpts.length,
     votesSoFar: voteRows.length,
+    pastTrips,
     ctaUrl: `${appUrl}/${event.ritual.slug}/${event.year}`,
   }
 }

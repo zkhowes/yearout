@@ -3,7 +3,7 @@
 
 import { db } from '@/db'
 import { callSends } from '@/db/schema'
-import { and, eq, gte, sql } from 'drizzle-orm'
+import { and, eq, gte, ne, sql } from 'drizzle-orm'
 
 export interface RateLimitVerdict {
   allowed: boolean
@@ -13,8 +13,15 @@ export interface RateLimitVerdict {
 
 const dayMs = 24 * 60 * 60 * 1000
 
+/** Max total Call emails per ritual per 30 days, across all stages. */
+export const MONTHLY_CALL_LIMIT = 10
+/** Max Stage 1 (The Summons) sends per ritual per 14 days. */
+export const STAGE1_FORTNIGHT_LIMIT = 1
+
 /**
- * Per ritual: max 1 Stage 1 send per 14 days.
+ * Per ritual: max STAGE1_FORTNIGHT_LIMIT Stage 1 sends per 14 days. Admin
+ * (test-harness) sends are excluded from the count — see the note on
+ * checkRitualMonthlyLimit.
  */
 export async function checkStage1RitualLimit(
   ritualId: string,
@@ -29,23 +36,27 @@ export async function checkStage1RitualLimit(
       and(
         eq(callSends.ritualId, ritualId),
         eq(callSends.stage, 1),
-        gte(callSends.sentAt, since)
+        gte(callSends.sentAt, since),
+        ne(callSends.triggeredBy, 'admin')
       )
     )
   const used = rows.length
-  if (used >= 1) {
+  if (used >= STAGE1_FORTNIGHT_LIMIT) {
     return {
       allowed: false,
       reason:
         'You sent The Summons already this fortnight. Let it breathe — try a Smart Share Link instead.',
-      meter: { used, limit: 1, window: '14 days' },
+      meter: { used, limit: STAGE1_FORTNIGHT_LIMIT, window: '14 days' },
     }
   }
-  return { allowed: true, meter: { used, limit: 1, window: '14 days' } }
+  return { allowed: true, meter: { used, limit: STAGE1_FORTNIGHT_LIMIT, window: '14 days' } }
 }
 
 /**
- * Per ritual: max 4 total Call emails per 30 days across all stages.
+ * Per ritual: max MONTHLY_CALL_LIMIT total Call emails per 30 days across all
+ * stages. Admin-triggered sends (test harness) are excluded from the count —
+ * they already bypass enforcement, so counting them would let a debugging
+ * session silently consume the sponsor's real sends.
  */
 export async function checkRitualMonthlyLimit(
   ritualId: string,
@@ -56,17 +67,22 @@ export async function checkRitualMonthlyLimit(
   const rows = await db
     .select({ id: callSends.id })
     .from(callSends)
-    .where(and(eq(callSends.ritualId, ritualId), gte(callSends.sentAt, since)))
+    .where(
+      and(
+        eq(callSends.ritualId, ritualId),
+        gte(callSends.sentAt, since),
+        ne(callSends.triggeredBy, 'admin')
+      )
+    )
   const used = rows.length
-  if (used >= 4) {
+  if (used >= MONTHLY_CALL_LIMIT) {
     return {
       allowed: false,
-      reason:
-        '4 calls this month. The crew will start ignoring them. Take a beat.',
-      meter: { used, limit: 4, window: '30 days' },
+      reason: `${MONTHLY_CALL_LIMIT} calls this month. The crew will start ignoring them. Take a beat.`,
+      meter: { used, limit: MONTHLY_CALL_LIMIT, window: '30 days' },
     }
   }
-  return { allowed: true, meter: { used, limit: 4, window: '30 days' } }
+  return { allowed: true, meter: { used, limit: MONTHLY_CALL_LIMIT, window: '30 days' } }
 }
 
 /**
