@@ -13,7 +13,7 @@ const mockInsertOnConflict = vi.hoisted(() => vi.fn().mockResolvedValue([]))
 const mockInsert = vi.hoisted(() => vi.fn(() => ({ values: mockInsertValues })))
 
 const mockUpdateWhere = vi.hoisted(() => vi.fn().mockResolvedValue([]))
-const mockUpdateSet = vi.hoisted(() => vi.fn(() => ({ where: mockUpdateWhere })))
+const mockUpdateSet = vi.hoisted(() => vi.fn((_values: Record<string, unknown>) => ({ where: mockUpdateWhere })))
 const mockUpdate = vi.hoisted(() => vi.fn(() => ({ set: mockUpdateSet })))
 
 const mockDeleteWhere = vi.hoisted(() => vi.fn().mockResolvedValue([]))
@@ -119,7 +119,7 @@ describe('createEvent', () => {
     mockAuth.mockResolvedValue(SESSION)
     mockMembersFindFirst.mockResolvedValue(SPONSOR_MEMBER)
 
-    let eventInsertArgs: Record<string, unknown> | null = null
+    let eventInsertArgs = null as Record<string, unknown> | null
     mockInsertValues.mockImplementation(async (row: unknown) => {
       if (!Array.isArray(row) && (row as Record<string, unknown>).status) {
         eventInsertArgs = row as Record<string, unknown>
@@ -202,7 +202,7 @@ describe('addProposal', () => {
   it('inserts proposal with trimmed location and dates', async () => {
     mockAuth.mockResolvedValue(SESSION)
 
-    let insertedRow: Record<string, unknown> | null = null
+    let insertedRow = null as Record<string, unknown> | null
     mockInsertValues.mockImplementation(async (row: unknown) => {
       insertedRow = row as Record<string, unknown>
       return []
@@ -219,7 +219,7 @@ describe('addProposal', () => {
   it('stores null when location and dates are empty strings', async () => {
     mockAuth.mockResolvedValue(SESSION)
 
-    let insertedRow: Record<string, unknown> | null = null
+    let insertedRow = null as Record<string, unknown> | null
     mockInsertValues.mockImplementation(async (row: unknown) => {
       insertedRow = row as Record<string, unknown>
       return []

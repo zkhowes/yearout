@@ -5,7 +5,7 @@ const mockAuth = vi.hoisted(() => vi.fn())
 const mockRedirect = vi.hoisted(() => vi.fn())
 const mockRevalidatePath = vi.hoisted(() => vi.fn())
 const mockUpdateWhere = vi.hoisted(() => vi.fn().mockResolvedValue([]))
-const mockUpdateSet = vi.hoisted(() => vi.fn(() => ({ where: mockUpdateWhere })))
+const mockUpdateSet = vi.hoisted(() => vi.fn((_values: Record<string, unknown>) => ({ where: mockUpdateWhere })))
 const mockUpdate = vi.hoisted(() => vi.fn(() => ({ set: mockUpdateSet })))
 
 vi.mock('@/auth', () => ({ auth: mockAuth }))

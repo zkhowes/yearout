@@ -8,7 +8,7 @@ const mockRitualsFindFirst = vi.hoisted(() => vi.fn())
 const mockInsertValues = vi.hoisted(() => vi.fn().mockResolvedValue([]))
 const mockInsert = vi.hoisted(() => vi.fn(() => ({ values: mockInsertValues })))
 const mockUpdateWhere = vi.hoisted(() => vi.fn().mockResolvedValue([]))
-const mockUpdateSet = vi.hoisted(() => vi.fn(() => ({ where: mockUpdateWhere })))
+const mockUpdateSet = vi.hoisted(() => vi.fn((_values: Record<string, unknown>) => ({ where: mockUpdateWhere })))
 const mockUpdate = vi.hoisted(() => vi.fn(() => ({ set: mockUpdateSet })))
 
 vi.mock('@/auth', () => ({ auth: mockAuth }))
@@ -241,7 +241,7 @@ describe('createRitual', () => {
     mockAuth.mockResolvedValue(SESSION)
     mockRitualsFindFirst.mockResolvedValue(null)
 
-    let memberInsertArgs: Record<string, unknown> | null = null
+    let memberInsertArgs = null as Record<string, unknown> | null
     mockInsertValues.mockImplementation(async (rows: unknown) => {
       // The last insert is the ritualMembers insert (single object, not array)
       if (!Array.isArray(rows) && (rows as Record<string, unknown>).role) {
