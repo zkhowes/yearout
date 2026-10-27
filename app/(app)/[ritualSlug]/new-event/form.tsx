@@ -5,6 +5,29 @@ import { ArrowRight, ArrowLeft, Loader2, Plus, X, Megaphone, Upload, Check } fro
 import { createCall, quickEnterEvent, historyEnterEvent } from '@/lib/event-actions'
 import { CalendarRangePicker, type DateRange } from '@/components/calendar-range-picker'
 
+/**
+ * Next's `redirect()` signals navigation by *throwing*. A bare catch around a
+ * server action that redirects would swallow that signal and render a bogus
+ * error, so re-throw it and only treat real failures as errors.
+ */
+function isRedirectError(e: unknown): boolean {
+  return (
+    typeof e === 'object' &&
+    e !== null &&
+    'digest' in e &&
+    typeof (e as { digest?: unknown }).digest === 'string' &&
+    (e as { digest: string }).digest.startsWith('NEXT_REDIRECT')
+  )
+}
+
+/** Surface the action's real message when it has one. */
+function actionErrorMessage(e: unknown): string {
+  if (e instanceof Error && e.message && !e.message.startsWith('NEXT_')) {
+    return e.message
+  }
+  return 'Something went wrong. Try again.'
+}
+
 const THIS_YEAR = new Date().getFullYear()
 
 type CrewUser = {
@@ -133,8 +156,9 @@ function CallForm({
         dateRanges: dateRanges.map((r) => ({ startDate: r.start, endDate: r.end })),
         locations: validLocations,
       })
-    } catch {
-      setError('Something went wrong. Try again.')
+    } catch (e) {
+      if (isRedirectError(e)) throw e
+      setError(actionErrorMessage(e))
       setLoading(false)
     }
   }
@@ -300,8 +324,9 @@ function QuickEnterForm({
         mvpWinnerId: status === 'closed' && mvpWinnerId ? mvpWinnerId : undefined,
         lupWinnerId: status === 'closed' && lupWinnerId ? lupWinnerId : undefined,
       })
-    } catch {
-      setError('Something went wrong. Try again.')
+    } catch (e) {
+      if (isRedirectError(e)) throw e
+      setError(actionErrorMessage(e))
       setLoading(false)
     }
   }
@@ -599,8 +624,9 @@ function HistoryForm({
         editUrl: editUrl.trim() || undefined,
         loreEntries: lore.length > 0 ? lore : undefined,
       })
-    } catch {
-      setError('Something went wrong. Try again.')
+    } catch (e) {
+      if (isRedirectError(e)) throw e
+      setError(actionErrorMessage(e))
       setLoading(false)
     }
   }
